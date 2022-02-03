@@ -4,14 +4,14 @@ Main script for running ERC networks analysis
 conda activate ERC_networks
 
 Example command:
-    python ERCnet_main.py -l 100 -t 50 -r 7 -p 3 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
+    python ERCnet_main.py -j TEST -l 100 -t 50 -r 7 -p 3 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
 
 #To delete previous runs:
     #rm -r Gb_alns/ HOG_seqs/ HOG_subtrees/ Stats/ Trees_working/ BL_trees/ Alns/
 
 '''
-import os
 #During developent, set working directory:
+#import os
 #working_dir = '/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/'
 #os.chdir('/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/')
 
@@ -40,14 +40,12 @@ os.chdir(working_dir)
 #Set up an argumanet parser
 parser = argparse.ArgumentParser(description='Main ERCnet script')
 
+parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help='Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok)') 
 parser.add_argument('-o', '--OFpath', type=str, metavar='', required=True, help='Full path to the Orthofinder results dir (should contain Species_Tree/, Phylogenetic_Hierarchical_Orthogroups/ etc...)\n Include "/" at the end of the string') 
-#parser.add_argument('-n', '--N1path', type=str, metavar='', required=True, help='Full path to the N1.tsv HOG file from Orthofinder') 
-#parser.add_argument('-S', '--SPtree', type=str, metavar='', required=True, help='Full path to the species tree output by Orthofinder (rooted_node_labels)' )
 parser.add_argument('-p', '--MaxP', type=int, metavar='', required=False, help='Integer: maximum number of paralogs per species allowed in each gene family' )
 parser.add_argument('-r', '--MinR', type=int, metavar='', required=False, help='Integer: minimum number of species represented required in each gene family' )
 parser.add_argument('-t', '--Test_num', type=int, metavar='', required=False, help='Integer: number of gene families to analyze (for testing only)' )
 parser.add_argument('-e','--explore_filters', action='store_true', required=False, help='Add this flag to explore filtering options (if selected, program will quit without running downstream steps)')
-#parser.add_argument('-o', '--OGseqdir', type=str, metavar='', required=True, help='Full path to the fasta files for each OG (created by orthofinder)' )
 parser.add_argument('-l', '--Min_len', type=int, metavar='', required=True, help='Integer: minimum length of alignment (after trimming with Gblocks) required to retain gene' )
 parser.add_argument('-x', '--Rax_dir', type=str, metavar='', required=True, help='Full path to the location of your raxml install (use which raxmlHPC to locate). Include "/" at the end of the string') 
 
@@ -56,13 +54,11 @@ parser.add_argument('-x', '--Rax_dir', type=str, metavar='', required=True, help
 args = parser.parse_args()
 
 #Store arguments
-#N1_file_path = args.N1path
-#sp_tr_path = args.SPtree
+JOBname=args.JOBname
 OFpath=args.OFpath
 MaxP_val=args.MaxP
 MinR_val=args.MinR
 explore_filters=args.explore_filters
-#OGseqdir=args.OGseqdir
 Min_len=args.Min_len
 Test_num=args.Test_num
 Rax_dir=args.Rax_dir
@@ -70,15 +66,13 @@ Rax_dir=args.Rax_dir
 
 '''
 #DEV: hardcode arguments
+JOBname = "TEST"
 OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/"
-#sp_tr_path = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/Species_Tree/SpeciesTree_rooted_node_labels.txt"
-#N1_file_path='/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/Phylogenetic_Hierarchical_Orthogroups/N1.tsv'
 MaxP_val=2
 MinR_val=8
 explore_filters=True
-#OGseqdir="/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/Orthogroup_Sequences/"
 Min_len=100
-Test_num=100
+Test_num=50
 Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
 #END DEV
 '''
@@ -86,12 +80,10 @@ Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
 #Check to see if the path arguments end with "/"
 if not OFpath.endswith('/'):
     print('OFpath does not end with a "/". Quitting...\n')
-    log.critical('OFpath does not end with a "/". Quitting...\n')
     sys.exit()
 
 if not Rax_dir.endswith('/'):
     print('Rax_dir does not end with a "/". Quitting...\n')
-    log.critical('Rax_dir does not end with a "/". Quitting...\n')
     sys.exit()
 
 #Get path to some needed Orthofinder files 
@@ -100,14 +92,21 @@ N1_file_path = OFpath+'Phylogenetic_Hierarchical_Orthogroups/N1.tsv'
 OG_trees_dir = OFpath+'Resolved_Gene_Trees/'
 OGseqdir = OFpath+'Orthogroup_Sequences/'
 
+#Store output dir as a variable
+out_dir= 'OUT_'+JOBname+'/'
+
+#Create the output folder
 #Make a directory for storing stats (and log file)
-if not os.path.isdir('Stats'):
-    os.makedirs('Stats')
-    print("created folder : Stats\nLogfile and stats files will be written to this folder\n\n")
-else: print('Logfile and stats files will be written to Stats/\n\n')
+if not os.path.isdir(out_dir):
+    os.makedirs(out_dir)
+    print('created folder: '+out_dir+'\nAll output files will be written to this folder\n\n')
+else: print('All output files will be written to '+out_dir+'\n\n')
 
 #Create log file
-logging.basicConfig(filename='Stats/ERCnet_main.log', encoding='utf-8', level=logging.DEBUG, force=True) #Note force is so there's not conflicting handlers (I think)
+logging.basicConfig(filename=(out_dir+'ERCnet.log'), encoding='utf-8', level=logging.DEBUG, force=True) #Note force is so there's not conflicting handlers (I think)
+
+#Print statement about log file
+print('Check ERCnet.log for verbose log')
 
 #Check N1file exists and run the filter stats script if not
 if os.path.isfile(N1_file_path):
@@ -179,10 +178,10 @@ if explore_filters:
     logging.info('\n\nOutputting table of the total retained trees under different filtering parameter combinations\n\n%s' %retained_trees_df)
     logging.info('\nColumns: minimum requred number or species represented\nRows:Maximum allowed number of paralogs/species\n\n')
     
-    #Exit program (the user will need to rerun after viewing the parameter scar results)
+    #Exit program (the user will need to rerun after viewing the parameter scan results)
     sys.exit()
     
-
+#Report the filters chosen by user
 if 'MaxP_val' in globals() and isinstance(MaxP_val, int) and'MinR_val' in globals() and isinstance(MinR_val, int):
     print('--MaxP_val set to {} and --MinR_val set to {}\nFiltering data....'.format(MaxP_val,MinR_val))
 else:
@@ -199,16 +198,16 @@ if isinstance(Test_num, int):
 
 #Write csv file and report the number of gene trees included after filtering
 if 'HOG' in list(Keeper_HOGs_df.columns):
-    Keeper_HOGs_df.to_csv('Stats/Filtered_genefam_dataset.csv', sep=',' , index=False)
-    logging.info('Filtered list of gene families successfully generated. \nFiltered dataset contains %d genes.\nCsv file written to: Stats/Filtered_genefam_dataset.csv \n\n' %Keeper_HOGs_df.shape[0])
+    Keeper_HOGs_df.to_csv(out_dir+'Filtered_genefam_dataset.csv', sep=',' , index=False)
+    logging.info('Filtered list of gene families successfully generated. \nFiltered dataset contains %d genes.\nCsv file written to Filtered_genefam_dataset.csv \n\n' %Keeper_HOGs_df.shape[0])
 else:
     logging.critical('Sequence counts per sepecies dataframe not properly generated. Quitting...\n\n')
     sys.exit()
 
 ### Extract the subtree sequences to be aligned
 #make a dir to store the new fasta files
-if not os.path.isdir('HOG_seqs'):
-    os.makedirs('HOG_seqs')
+if not os.path.isdir(out_dir+'HOG_seqs'):
+    os.makedirs(out_dir+'HOG_seqs')
     print("created folder : HOG_seqs\nfasta files will be written to HOG_seqs/\n\n")
 else: print('Fasta files will be written to HOG_seqs/\n\n')
 
@@ -232,11 +231,11 @@ for row_i, row in Keeper_HOGs_df.iterrows():
     HOG_dict= {k: OG_dict[k] for k in OG_dict.keys() & seq_list}
     
     #Write file
-    with open(str('HOG_seqs/'+HOGtemp.replace("N1.", "")+'.fa'), 'w') as handle:
+    with open(str(out_dir+'HOG_seqs/'+HOGtemp.replace("N1.", "")+'.fa'), 'w') as handle:
         SeqIO.write(HOG_dict.values(), handle, 'fasta')
 
 #Get list of files that were written
-seq_file_names = glob.glob('HOG_seqs/HOG*')
+seq_file_names = glob.glob(out_dir+'HOG_seqs/HOG*')
 
 #Report the number of files that were written
 #Write csv file and report the number of gene trees included after filtering
@@ -258,8 +257,8 @@ else:
     sys.exit()
     
 #Make a directory for alignments
-if not os.path.isdir('Alns'):
-    os.makedirs('Alns')
+if not os.path.isdir(out_dir+'Alns'):
+    os.makedirs(out_dir+'Alns')
     print("created folder : Alns/\n\n")
 else: 
     print('MAFFT alignments will be written to Alns/\n\n')
@@ -269,18 +268,18 @@ for file_i, file in enumerate(seq_file_names):
         print('%d alignments done!' %file_i)
     if file_i % 1000 == 0:    
         logging.info('%d alignments done!' %file_i)
-    os.system('mafft-linsi --quiet '+file+' > Alns/ALN_'+file.replace("HOG_seqs/", ""))
+    os.system('mafft-linsi --quiet '+file+' > '+out_dir+'Alns/ALN_'+file.replace(out_dir+"HOG_seqs/", ""))
     #os.system('mafft-linsi '+file+' >Alns/ALN_'+file.replace("HOG_seqs/", "")+' 2>&1') #' 2>&1' suppressed stderr from mafft
     #print('mafft-linsi --quiet '+file+' > Alns/ALN_'+file.replace("HOG_seqs/", ""))
 
 #Check alignment status
-if len(glob.glob('Alns/ALN*')) == len(seq_file_names):
+if len(glob.glob(out_dir+'Alns/ALN*')) == len(seq_file_names):
     print('Alignment finished succesfully\n')
     logging.info('Alignment finished succesfully\n')
-elif len(glob.glob('Alns/ALN*')) < len(seq_file_names):
+elif len(glob.glob(out_dir+'Alns/ALN*')) < len(seq_file_names):
     print('WARNING: some alignments did not finish. Proceeding (with caution)...\n')
     logging.critical('WARNING: some alignments did not finish. Proceeding (with caution)...\n\n')
-elif len(glob.glob('Alns/ALN*')) < len(seq_file_names):
+elif len(glob.glob(out_dir+'Alns/ALN*')) < len(seq_file_names):
     print('WARNING: there are more alignments in the folder than expected. Proceeding (with caution)...\n\n')
     logging.critical('WARNING: there are more alignments in the folder than expected. Proceeding (with caution)...\n\n')
 
@@ -289,27 +288,20 @@ print('Beginning GBLOCKS\n')
 logging.info('Beginning GBLOCKS\n')
 
 #Get list of all alns (that haven't been gblocked yet)
-aln_file_names = [x for x in glob.glob('Alns/ALN*') if "-gb" not in x]
+aln_file_names = [x for x in glob.glob(out_dir+'Alns/ALN*') if "-gb" not in x]
 
 #Make folder for gblocks'd alignments
 #Make a directory for gblocks trimmed alignments
-if not os.path.isdir('Gb_alns'):
-    os.makedirs('Gb_alns')
+if not os.path.isdir(out_dir+'Gb_alns'):
+    os.makedirs(out_dir+'Gb_alns')
     print("created folder: Gb_alns/\n\n")
 else: 
     print('Gblocks-trimmed alignments will be stored to Gb_alns/\n\n')
 
-'''
-#Make a directory for html file (not needed, Gblocks isn't creating html files')
-if not os.path.isdir('Gb_alns/HTML_files/'):
-    os.makedirs('Gb_alns/HTML_files/')
-    print("created folder: Gb_alns/HTML_files/\n\n")
-else: 
-    print('GHTML format blocks-trimmed alignents will be stored to Gb_alns/HTML_files/\n\n')
-'''
+
 #Make a directory for gblocks trimmed alignments that are too short 
-if not os.path.isdir('Gb_alns/Too_short/'):
-    os.makedirs('Gb_alns/Too_short/')
+if not os.path.isdir(out_dir+'Gb_alns/Too_short/'):
+    os.makedirs(out_dir+'Gb_alns/Too_short/')
     print("created folder: Gb_alns/Too_short/\n\n")
 else: 
     print('Trimmed alignents that are too short will be stored to Gb_alns/Too_short/\n\n')
@@ -356,8 +348,8 @@ for aln in aln_file_names:
 ### Get the subtree tree files (to use in branch length optimization)
 #Create folder to store subtrees
 #Make a directory for gblocks trimmed alignments that are too short 
-if not os.path.isdir('HOG_subtrees/'):
-    os.makedirs('HOG_subtrees/')
+if not os.path.isdir(out_dir+'HOG_subtrees/'):
+    os.makedirs(out_dir+'HOG_subtrees/')
     print("created folder: HOG_subtrees/\n\n")
 else: 
     print('HOG subtrees will be stored in HOG_subtrees/\n\n')
@@ -377,13 +369,14 @@ for row_i, row in Keeper_HOGs_df.iterrows():
     #Clean up the list by converting to str, removing all the extra stuff then split the str back into a list
     seq_list = str(seq_list_temp).replace(" ", "").replace("'", "").replace("[", "").replace("]", "").split(',')
 
-    get_st_cmd= 'Rscript Get_subtree.R '+OG_trees_dir+OGtemp+'_tree.txt HOG_subtrees/'+HOGtemp+'_tree.txt '+'"'+str(seq_list_temp).replace('[','').replace(']','').replace(' ', '').replace("'", "")+'"'
+    get_st_cmd= 'Rscript Get_subtree.R '+OG_trees_dir+OGtemp+'_tree.txt '+out_dir+'HOG_subtrees/'+HOGtemp+'_tree.txt '+'"'+str(seq_list_temp).replace('[','').replace(']','').replace(' ', '').replace("'", "")+'"'
     
     #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
     if re.search('Get_subtree.R', get_st_cmd) and re.search(HOGtemp, get_st_cmd):
         subprocess.call(get_st_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-if len(glob.glob('HOG_subtrees/*tree.txt')) > 0:
+
+if len(glob.glob(out_dir+'HOG_subtrees/*tree.txt')) > 0:
     print('Finished running subtree extraction. Check "Non-binary_subtrees.txt" for a list trees that were excluded\n\n')
     logging.info('Finished running subtree extraction. Check "Non-binary_subtrees.txt" for a list trees that were excluded\n\n')
 else:
@@ -401,21 +394,21 @@ def intersection(lst1, lst2):
     return lst3
 
 #Get a list of the IDs that sucessfully created alignments and subtrees
-keeperIDs = intersection([x.replace('Gb_alns/ALN_', '').replace('.fa-gb', '') for x in glob.glob('Gb_alns/ALN_*')], [y.replace('HOG_subtrees/', '').replace('_tree.txt', '') for y in glob.glob('HOG_subtrees/*_tree.txt')])
+keeperIDs = intersection([x.replace(out_dir+'Gb_alns/ALN_', '').replace('.fa-gb', '') for x in glob.glob(out_dir+'Gb_alns/ALN_*')], [y.replace(out_dir+'HOG_subtrees/', '').replace('_tree.txt', '') for y in glob.glob(out_dir+'HOG_subtrees/*_tree.txt')])
 
 print('Starting Branch Length Optimization with RAxML\n\n')
 logging.info('Starting branch length optimization\n\n')
       
 #Make directory to work in
-if not os.path.isdir('Trees_working/'):
-    os.makedirs('Trees_working/')
+if not os.path.isdir(out_dir+'Trees_working/'):
+    os.makedirs(out_dir+'Trees_working/')
     print("created folder: Trees_working/\n\n")
 else: 
     print('HOG subtrees will be stored in Trees_working/\n\n')
     
 #Make directory to write output to
-if not os.path.isdir('BL_trees/'):
-    os.makedirs('BL_trees/')
+if not os.path.isdir(out_dir+'BL_trees/'):
+    os.makedirs(out_dir+'BL_trees/')
     print("created folder: BL_trees/\n\n")
 else: 
     print('HOG subtrees will be stored in BL_trees/\n\n')
@@ -431,14 +424,14 @@ for HOG_i, HOG_id in enumerate(keeperIDs):
 
     #Copy the needed files to the directory
     #tree
-    shutil.copy2('HOG_subtrees/'+HOG_id+'_tree.txt', 'Trees_working/'+HOG_id+'_tree.txt')
+    shutil.copy2(out_dir+'HOG_subtrees/'+HOG_id+'_tree.txt', out_dir+'Trees_working/'+HOG_id+'_tree.txt')
     
     #alignment (remove -gb suffix)
-    shutil.copy2('Gb_alns/ALN_'+HOG_id+'.fa-gb', 'Trees_working/GB_ALN_'+HOG_id+'.fa')
+    shutil.copy2(out_dir+'Gb_alns/ALN_'+HOG_id+'.fa-gb', out_dir+'Trees_working/GB_ALN_'+HOG_id+'.fa')
     
     #Build the command
-    raxml_cmd= Rax_dir+'raxmlHPC '+'-s '+working_dir+'Trees_working/GB_ALN_'+HOG_id+'.fa '+'-w '+working_dir+'BL_trees/'+ \
-    ' -n '+HOG_id+'_BL.txt'+' -t '+working_dir+'Trees_working/'+HOG_id+'_tree.txt'+ \
+    raxml_cmd= Rax_dir+'raxmlHPC '+'-s '+working_dir+out_dir+'Trees_working/GB_ALN_'+HOG_id+'.fa '+'-w '+working_dir+out_dir+'BL_trees/'+ \
+    ' -n '+HOG_id+'_BL.txt'+' -t '+working_dir+out_dir+'Trees_working/'+HOG_id+'_tree.txt'+ \
     ' -m PROTGAMMALGF -p 12345 -f e'
     
     #Run the command (note, raxml was installed with conda so this wont work in spyder)
@@ -446,11 +439,17 @@ for HOG_i, HOG_id in enumerate(keeperIDs):
         subprocess.call(raxml_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         #subprocess.call(raxml_cmd, shell=True)
 
+print('Done with RAxML branch length optimization\n\n')
 
-###Run DLC par gene-tree/species-tree reconciliation
-#DLCpar needs python 2 so the user needs to create a venv with python 2 and install dlcpar on that env using the folloowing commands
-#conda create --name dlcpar_py27 python=2.7
-#conda activate dlcpar_py27
-#conda install -c bioconda dlcpar
+print('IMPORTANT NOTE: the next step makes use of DLCpar, which requires python 2 (whereas the previous steps are written in python 3).\n' \
+      'To run the next step you will need to enter a python 2 anaconda environment and install DLCpar.\n\n' \
+          'Example commands:\n' \
+              'conda create --name dlcpar_py27 python=2.7\n' \
+                  'conda activate dlcpar_py27\n' \
+                      'conda install -c bioconda dlcpar\n\n')
+
+print('After successfully completing the above steps, run the next step with the following command:\n\n' \
+      'python Run_ERC.py -j '+JOBname+' -o '+OFpath+""
+      )
 
 

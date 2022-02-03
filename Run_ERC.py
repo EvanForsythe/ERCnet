@@ -3,7 +3,7 @@ Script for performing BL reconcilation. Needs to be run in python 2 env (because
 
 conda activate dlcpar_py27 
 
-python Run_ERC.py -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/
+python Run_ERC.py -j TEST -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/
 
 #delete previous runs
 #rm -r DLCpar/ BL_results/
@@ -28,21 +28,23 @@ working_dir = sys.path[0]+'/'
 os.chdir(working_dir)
 
 #Set up an argumanet parser
-parser = argparse.ArgumentParser(description='Main ERCnet script')
+parser = argparse.ArgumentParser(description='branch length recociliation step')
 
+parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help='Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok)') 
 parser.add_argument('-o', '--OFpath', type=str, metavar='', required=True, help='Full path to the Orthofinder results dir (should contain Species_Tree/, Phylogenetic_Hierarchical_Orthogroups/ etc...)\n Include "/" at the end of the string') 
 
 #Define the parser
 args = parser.parse_args()
 
 #Store arguments
+JOBname=args.JOBname
 OFpath=args.OFpath
 #OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/"
 
 print("beginning BL reconciliation (using R and dlcpar)...\n\n Calling R...\n\n")
 
 #Run the BL reconcilation step.
-BL_rec_cmd= 'Rscript BL_reconciliation.R '+OFpath
+BL_rec_cmd= 'Rscript BL_reconciliation.R '+JOBname+' '+OFpath
     
 #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
 if re.search('BL_reconciliation.R', BL_rec_cmd) and re.search('Rscript', BL_rec_cmd):
