@@ -363,27 +363,7 @@ get_st_cmd= 'Rscript Get_subtree.R '+OG_trees_dir+' '+out_dir
 if re.search('Get_subtree.R', get_st_cmd) and re.search(OG_trees_dir, get_st_cmd):
     subprocess.call(get_st_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-'''
-#Loop through keeper HOGs (This is slow. Calling Rscript mulitple times must be inefficient? Probably because of loadng the ape package each time)
-for row_i, row in Keeper_HOGs_df.iterrows():
-    #Get the relevant OG and HOG string 
-    OGtemp = row['OG']
-    HOGtemp = row['HOG'].replace(r'N1.', '')
-    
-    #Get a list of seqs to retain
-    seq_list_temp=[item for item in list(row[sp_list]) if not(pd.isnull(item)) == True]
-    
-    #Clean up the list by converting to str, removing all the extra stuff then split the str back into a list
-    seq_list = str(seq_list_temp).replace(" ", "").replace("'", "").replace("[", "").replace("]", "").split(',')
-    
-    get_st_cmd= 'Rscript Get_subtree.R '+OG_trees_dir+OGtemp+'_tree.txt '+out_dir+'HOG_subtrees/'+HOGtemp+'_tree.txt '+'"'+str(seq_list_temp).replace('[','').replace(']','').replace(' ', '').replace("'", "")+'"'
-    
-    #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
-    if re.search('Get_subtree.R', get_st_cmd) and re.search(HOGtemp, get_st_cmd):
-        subprocess.call(get_st_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    
-    '''    
-
+#Checj if it worked
 if len(glob.glob(out_dir+'HOG_subtrees/*tree.txt')) > 0:
     print('Finished running subtree extraction. Check "Non-binary_subtrees.txt" for a list trees that were excluded\n\n')
     logging.info('Finished running subtree extraction. Check "Non-binary_subtrees.txt" for a list trees that were excluded\n\n')
