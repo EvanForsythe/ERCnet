@@ -236,3 +236,37 @@ write.table(BL_measure_df, file = paste0(working_dir, out_dir, "BL_results/bxb_B
 
 #Write the root to tip (r2t) results
 write.table(r2t_measure_df, file = paste0(working_dir, out_dir, "BL_results/r2t_BLs.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+#Normalize branch lengths by genome-wide average
+#Branch by branch
+bxb_BL_norm<-BL_measure_df
+
+i<-2:ncol(bxb_BL_norm)
+bxb_BL_norm[,i] <- apply(bxb_BL_norm[,i], 2,function(x) as.numeric(as.character(x)))
+
+for(s in 2:ncol(bxb_BL_norm)){
+  bxb_BL_norm[,s]<-bxb_BL_norm[,s]/(mean(na.omit(bxb_BL_norm[,s])))
+}
+
+#Branch by branch
+r2t_BL_norm<-r2t_measure_df
+
+i<-2:ncol(r2t_BL_norm)
+r2t_BL_norm[,i] <- apply(r2t_BL_norm[,i], 2,function(x) as.numeric(as.character(x)))
+
+for(s in 2:ncol(r2t_BL_norm)){
+  r2t_BL_norm[,s]<-r2t_BL_norm[,s]/(mean(na.omit(r2t_BL_norm[,s])))
+}
+
+### Write the results
+#Write the branch by branch (bxb) results
+write.table(bxb_BL_norm, file = paste0(working_dir, out_dir, "BL_results/bxb_BLs_normalized.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+#Write the root to tip (r2t) results
+write.table(r2t_BL_norm, file = paste0(working_dir, out_dir, "BL_results/r2t_BLs_normalized.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+
+
+
+
+
