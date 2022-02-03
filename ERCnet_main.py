@@ -439,11 +439,17 @@ for HOG_i, HOG_id in enumerate(keeperIDs):
         subprocess.call(raxml_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         #subprocess.call(raxml_cmd, shell=True)
 
+print('Done with RAxML branch length optimization\n\n')
 
-###Run DLC par gene-tree/species-tree reconciliation
-#DLCpar needs python 2 so the user needs to create a venv with python 2 and install dlcpar on that env using the folloowing commands
-#conda create --name dlcpar_py27 python=2.7
-#conda activate dlcpar_py27
-#conda install -c bioconda dlcpar
+print('IMPORTANT NOTE: the next step makes use of DLCpar, which requires python 2 (whereas the previous steps are written in python 3).\n' \
+      'To run the next step you will need to enter a python 2 anaconda environment and install DLCpar.\n\n' \
+          'Example commands:\n' \
+              'conda create --name dlcpar_py27 python=2.7\n' \
+                  'conda activate dlcpar_py27\n' \
+                      'conda install -c bioconda dlcpar\n\n')
+
+print('After successfully completing the above steps, run the next step with the following command:\n\n' \
+      'python Run_ERC.py -j '+JOBname+' -o '+OFpath+""
+      )
 
 

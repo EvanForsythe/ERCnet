@@ -34,30 +34,31 @@ working_dir<-paste0(getwd(),"/")
 #Read in arguments
 args = commandArgs(trailingOnly=TRUE)
 
+#Get the job name (used to identify the proper output folder)
+jobname<-args[1]
+#jobname<-"TEST"
+out_dir<-paste0("OUT_", jobname, "/")
+
 #Get dir where orthofinder results live
-OFpath<-args[1]
+OFpath<-args[2]
 #OFpath<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/"
 
 ## Reconciliation
 #Check if reconciliation dir exists (create one if not)
-if(!dir.exists(paste0(working_dir, "DLCpar/"))){
-  system(paste("mkdir ", paste0(working_dir, "DLCpar/")))
+if(!dir.exists(paste0(working_dir, out_dir, "DLCpar/"))){
+  system(paste("mkdir ", paste0(working_dir, out_dir, "DLCpar/")))
 }
 
 #get a copy of the species tree from Orthofinder folder
 file.copy(from = paste0(OFpath,"Species_Tree/SpeciesTree_rooted_node_labels.txt"),
-          to = paste0(working_dir, "DLCpar/SpeciesTree_rooted_node_labels.txt"))
+          to = paste0(working_dir, out_dir, "DLCpar/SpeciesTree_rooted_node_labels.txt"))
 
-sp_tr<-read.tree(paste0(working_dir,"DLCpar/SpeciesTree_rooted_node_labels.txt"))
+sp_tr<-read.tree(paste0(working_dir, out_dir, "DLCpar/SpeciesTree_rooted_node_labels.txt"))
 
 #Create the DCLpar files needed
 #Make species map table
 write.table(data.frame(gt=paste0(sp_tr$tip.label, "_*"), st=paste0(sp_tr$tip.label)), 
-            file = paste0(working_dir, "DLCpar/speciesIDs.smap"), sep = "\t", col.names = FALSE, row.names = FALSE, quote = FALSE)
-
-#copy species tree from Orthofinder folder
-file.copy(from = paste0(OFpath,"Species_Tree/SpeciesTree_rooted_node_labels.txt"),
-          to = paste0(working_dir, "DLCpar/SpeciesTree_rooted_node_labels.txt"))
+            file = paste0(working_dir, out_dir, "DLCpar/speciesIDs.smap"), sep = "\t", col.names = FALSE, row.names = FALSE, quote = FALSE)
 
 #Table of all edges on the species trees
 all_nodes<-c(sp_tr$tip.label, sp_tr$node.label)
@@ -67,21 +68,21 @@ names(sp_branches_df)<-c("ancestor", "decendant")
 sp_branches_df['gene_tree_BL_measure']<-NA
 
 #Get list of trees to be reconciled
-tree_input_list<-list.files(path = paste0(working_dir, "BL_trees/"), pattern = "RAxML_result.")
+tree_input_list<-list.files(path = paste0(working_dir, out_dir, "BL_trees/"), pattern = "RAxML_result.")
 
 #Remove extra text in file names
 tree_input_list<-str_replace(str_replace(tree_input_list, "RAxML_result.", ""), "_BL.txt", "")
 
 #temporarily setwd
-setwd(paste0(working_dir, "DLCpar/"))
+setwd(paste0(working_dir, out_dir, "DLCpar/"))
 
 #Loop through input files
 for(d in 1:length(tree_input_list)){
   #d<-1
   #Get the BL tree
-  BL_tree_temp<-read.tree(file = paste0(working_dir, "BL_trees/RAxML_result.", tree_input_list[d], "_BL.txt")) 
+  BL_tree_temp<-read.tree(file = paste0(working_dir, out_dir, "BL_trees/RAxML_result.", tree_input_list[d], "_BL.txt")) 
   #Get the original subtree
-  subtree_temp2<-read.tree(file = paste0(working_dir, "HOG_subtrees/", tree_input_list[d], "_tree.txt")) 
+  subtree_temp2<-read.tree(file = paste0(working_dir, out_dir, "HOG_subtrees/", tree_input_list[d], "_tree.txt")) 
   
   #Make new version of subtree with all branches=1
   subtree_temp2$edge.length<-rep(1,length(subtree_temp2$edge.length))
@@ -110,7 +111,7 @@ for(d in 1:length(tree_input_list)){
   BL_tree_root$node.label<-paste0("n", 1:BL_tree_root$Nnode)
   
   #Write the BL_tree (this is what is used for DLCpar reconciliation)
-  write.tree(phy = BL_tree_root, file = paste0(working_dir, "DLCpar/", tree_input_list[d], "_NODES_BL.txt"))
+  write.tree(phy = BL_tree_root, file = paste0(working_dir, out_dir, "DLCpar/", tree_input_list[d], "_NODES_BL.txt"))
   
   ##Run DLCpar
   DLCpar_cmd<-paste0("dlcpar_search -s SpeciesTree_rooted_node_labels.txt -S speciesIDs.smap ", tree_input_list[d], "_NODES_BL.txt")
@@ -124,11 +125,11 @@ setwd(working_dir)
 ###Use DLCpar output to pull out relevant branch lengths
 
 #Check if BL results dir exists (create one if not)
-if(!dir.exists(paste0(working_dir, "BL_results/"))){
-  system(paste("mkdir ", paste0(working_dir, "BL_results/")))
+if(!dir.exists(paste0(working_dir, out_dir, "BL_results/"))){
+  system(paste("mkdir ", paste0(working_dir, out_dir, "BL_results/")))
 }
 
-rec_files_list<-list.files(path = paste0(working_dir, "DLCpar/"), pattern = "_NODES_BL.txt.dlcpar.locus.recon")
+rec_files_list<-list.files(path = paste0(working_dir, out_dir, "DLCpar/"), pattern = "_NODES_BL.txt.dlcpar.locus.recon")
 #Remove extra text
 rec_files_list<-str_replace(rec_files_list, ".dlcpar.locus.recon", "")
 
@@ -145,14 +146,14 @@ names(r2t_measure_df)[1]<-"HOG_ID"
 #Start loop
 for(m in 1:length(rec_files_list)){
   #read in reconciliation file
-  rec_df<-read.table(file = paste0(working_dir, "DLCpar/", rec_files_list[m], ".dlcpar.locus.recon"), header = FALSE, stringsAsFactors = FALSE)
+  rec_df<-read.table(file = paste0(working_dir, out_dir, "DLCpar/", rec_files_list[m], ".dlcpar.locus.recon"), header = FALSE, stringsAsFactors = FALSE)
   names(rec_df)<-c("Gene_tree_node", "Sp_tree_location", "Event")
 
   #Note about rec file: the nodes in here refer to the nodes from the 'locus tree', which doesn't have branch lengths
   #There is a table that can be used to replace locus tree nodes with the relevant node from the gene tree
 
   #Read conversion table
-  con_df<-read.table(file = paste0(working_dir, "DLCpar/",  rec_files_list[m], ".dlcpar.coal.recon"), header = FALSE, stringsAsFactors = FALSE)
+  con_df<-read.table(file = paste0(working_dir, out_dir, "DLCpar/",  rec_files_list[m], ".dlcpar.coal.recon"), header = FALSE, stringsAsFactors = FALSE)
   names(con_df)<-c("Gene_tree_node_names", "Locus_tree_node_names", "Not_sure")
   #Replace the node names
   rec_df_replace<-rec_df
@@ -170,7 +171,7 @@ for(m in 1:length(rec_files_list)){
   sp_branches_df_temp<-sp_branches_df
 
   #Read in gene tree with BLs
-  temp_BL_tree<-read.tree(file = paste0(working_dir, "DLCpar/", rec_files_list[m]))
+  temp_BL_tree<-read.tree(file = paste0(working_dir, out_dir, "DLCpar/", rec_files_list[m]))
 
   #make a matrix of branch lengths on gene tree
   BL_distance_mat<-dist.nodes(temp_BL_tree)
@@ -231,7 +232,7 @@ for(m in 1:length(rec_files_list)){
 
 ### Write the results
 #Write the branch by branch (bxb) results
-write.table(BL_measure_df, file = paste0(working_dir, "BL_results/bxb_BLs.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+write.table(BL_measure_df, file = paste0(working_dir, out_dir, "BL_results/bxb_BLs.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
 
 #Write the root to tip (r2t) results
-write.table(r2t_measure_df, file = paste0(working_dir, "BL_results/r2t_BLs.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+write.table(r2t_measure_df, file = paste0(working_dir, out_dir, "BL_results/r2t_BLs.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
