@@ -5,7 +5,6 @@ conda activate ERC_networks
 
 Example command:
     python ERCnet_main.py -j TEST -l 100 -t 50 -r 7 -p 3 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
-
 #To delete previous runs:
     #rm -r Gb_alns/ HOG_seqs/ HOG_subtrees/ Stats/ Trees_working/ BL_trees/ Alns/
 
@@ -70,7 +69,7 @@ JOBname = "TEST"
 OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/"
 MaxP_val=2
 MinR_val=8
-explore_filters=True
+explore_filters=False
 Min_len=100
 Test_num=50
 Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
@@ -357,25 +356,14 @@ else:
 print('Running subtree extraction. Check Non-binary_subtrees.txt for list of trees that are excluded for being non-bifurcating\n\n')
 logging.info('Extracting subtrees\n\n')
 
-#Loop through keeper HOGs (This is slow. Calling Rscript mulitple times must be inefficient? Probably because of loadng the ape package each time)
-for row_i, row in Keeper_HOGs_df.iterrows():
-    #Get the relevant OG and HOG string 
-    OGtemp = row['OG']
-    HOGtemp = row['HOG'].replace(r'N1.', '')
+#Call the R-script used to extract trees
+get_st_cmd= 'Rscript Get_subtree.R '+OG_trees_dir+' '+out_dir
     
-    #Get a list of seqs to retain
-    seq_list_temp=[item for item in list(row[sp_list]) if not(pd.isnull(item)) == True]
-    
-    #Clean up the list by converting to str, removing all the extra stuff then split the str back into a list
-    seq_list = str(seq_list_temp).replace(" ", "").replace("'", "").replace("[", "").replace("]", "").split(',')
+#Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
+if re.search('Get_subtree.R', get_st_cmd) and re.search(OG_trees_dir, get_st_cmd):
+    subprocess.call(get_st_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    get_st_cmd= 'Rscript Get_subtree.R '+OG_trees_dir+OGtemp+'_tree.txt '+out_dir+'HOG_subtrees/'+HOGtemp+'_tree.txt '+'"'+str(seq_list_temp).replace('[','').replace(']','').replace(' ', '').replace("'", "")+'"'
-    
-    #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
-    if re.search('Get_subtree.R', get_st_cmd) and re.search(HOGtemp, get_st_cmd):
-        subprocess.call(get_st_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-
+#Checj if it worked
 if len(glob.glob(out_dir+'HOG_subtrees/*tree.txt')) > 0:
     print('Finished running subtree extraction. Check "Non-binary_subtrees.txt" for a list trees that were excluded\n\n')
     logging.info('Finished running subtree extraction. Check "Non-binary_subtrees.txt" for a list trees that were excluded\n\n')
