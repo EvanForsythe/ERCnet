@@ -40,6 +40,10 @@ args = parser.parse_args()
 JOBname=args.JOBname
 OFpath=args.OFpath
 #OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/"
+#JOBname = "TEST"
+
+#Store output dir as a variable
+out_dir= 'OUT_'+JOBname+'/'
 
 print("beginning BL reconciliation (using R and dlcpar)...\n\n Calling R...\n\n")
 
@@ -52,6 +56,28 @@ if re.search('BL_reconciliation.R', BL_rec_cmd) and re.search('Rscript', BL_rec_
 
 if len(glob.glob('BL_results/*tsv')) > 0:
     print('Finished branch length reconciliation.\n\nResults files written to BL_results/\n\n')
+    
+## Run all-by-all correlations
+
+#Make a directory for ERC results
+if not os.path.isdir(out_dir+'Results_ERC/'):
+    os.makedirs(out_dir+'Results_ERC/')
+    print("created folder: Results_ERC/\n\n")
+else: 
+    print('ERC results will be stored to Results_ERC/\n\n')
+    
+
+#Run the R script
+#Run the BL reconcilation step.
+ERC_rec_cmd= 'Rscript AllxAll_correlations.R '+JOBname
+    
+#Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
+if re.search('AllxAll_correlations.R', ERC_rec_cmd) and re.search('Rscript', ERC_rec_cmd):
+    subprocess.call(ERC_rec_cmd, shell=True)
+
+
+
+
 
 
 

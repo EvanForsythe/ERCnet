@@ -4,7 +4,7 @@ Main script for running ERC networks analysis
 conda activate ERC_networks
 
 Example command:
-    python ERCnet_main.py -j TEST -l 100 -t 100 -r 7 -p 3 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
+    python ERCnet_main.py -j TEST -l 100 -t 50 -r 7 -p 3 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
 #To delete previous runs:
     #rm -r Gb_alns/ HOG_seqs/ HOG_subtrees/ Stats/ Trees_working/ BL_trees/ Alns/
 
