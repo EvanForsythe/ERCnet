@@ -60,7 +60,7 @@ print("Beginning all-by-all pairwise ERC correlation analysis...")
 
 #Use cat because paste+print doesn't recognize \n
 cat("\nNumber of genes: ", nrow(bxb_measure_df_res), 
-    "\nNumber of pair-wise comparisons: ", nrow(ERC_df))
+    "\nNumber of pair-wise comparisons: ", nrow(ERC_df), "\n\n")
 
 #Loop through the rows
 for(e in 1:nrow(ERC_results_df)){
@@ -128,9 +128,16 @@ for(e in 1:nrow(ERC_results_df)){
   
 }#End pairwise combo loop (variable = e)
 
+#Write tsv files of the ERC results
+#Reorder by bxb pearson p-value
+ERC_results_df_order<-ERC_results_df[order(ERC_results_df$Pearson_P_BXB),]
+
+#Write the table
+write.table(ERC_results_df_order, file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+
 #Print figures describing the common branches between pairs of genes
 #bxb
-pdf(file = paste0(working_dir, out_dir, "Results_ERC/BxB_overlap_hist.pdf"), width=5, height = 5)
+pdf(file = paste0(working_dir, out_dir, "ERC_results/BxB_overlap_hist.pdf"), width=5, height = 5)
 
 hist(ERC_results_df$Overlapping_branches_BXB, 
      breaks = (max(ERC_results_df$Overlapping_branches_BXB)-min(ERC_results_df$Overlapping_branches_BXB)+1), 
@@ -139,7 +146,7 @@ hist(ERC_results_df$Overlapping_branches_BXB,
 dev.off()
 
 #r2t
-pdf(file = paste0(working_dir, out_dir, "Results_ERC/R2T_overlap_hist.pdf"), width=5, height = 5)
+pdf(file = paste0(working_dir, out_dir, "ERC_results/R2T_overlap_hist.pdf"), width=5, height = 5)
 
 hist(ERC_results_df$Overlapping_branches_R2T, 
      breaks = (max(ERC_results_df$Overlapping_branches_R2T)-min(ERC_results_df$Overlapping_branches_R2T)+1),
@@ -147,37 +154,67 @@ hist(ERC_results_df$Overlapping_branches_R2T,
 
 dev.off()
 
+#Print message
+print("Building networks from ERC results")
+
 ##NETWORKS
 #Branch by branch
 #Trim down to only look at significant correlation
-ERC_results_df_hits_bxb<-subset(ERC_results_df, Pearson_P_BXB<0.01)[,c(-1,-2)]
+ERC_results_df_hits_bxb<-subset(ERC_results_df, Pearson_P_BXB<0.001)[,c(1,2,6)]
 
 #make a network graph
 network_graph_bxb<-graph.data.frame(ERC_results_df_hits_bxb, directed = FALSE)
+
+#Color branches by strength of ERC
+E(network_graph_bxb)$edge.color<-"pink"
+E(network_graph_bxb)[Pearson_P_BXB<=0.0001]$edge.color<-"red1"
+E(network_graph_bxb)[Pearson_P_BXB<=0.00001]$edge.color<-"red4"
 
 #save pdf
 pdf(file = paste0(working_dir, out_dir, "Results_ERC/BxB_network.pdf"), width=5, height = 5)
 
 #plot the graph
-plot.igraph(network_graph_bxb, vertex.size=10, vertex.label=NA)
+plot.igraph(network_graph_bxb, 
+            vertex.label=NA,
+            vertex.size=10,
+            edge.color=E(network_graph_bxb)$edge.color, 
+            vertex.color="snow3", 
+            layout=layout_with_lgl(network_graph_bxb),
+            vertex.label.color="black")
 
 dev.off()
 
 #Root to tip
 #Trim down to only look at significant correlation
-ERC_results_df_hits_r2t<-subset(ERC_results_df, Pearson_P_R2T<0.01)[,c(-1,-2)]
+ERC_results_df_hits_r2t<-subset(ERC_results_df, Pearson_P_R2T<0.001)[,c(1,2,11)]
 
 #make a network graph
 network_graph_r2t<-graph.data.frame(ERC_results_df_hits_r2t, directed = FALSE)
 
+#Color branches by strength of ERC
+E(network_graph_r2t)$edge.color<-"pink"
+E(network_graph_r2t)[Pearson_P_R2T<=0.0001]$edge.color<-"red1"
+E(network_graph_r2t)[Pearson_P_R2T<=0.00001]$edge.color<-"red4"
+
 #save pdf
-pdf(file = paste0(working_dir, out_dir, "Results_ERC/R2T_network.pdf"), width=5, height = 5)
+pdf(file = paste0(working_dir, out_dir, "ERC_results/R2T_network.pdf"), width=5, height = 5)
 
 #plot the graph
-plot.igraph(network_graph_r2t, vertex.size=10, vertex.label=NA)
+plot.igraph(network_graph_r2t, 
+            vertex.label=NA,
+            vertex.size=10,
+            edge.color=E(network_graph_r2t)$edge.color, 
+            vertex.color="snow3", 
+            layout=layout_with_lgl(network_graph_r2t),
+            vertex.label.color="black")
 
 dev.off()
 
-
-
+#Print message
+#Use cat because paste+print doesn't recognize \n
+cat("\nNumber of significant correlations for Branch-by-branch ERC: ", nrow(ERC_results_df_hits_bxb), 
+    "\nNumber of genes in network: ", length(unique(c(ERC_results_df_hits_bxb$GeneA_HOG, ERC_results_df_hits_bxb$GeneB_HOG))),
+    "\nNumber of significant correlations for Root-to-tip ERC: ", nrow(ERC_results_df_hits_r2t),
+    "\nNumber of genes in network: ", length(unique(c(ERC_results_df_hits_r2t$GeneA_HOG, ERC_results_df_hits_r2t$GeneB_HOG))),
+    "\n\n")
 

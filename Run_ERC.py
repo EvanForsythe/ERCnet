@@ -60,11 +60,11 @@ if len(glob.glob('BL_results/*tsv')) > 0:
 ## Run all-by-all correlations
 
 #Make a directory for ERC results
-if not os.path.isdir(out_dir+'Results_ERC/'):
-    os.makedirs(out_dir+'Results_ERC/')
-    print("created folder: Results_ERC/\n\n")
+if not os.path.isdir(out_dir+'ERC_results/'):
+    os.makedirs(out_dir+'ERC_results/')
+    print("created folder: ERC_results/\n\n")
 else: 
-    print('ERC results will be stored to Results_ERC/\n\n')
+    print('ERC results will be stored to ERC_results/\n\n')
     
 
 #Run the R script
