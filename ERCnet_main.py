@@ -5,9 +5,7 @@ conda activate ERC_networks
 
 Example command:
     python ERCnet_main.py -j TEST -l 100 -t 50 -r 7 -p 3 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
-    python ERCnet_main.py -j TEST -l 100 -t 400 -r 7 -p 3 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
-
-    python ERCnet_main.py -j TEST2 -l 100 -t 100 -r 7 -p 3 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
+    python ERCnet_main.py -j BIGTEST -l 100 -t 1000 -r 7 -p 2 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
 
 #To delete previous runs:
     #rm -r Gb_alns/ HOG_seqs/ HOG_subtrees/ Stats/ Trees_working/ BL_trees/ Alns/
@@ -267,7 +265,7 @@ else:
     print('MAFFT alignments will be written to Alns/\n\n')
     
 for file_i, file in enumerate(seq_file_names):
-    if file_i % 10 == 0:
+    if file_i % 100 == 0:
         print('%d alignments done!' %file_i)
     if file_i % 1000 == 0:    
         logging.info('%d alignments done!' %file_i)
@@ -409,7 +407,7 @@ else:
 # Loop through files to process
 for HOG_i, HOG_id in enumerate(keeperIDs):
     #Track progress
-    if HOG_i % 10 == 0:
+    if HOG_i % 100 == 0:
         print('%d branch-length trees done!' %HOG_i)
     if HOG_i % 1000 == 0:    
         logging.info('%d branch-length trees done!' %HOG_i)
@@ -441,7 +439,7 @@ print('IMPORTANT NOTE: the next step makes use of DLCpar, which requires python 
                       'conda install -c bioconda dlcpar\n\n')
 
 print('After successfully completing the above steps, run the next step with the following command:\n\n' \
-      'python Run_ERC.py -j '+JOBname+' -o '+OFpath+""
+      'python Run_ERC.py -j '+JOBname+' -o '+OFpath+"\n"
       )
 
 
