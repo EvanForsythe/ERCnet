@@ -1,5 +1,5 @@
 '''
-Script for performing BL reconcilation. Needs to be run in python 2 env (because dlcpar requires python 2)
+Script for performing BL reconcilation and ERC correlation analyses. Needs to be run in python 2 env (because dlcpar requires python 2)
 
 conda activate dlcpar_py27 
 
@@ -74,6 +74,24 @@ ERC_rec_cmd= 'Rscript AllxAll_correlations.R '+JOBname
 #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
 if re.search('AllxAll_correlations.R', ERC_rec_cmd) and re.search('Rscript', ERC_rec_cmd):
     subprocess.call(ERC_rec_cmd, shell=True)
+
+#Report status
+if len(glob.glob(out_dir+'ERC_results/*tsv')) > 0:
+    print('Finished ERC.\n\nResults files written to ERC_results/\n\n')
+else:
+    print('Something went wrong with ERC analyses...\n')
+
+#Print wrapup statement
+print("ERC correlation analyses finished. Exiting....")
+
+
+print('ERC correlation analyses finished. Exiting....\n\n'\
+      'To perform network analyses, run Run_network_analyses.py. See associated help menue for required arguments.'\
+          '\nExample command:\n\n' \
+          'python Run_network_analyses.py -j '+JOBname+' -m bxb -f pval -c 0.001 -y fg' 
+      )
+
+
 
 
 
