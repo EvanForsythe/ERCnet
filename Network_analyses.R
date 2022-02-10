@@ -31,11 +31,11 @@ args = commandArgs(trailingOnly=TRUE)
 
 #Get the job name (used to identify the proper output folder)
 jobname<-args[1]
-#jobname<-"TEST"
+#jobname<-"BIGTEST"
 out_dir<-paste0("OUT_", jobname, "/")
 
 #Read in ERC correlation results
-#Write the table
+#Read the table
 ERC_results_df<-read.table(file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 #Get parameters for filtering data to be used in networks
@@ -117,5 +117,49 @@ plot.igraph(network_graph,
 
 dev.off()
 
+## Get the genes in each community
+#Create df
+comms_df<-data.frame(HOG=comms$names, Community=comms$membership)
 
+#Reorder
+comms_df<-comms_df[order(comms_df$Community),]
 
+#Read in the HOG file
+All_HOGs_df<-read.table(file = paste0(working_dir, out_dir, "Filtered_genefam_dataset.csv"), header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+#Remove the "N1."
+All_HOGs_df$HOG<-gsub(All_HOGs_df$HOG, pattern = "N1.", replacement = "")
+
+#Join the dataframes
+comms_w_IDs<-merge(x = comms_df, y = All_HOGs_df, by="HOG", all.x=TRUE)
+
+#Get the ID of the focal species
+foc_sp<-paste(args[6])
+#foc_sp<-"Atha"
+
+#Get a dataframe with the focal sp IDs
+foc_sp_df<-cbind(comms_w_IDs[,c(1,2,3)],
+data.frame(
+Focal_sp_ID=sapply(strsplit(comms_w_IDs[,which(names(comms_w_IDs) == foc_sp)], ","), `[`, 1)
+))
+
+#Remove prefix
+foc_sp_df$Focal_sp_ID<-gsub(foc_sp_df$Focal_sp_ID, pattern = paste0(foc_sp, "_"), replacement = "")
+
+#Write txt files
+#All genes in the network (as a background for enrichment analyses)
+write.table(paste(na.omit(unique(foc_sp_df$Focal_sp_ID))), 
+            file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_","BACKGROUND_", BL_type, "_", filter_stat, "_", filter_stat_cutoff, "_", clust_method,".txt"), 
+            sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+#Loop through all communities
+for(n in min(foc_sp_df$Community):max(foc_sp_df$Community)){
+
+  #Write tsv files
+  write.table(paste(na.omit(unique(subset(foc_sp_df$Focal_sp_ID, foc_sp_df$Community==n)))), 
+              file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_",sprintf("%04d", n), "_", BL_type, "_", filter_stat, "_", filter_stat_cutoff, "_", clust_method,".txt"), 
+              sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+} 
+  
+  
