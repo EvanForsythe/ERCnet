@@ -88,7 +88,7 @@ print("ERC correlation analyses finished. Exiting....")
 print('ERC correlation analyses finished. Exiting....\n\n'\
       'To perform network analyses, run Run_network_analyses.py. See associated help menue for required arguments.'\
           '\nExample command:\n\n' \
-          'python Run_network_analyses.py -j '+JOBname+' -m bxb -f pval -c 0.001 -y fg\n' 
+          'python Run_network_analyses.py -j '+JOBname+' -m bxb -f pval -c 0.001 -y fg -s Atha\n' 
       )
 
 
