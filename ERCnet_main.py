@@ -7,6 +7,13 @@ Example command:
     python ERCnet_main.py -j TEST -l 100 -t 50 -r 7 -p 3 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
     python ERCnet_main.py -j BIGTEST -l 100 -t 1000 -r 7 -p 2 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
 
+    #Explore filters:
+    python ERCnet_main.py -e -j TPC -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
+    
+    #Full run: 
+    python ERCnet_main.py -j TPC_test -t 50 -p 3 -r 15 -l 100 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
+
+
 #To delete previous runs:
     #rm -r Gb_alns/ HOG_seqs/ HOG_subtrees/ Stats/ Trees_working/ BL_trees/ Alns/
 
@@ -47,8 +54,9 @@ parser.add_argument('-p', '--MaxP', type=int, metavar='', required=False, help='
 parser.add_argument('-r', '--MinR', type=int, metavar='', required=False, help='Integer: minimum number of species represented required in each gene family' )
 parser.add_argument('-t', '--Test_num', type=int, metavar='', required=False, help='Integer: number of gene families to analyze (for testing only)' )
 parser.add_argument('-e','--explore_filters', action='store_true', required=False, help='Add this flag to explore filtering options (if selected, program will quit without running downstream steps)')
-parser.add_argument('-l', '--Min_len', type=int, metavar='', required=True, help='Integer: minimum length of alignment (after trimming with Gblocks) required to retain gene' )
+parser.add_argument('-l', '--Min_len', type=int, metavar='', required=False, help='Integer: minimum length of alignment (after trimming with Gblocks) required to retain gene' )
 parser.add_argument('-x', '--Rax_dir', type=str, metavar='', required=True, help='Full path to the location of your raxml install (use which raxmlHPC to locate). Include "/" at the end of the string') 
+parser.add_argument('-s','--SPmap', action='store_true', required=False, help='Add this flag to provide a custom species mapping file. This mapping file must be formatted in certian way. See instuctions')
 
 
 #Define the parser
@@ -63,6 +71,7 @@ explore_filters=args.explore_filters
 Min_len=args.Min_len
 Test_num=args.Test_num
 Rax_dir=args.Rax_dir
+SPmap=args.SPmap
 
 
 '''
@@ -77,6 +86,21 @@ Test_num=50
 Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
 #END DEV
 '''
+
+'''
+#DEV: hardcode arguments
+JOBname = "TPC"
+OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/"
+MaxP_val=2
+MinR_val=8
+explore_filters=True
+Min_len=100
+Test_num=50
+Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
+SPmap=True
+#END DEV
+'''
+
 
 #Check to see if the path arguments end with "/"
 if not OFpath.endswith('/'):
@@ -109,25 +133,52 @@ logging.basicConfig(filename=(out_dir+'ERCnet.log'), encoding='utf-8', level=log
 #Print statement about log file
 print('Check ERCnet.log for verbose log')
 
-#Check N1file exists and run the filter stats script if not
+#Check N1file exists 
 if os.path.isfile(N1_file_path):
     logging.info('N1 HOG file located at:\n'+ N1_file_path+'\n\n')
     
-    #open N1 file
-    N1_file=pd.read_csv(N1_file_path, sep='\t')
-    
-    #Make a list of species
-    sp_list = list(N1_file.columns[3:])
-
 else:
     logging.critical('N1 HOG file not found. Quitting...\n\n')
     sys.exit()
+
+
+#open N1 file
+N1_file=pd.read_csv(N1_file_path, sep='\t')
+
+#Make a list of species
+sp_list_temp = list(N1_file.columns[3:])
+
+#Generate species mapping file
+if SPmap:
+    if os.path.isfile("Species_mapping.csv"):
+        print('reading user-provided species map. Creating copy in output directory.')
+        mapping_table=pd.read_csv("Species_mapping.csv", sep=',')
+
+    else:
+        print('Could not find Species_mapping.csv')
+else:
+    print('Attempting to create Species_mapping.csv in output directory.')
+    mapping_table = pd.DataFrame(data={'Prefix': sp_list_temp, 'SpeciesID': sp_list_temp})
+
+mapping_table.to_csv(out_dir+'Species_mapping.csv', sep=',' , index=False)
+
+sp_prefix=list(mapping_table['Prefix'])
+sp_names=list(mapping_table['SpeciesID'])
+
+### WORKING: Change Filter to HOGs to use the species mapping!
+
+print("The following species identifiers will be used: \n"+str(sp_names))
+print("These should match the column headers in the N1 file and the tip labels in the species tree")
+
+
+print("\n\nThe following species identifiers will be used: \n"+str(sp_prefix))
+print("These should be present in the sequence IDs in alignments etc...\n")
 
 print('Generating sequence counts\n\n')
 logging.info('Generating counts dataframe from HOG file located at:\n'+ N1_file_path+'\n.......\n\n')
 
 #Generate a dataframe of the counts data using the my outside module from filterHOGs.py
-seq_counts_df=make_seq_counts_df(N1_file_path)
+seq_counts_df=make_seq_counts_df(N1_file_path, out_dir+'Species_mapping.csv')
 
 #Check if the dataframe was assinged properly
 if 'HOG' in list(seq_counts_df.columns):
@@ -143,7 +194,7 @@ if explore_filters:
     
     #Set filter ranges
     max_paralogs_vals=list(range(1, 7, 1))
-    min_rep_vals=list(range(3, len(sp_list), 1))
+    min_rep_vals=list(range(3, len(sp_names), 1))
     
     #Make blank array for parameter scan
     retained_trees=np.zeros((len(max_paralogs_vals), len(min_rep_vals)))
@@ -154,7 +205,7 @@ if explore_filters:
             para_value=p_val
             rep_value=s_val
 
-            passed_only_df = filter_gene_fams(N1_file, seq_counts_df,sp_list, para_value, rep_value)
+            passed_only_df = filter_gene_fams(N1_file, seq_counts_df, sp_names, para_value, rep_value)
             #Number of rows in the dataframe
             retained_trees[p_count,s_count]=passed_only_df.shape[0]
             
@@ -191,7 +242,7 @@ else:
 
 ##Filter results according to filter criteria
 #Use the module from Filter_stats.py to filter the list
-Keeper_HOGs_df= filter_gene_fams(N1_file, seq_counts_df, sp_list, MaxP_val, MinR_val)
+Keeper_HOGs_df= filter_gene_fams(N1_file, seq_counts_df, sp_names, MaxP_val, MinR_val)
 
 #FOR TESTING: filter the dataset to a user-defined subset
 if isinstance(Test_num, int):
@@ -220,7 +271,7 @@ for row_i, row in Keeper_HOGs_df.iterrows():
     HOGtemp = row['HOG']
     
     #Get a list of seqs to retain
-    seq_list_temp=[item for item in list(row[sp_list]) if not(pd.isnull(item)) == True]
+    seq_list_temp=[item for item in list(row[sp_names]) if not(pd.isnull(item)) == True]
     
     #Clean up the list by converting to str, removing all the extra stuff then split the str back into a list
     seq_list = str(seq_list_temp).replace(" ", "").replace("'", "").replace("[", "").replace("]", "").split(',')
@@ -290,6 +341,13 @@ logging.info('Beginning GBLOCKS\n')
 
 #Get list of all alns (that haven't been gblocked yet)
 aln_file_names = [x for x in glob.glob(out_dir+'Alns/ALN*') if "-gb" not in x]
+
+
+#Gblocks
+if 'Min_len' in locals():
+    print('Beginning gblocks trimming...\n')
+else:
+    print('Min_len parameter for gblocks filtering not specified. Quitting....\n')
 
 #Make folder for gblocks'd alignments
 #Make a directory for gblocks trimmed alignments

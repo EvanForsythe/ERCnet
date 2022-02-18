@@ -37,11 +37,14 @@ args = commandArgs(trailingOnly=TRUE)
 #Get the job name (used to identify the proper output folder)
 jobname<-args[1]
 #jobname<-"TEST"
+#jobname<-"TPC_test"
 out_dir<-paste0("OUT_", jobname, "/")
 
 #Get dir where orthofinder results live
 OFpath<-args[2]
 #OFpath<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/"
+#OFpath<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/"
+
 
 ## Reconciliation
 #Check if reconciliation dir exists (create one if not)
@@ -53,11 +56,15 @@ if(!dir.exists(paste0(working_dir, out_dir, "DLCpar/"))){
 file.copy(from = paste0(OFpath,"Species_Tree/SpeciesTree_rooted_node_labels.txt"),
           to = paste0(working_dir, out_dir, "DLCpar/SpeciesTree_rooted_node_labels.txt"))
 
+#Read species tree
 sp_tr<-read.tree(paste0(working_dir, out_dir, "DLCpar/SpeciesTree_rooted_node_labels.txt"))
+
+#Read species mapping file
+mapping_df<-read.table(paste0(out_dir, "Species_mapping.csv"), sep = ",", header = TRUE)
 
 #Create the DCLpar files needed
 #Make species map table
-write.table(data.frame(gt=paste0(sp_tr$tip.label, "_*"), st=paste0(sp_tr$tip.label)), 
+write.table(data.frame(gt=paste0(mapping_df$Prefix, "*"), st=paste0(mapping_df$SpeciesID)), 
             file = paste0(working_dir, out_dir, "DLCpar/speciesIDs.smap"), sep = "\t", col.names = FALSE, row.names = FALSE, quote = FALSE)
 
 #Table of all edges on the species trees
@@ -223,7 +230,7 @@ for(m in 1:length(rec_files_list)){
   #Loop through all the branches that need r2t measures
   for(x in 2:ncol(r2t_measure_df)){
     #Record the r2t value for each species
-    r2t_measure_df[m,x]<-mean(BL_distance_mat[gt_root_node, grep(names(r2t_measure_df)[x], colnames(BL_distance_mat))])
+    r2t_measure_df[m,x]<-mean(BL_distance_mat[gt_root_node, grep(mapping_df$Prefix[which(mapping_df$SpeciesID==names(r2t_measure_df)[x])], colnames(BL_distance_mat))])
   }#End r2t loop (variable = x)
 
   r2t_measure_df[m,1]<-str_replace(rec_files_list[m], "_NODES_BL.txt", "")

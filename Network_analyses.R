@@ -32,6 +32,7 @@ args = commandArgs(trailingOnly=TRUE)
 #Get the job name (used to identify the proper output folder)
 jobname<-args[1]
 #jobname<-"BIGTEST"
+#jobname<-"TPC_test"
 out_dir<-paste0("OUT_", jobname, "/")
 
 #Read in ERC correlation results
@@ -50,7 +51,7 @@ filter_stat_cutoff<-as.numeric(paste(args[4]))
 #
 ##Stats
 #filter_stat<-"pval"
-#filter_stat_cutoff<-0.001
+#filter_stat_cutoff<-0.05
 #OR
 #filter_stat<-"R2"
 #filter_stat_cutoff<-0.8
