@@ -137,6 +137,7 @@ comms_w_IDs<-merge(x = comms_df, y = All_HOGs_df, by="HOG", all.x=TRUE)
 #Get the ID of the focal species
 foc_sp<-paste(args[6])
 #foc_sp<-"Atha"
+#foc_sp<-"A_thaliana_prot"
 
 #Get a dataframe with the focal sp IDs
 foc_sp_df<-cbind(comms_w_IDs[,c(1,2,3)],
