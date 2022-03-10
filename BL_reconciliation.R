@@ -124,6 +124,10 @@ for(d in 1:length(tree_input_list)){
   DLCpar_cmd<-paste0("dlcpar_search -s SpeciesTree_rooted_node_labels.txt -S speciesIDs.smap ", tree_input_list[d], "_NODES_BL.txt")
   system(DLCpar_cmd)
   
+  if((d %% 100) == 0){
+    print(paste0(d, " trees reconciled"))
+  }
+  
 }#End DLCpar loop (variable = d)
 
 #Set wd back

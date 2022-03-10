@@ -35,7 +35,7 @@ args = commandArgs(trailingOnly=TRUE)
 
 #Get the job name (used to identify the proper output folder)
 jobname<-args[1]
-#jobname<-"TEST"
+#jobname<-"lab_meeting"
 out_dir<-paste0("OUT_", jobname, "/")
 
 ### ERC
@@ -44,7 +44,7 @@ bxb_measure_df_res<-read.table(file = paste0(working_dir, out_dir, "BL_results/b
 r2t_measure_df_res<-read.table(file = paste0(working_dir, out_dir, "BL_results/r2t_BLs_normalized.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 #Input_N1_df<-read.table(file = paste0(working_dir, "BL_results/N1_input_file.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
-#Get all pairwise comparisons (without repeats) (this helps avoid nested for loops)
+#Get all pairwise comparisons (without repeats) (this helps avoid nested for-loops)
 ERC_df<-as.data.frame(t(combn(unique(bxb_measure_df_res$HOG_ID), 2)))
 names(ERC_df)<-c("GeneA_HOG", "GeneB_HOG")
 
@@ -126,14 +126,29 @@ for(e in 1:nrow(ERC_results_df)){
     ERC_results_df$Spearman_P_R2T[e]<-cor.test(x = R2T_df_temp_complete$geneA, y = R2T_df_temp_complete$geneB, method = "spearman")$p.value
   }#End points check if
   
+  #Write each line of file (add header only for the first line)
+  if(e==1){
+    write.table(ERC_results_df[e,], file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE, append = TRUE)
+  }else{
+    write.table(ERC_results_df[e,], file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE, append = TRUE)
+  }
+  
+  #Report progress
+  if((e %% 100000) == 0){
+    print(paste0(e, " correlations calculated"))
+  }
+  
 }#End pairwise combo loop (variable = e)
+
+#For testing: read back in ERC results file
+#ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", header = TRUE)
 
 #Write tsv files of the ERC results
 #Reorder by bxb pearson p-value
 ERC_results_df_order<-ERC_results_df[order(ERC_results_df$Pearson_P_BXB),]
 
 #Write the table
-write.table(ERC_results_df_order, file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+write.table(ERC_results_df_order, file = paste0(working_dir, out_dir, "ERC_results/ERC_results_ordered_full.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
 
 #Print figures describing the common branches between pairs of genes
 #bxb

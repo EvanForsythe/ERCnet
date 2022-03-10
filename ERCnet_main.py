@@ -89,11 +89,11 @@ Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
 
 '''
 #DEV: hardcode arguments
-JOBname = "TPC"
+JOBname = "TPC_testing"
 OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/"
-MaxP_val=2
-MinR_val=8
-explore_filters=True
+MaxP_val=3
+MinR_val=17
+explore_filters=False
 Min_len=100
 Test_num=50
 Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"

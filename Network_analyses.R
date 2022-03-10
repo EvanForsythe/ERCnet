@@ -33,6 +33,7 @@ args = commandArgs(trailingOnly=TRUE)
 jobname<-args[1]
 #jobname<-"BIGTEST"
 #jobname<-"TPC_test"
+#jobname<-"lab_meeting"
 out_dir<-paste0("OUT_", jobname, "/")
 
 #Read in ERC correlation results
@@ -51,7 +52,7 @@ filter_stat_cutoff<-as.numeric(paste(args[4]))
 #
 ##Stats
 #filter_stat<-"pval"
-#filter_stat_cutoff<-0.05
+#filter_stat_cutoff<-0.001
 #OR
 #filter_stat<-"R2"
 #filter_stat_cutoff<-0.8
@@ -109,7 +110,8 @@ plot.igraph(network_graph,
             vertex.size=5,
             edge.color="black",
             vertex.color=membership(comms), 
-            layout=layout.fruchterman.reingold,
+            #layout=layout.fruchterman.reingold,
+            layout=layout_nicely,
             vertex.label.color="black",
             main=paste0("BL method: ",BL_type,
                         "\nFilter stat: ", filter_stat,
