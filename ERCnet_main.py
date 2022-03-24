@@ -421,6 +421,8 @@ get_st_cmd= 'Rscript Get_subtree.R '+OG_trees_dir+' '+out_dir
     
 #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
 if re.search('Get_subtree.R', get_st_cmd) and re.search(OG_trees_dir, get_st_cmd):
+    print("Calling R with the following command:")
+    print(get_st_cmd)
     subprocess.call(get_st_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 #Checj if it worked
