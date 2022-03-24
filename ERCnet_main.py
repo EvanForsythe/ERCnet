@@ -1,5 +1,5 @@
 '''
-Main script for running ERC networks analysis
+### Main script for running ERC networks analysis ###
 
 conda activate ERC_networks
 
