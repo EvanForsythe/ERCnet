@@ -73,7 +73,7 @@ if(length(which(raw_strings=="NA"))>0){
 keeper_tips<-unlist(strsplit(str_replace_all(toString(raw_strings), " ", ""), split = ","))
 
 #Get the subtree
-subtree_temp<-keep.tip(phy = full_tree_temp, tip = keeper_tips)
+subtree_temp<-keep.tip(phy = full_tree_temp, tip =c(keeper_tips))
 
 #Get the name of the outfile
 out_file_name<-paste0(HOGs_df$HOG[h], "_tree.txt")
