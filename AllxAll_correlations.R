@@ -3,16 +3,16 @@
 #USAGE
 #
 
-#Load packages
-package_list<-c("igraph")
-
-#Loop to check if package is installed and libraried
-for(p in 1:length(package_list)){
-  if (!require(package_list[p], character.only = TRUE)) {
-    install.packages(package_list[p], dependencies = TRUE)
-    library(package_list[p], character.only=TRUE)
-  }
-}
+##Load packages
+#package_list<-c()
+#
+##Loop to check if package is installed and libraried
+#for(p in 1:length(package_list)){
+#  if (!require(package_list[p], character.only = TRUE)) {
+#    install.packages(package_list[p], dependencies = TRUE)
+#    library(package_list[p], character.only=TRUE)
+#  }
+#}
 
 getScriptPath <- function(){
   cmd.args <- commandArgs()

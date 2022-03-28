@@ -52,6 +52,8 @@ BL_rec_cmd= 'Rscript BL_reconciliation.R '+JOBname+' '+OFpath
     
 #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
 if re.search('BL_reconciliation.R', BL_rec_cmd) and re.search('Rscript', BL_rec_cmd):
+    print("Running BL reconciliation in R with the folllowing command:")
+    print(BL_rec_cmd)
     subprocess.call(BL_rec_cmd, shell=True)
 
 if len(glob.glob('BL_results/*tsv')) > 0:
@@ -73,6 +75,8 @@ ERC_rec_cmd= 'Rscript AllxAll_correlations.R '+JOBname
     
 #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
 if re.search('AllxAll_correlations.R', ERC_rec_cmd) and re.search('Rscript', ERC_rec_cmd):
+    print("Running ERC comparisons with the following command:")
+    print(ERC_rec_cmd)
     subprocess.call(ERC_rec_cmd, shell=True)
 
 #Report status

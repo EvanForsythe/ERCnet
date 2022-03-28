@@ -5,15 +5,20 @@
 
 
 #Load packages
-package_list<-c("ape", "stringr", "phytools")
+#package_list<-c("ape", "stringr", "phytools")
+#
+##Loop to check if package is installed and libraried
+#for(p in 1:length(package_list)){
+#  if (!require(package_list[p], character.only = TRUE)) {
+#    install.packages(package_list[p], dependencies = TRUE)
+#    library(package_list[p], character.only=TRUE)
+#  }
+#}
 
-#Loop to check if package is installed and libraried
-for(p in 1:length(package_list)){
-  if (!require(package_list[p], character.only = TRUE)) {
-    install.packages(package_list[p], dependencies = TRUE)
-    library(package_list[p], character.only=TRUE)
-  }
-}
+library("ape")
+library("stringr")
+library("phytools")
+
 
 getScriptPath <- function(){
   cmd.args <- commandArgs()
