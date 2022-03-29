@@ -1,24 +1,17 @@
 #! /usr/local/bin/Rscript --vanilla --default-packages=utils
 
 #USAGE
-#Rscript BL_reconciliation.R /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/
-
 
 #Load packages
-#package_list<-c("ape", "stringr", "phytools")
-#
-##Loop to check if package is installed and libraried
-#for(p in 1:length(package_list)){
-#  if (!require(package_list[p], character.only = TRUE)) {
-#    install.packages(package_list[p], dependencies = TRUE)
-#    library(package_list[p], character.only=TRUE)
-#  }
-#}
+package_list<-c("ape", "stringr", "phytools")
 
-library("ape")
-library("stringr")
-library("phytools")
-
+#Loop to check if package is installed and libraried
+for(p in 1:length(package_list)){
+  if (!require(package_list[p], character.only = TRUE)) {
+    install.packages(package_list[p], dependencies = TRUE)
+    library(package_list[p], character.only=TRUE)
+  }
+}
 
 getScriptPath <- function(){
   cmd.args <- commandArgs()
@@ -28,6 +21,7 @@ getScriptPath <- function(){
   if(length(script.dir) > 1) stop("can't determine script dir: more than one '--file' argument detected")
   return(script.dir)
 }
+
 # Set the script path:
 working_dir<- paste0(getScriptPath(),"/") #added the "/" at the end so paste0 commands below work.
 #working_dir<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/"
@@ -45,32 +39,14 @@ jobname<-args[1]
 #jobname<-"TPC_test"
 out_dir<-paste0("OUT_", jobname, "/")
 
-#Get dir where orthofinder results live
-OFpath<-args[2]
-#OFpath<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/"
-#OFpath<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/"
-
-
-## Reconciliation
-#Check if reconciliation dir exists (create one if not)
-if(!dir.exists(paste0(working_dir, out_dir, "DLCpar/"))){
-  system(paste("mkdir ", paste0(working_dir, out_dir, "DLCpar/")))
+###Use DLCpar output to pull out relevant branch lengths
+#Check if BL results dir exists (create one if not)
+if(!dir.exists(paste0(working_dir, out_dir, "BL_results/"))){
+  system(paste("mkdir ", paste0(working_dir, out_dir, "BL_results/")))
 }
-
-#get a copy of the species tree from Orthofinder folder
-file.copy(from = paste0(OFpath,"Species_Tree/SpeciesTree_rooted_node_labels.txt"),
-          to = paste0(working_dir, out_dir, "DLCpar/SpeciesTree_rooted_node_labels.txt"))
 
 #Read species tree
 sp_tr<-read.tree(paste0(working_dir, out_dir, "DLCpar/SpeciesTree_rooted_node_labels.txt"))
-
-#Read species mapping file
-mapping_df<-read.table(paste0(out_dir, "Species_mapping.csv"), sep = ",", header = TRUE)
-
-#Create the DCLpar files needed
-#Make species map table
-write.table(data.frame(gt=paste0(mapping_df$Prefix, "*"), st=paste0(mapping_df$SpeciesID)), 
-            file = paste0(working_dir, out_dir, "DLCpar/speciesIDs.smap"), sep = "\t", col.names = FALSE, row.names = FALSE, quote = FALSE)
 
 #Table of all edges on the species trees
 all_nodes<-c(sp_tr$tip.label, sp_tr$node.label)
@@ -79,73 +55,12 @@ names(sp_branches_df)<-c("ancestor", "decendant")
 #Add a blank column to collect the BL measurement from the gene tree
 sp_branches_df['gene_tree_BL_measure']<-NA
 
-#Get list of trees to be reconciled
-tree_input_list<-list.files(path = paste0(working_dir, out_dir, "BL_trees/"), pattern = "RAxML_result.")
+#Read species mapping file
+mapping_df<-read.table(paste0(out_dir, "Species_mapping.csv"), sep = ",", header = TRUE)
 
-#Remove extra text in file names
-tree_input_list<-str_replace(str_replace(tree_input_list, "RAxML_result.", ""), "_BL.txt", "")
-
-#temporarily setwd
-setwd(paste0(working_dir, out_dir, "DLCpar/"))
-
-#Loop through input files
-for(d in 1:length(tree_input_list)){
-  #d<-1
-  #Get the BL tree
-  BL_tree_temp<-read.tree(file = paste0(working_dir, out_dir, "BL_trees/RAxML_result.", tree_input_list[d], "_BL.txt")) 
-  #Get the original subtree
-  subtree_temp2<-read.tree(file = paste0(working_dir, out_dir, "HOG_subtrees/", tree_input_list[d], "_tree.txt")) 
-  
-  #Make new version of subtree with all branches=1
-  subtree_temp2$edge.length<-rep(1,length(subtree_temp2$edge.length))
-  
-  #Split into rooting
-  subtrees_4rooting<-treeSlice(subtree_temp2, 0.01, trivial=FALSE, prompt=FALSE)
-  
-  if(length(subtrees_4rooting)==1){
-    outtaxa<-subtree_temp2$tip.label[!subtree_temp2$tip.label %in% subtrees_4rooting[[1]]$tip.label]
-  }else if(length(subtrees_4rooting)==2){
-    
-    t_one_count<-subtrees_4rooting[[1]]$tip.label
-    t_two_count<-subtrees_4rooting[[2]]$tip.label
-    
-    if(length(t_one_count)<length(t_two_count)){
-      outtaxa<-t_one_count
-    }else{
-      outtaxa<-t_two_count
-    }
-  } #End subtrees if statement
-  
-  #Root the BL tree
-  BL_tree_root<-root(BL_tree_temp, outgroup = outtaxa, resolve.root = TRUE)
-  
-  #Add node lables to the tree
-  BL_tree_root$node.label<-paste0("n", 1:BL_tree_root$Nnode)
-  
-  #Write the BL_tree (this is what is used for DLCpar reconciliation)
-  write.tree(phy = BL_tree_root, file = paste0(working_dir, out_dir, "DLCpar/", tree_input_list[d], "_NODES_BL.txt"))
-  
-  ##Run DLCpar
-  DLCpar_cmd<-paste0("dlcpar_search -s SpeciesTree_rooted_node_labels.txt -S speciesIDs.smap ", tree_input_list[d], "_NODES_BL.txt")
-  system(DLCpar_cmd)
-  
-  if((d %% 100) == 0){
-    print(paste0(d, " trees reconciled"))
-  }
-  
-}#End DLCpar loop (variable = d)
-
-#Set wd back
-setwd(working_dir)
-
-###Use DLCpar output to pull out relevant branch lengths
-
-#Check if BL results dir exists (create one if not)
-if(!dir.exists(paste0(working_dir, out_dir, "BL_results/"))){
-  system(paste("mkdir ", paste0(working_dir, out_dir, "BL_results/")))
-}
-
+#Get the list of reconciliation files
 rec_files_list<-list.files(path = paste0(working_dir, out_dir, "DLCpar/"), pattern = "_NODES_BL.txt.dlcpar.locus.recon")
+
 #Remove extra text
 rec_files_list<-str_replace(rec_files_list, ".dlcpar.locus.recon", "")
 
@@ -280,9 +195,4 @@ write.table(bxb_BL_norm, file = paste0(working_dir, out_dir, "BL_results/bxb_BLs
 
 #Write the root to tip (r2t) results
 write.table(r2t_BL_norm, file = paste0(working_dir, out_dir, "BL_results/r2t_BLs_normalized.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
-
-
-
-
-
 

@@ -1,7 +1,7 @@
 '''
 Script for performing Network analyses
 
-python Run_network_analyses.py -j BIGTEST -m bxb -f pval -c 0.05 -y fg -s Atha
+python Network_analyses.py -j TPC_test -m bxb -f pval -c 0.05 -y fg -s Atha
 
 #delete previous runs
 #rm -r DLCpar/ BL_results/
@@ -77,10 +77,12 @@ print("Beginning network analyses using the R package, igraph...\n\n Calling R..
 
 #Run the Network analyses.
 #make command.
-Net_cmd= 'Rscript Network_analyses.R '+JOBname+" "+BLmethod+" "+Filterstat+" "+str(Cutoff)+" "+Clustmeth+" "+FocalSP
+Net_cmd= 'Rscript Networks_and_stats.R '+JOBname+" "+BLmethod+" "+Filterstat+" "+str(Cutoff)+" "+Clustmeth+" "+FocalSP
     
 #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
-if re.search('Network_analyses.R', Net_cmd) and re.search('Rscript', Net_cmd):
+if re.search('Networks_and_stats.R', Net_cmd) and re.search('Rscript', Net_cmd):
+    print("Calling R with the following command:")
+    print(Net_cmd)
     subprocess.call(Net_cmd, shell=True)
 
 if len(glob.glob(out_dir+'Network_analyses/*pdf')) > 0:
