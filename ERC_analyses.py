@@ -1,12 +1,9 @@
 '''
-Script for performing BL reconcilation and ERC correlation analyses. Needs to be run in python 2 env (because dlcpar requires python 2)
+Script for performing BL reconcilation and ERC correlation analyses. This should be run in python3
 
-conda activate dlcpar_py27 
+conda activate ERC_networks
 
 python Run_ERC.py -j TEST -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/
-
-#delete previous runs
-#rm -r DLCpar/ BL_results/
 
 '''
 
@@ -28,30 +25,28 @@ working_dir = sys.path[0]+'/'
 os.chdir(working_dir)
 
 #Set up an argumanet parser
-parser = argparse.ArgumentParser(description='branch length recociliation step')
+parser = argparse.ArgumentParser(description='ERC step')
 
 parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help='Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok)') 
-parser.add_argument('-o', '--OFpath', type=str, metavar='', required=True, help='Full path to the Orthofinder results dir (should contain Species_Tree/, Phylogenetic_Hierarchical_Orthogroups/ etc...)\n Include "/" at the end of the string') 
 
 #Define the parser
 args = parser.parse_args()
 
 #Store arguments
 JOBname=args.JOBname
-OFpath=args.OFpath
-#OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/"
 #JOBname = "TEST"
 
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
 
-print("beginning BL reconciliation (using R and dlcpar)...\n\n Calling R...\n\n")
+## Run the BL_reconciliation
+print("beginning BL reconciliation in R...\n\n Calling R...\n\n")
 
 #Run the BL reconcilation step.
-BL_rec_cmd= 'Rscript BL_reconciliation.R '+JOBname+' '+OFpath
+BL_rec_cmd= 'Rscript Branch_length_reconciliation.R '+JOBname
     
 #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
-if re.search('BL_reconciliation.R', BL_rec_cmd) and re.search('Rscript', BL_rec_cmd):
+if re.search('Branch_length_reconciliation.R', BL_rec_cmd) and re.search('Rscript', BL_rec_cmd):
     print("Running BL reconciliation in R with the folllowing command:")
     print(BL_rec_cmd)
     subprocess.call(BL_rec_cmd, shell=True)
@@ -90,9 +85,9 @@ print("ERC correlation analyses finished. Exiting....")
 
 
 print('ERC correlation analyses finished. Exiting....\n\n'\
-      'To perform network analyses, run Run_network_analyses.py. See associated help menue for required arguments.'\
+      'To perform network analyses, run Network_analyses.py. See associated help menu for required arguments.'\
           '\nExample command:\n\n' \
-          'python Run_network_analyses.py -j '+JOBname+' -m bxb -f pval -c 0.001 -y fg -s <focal_sp>\n' 
+          'python Network_analyses.py -j '+JOBname+' -m bxb -f pval -c 0.001 -y fg -s <focal_sp>\n' 
       )
 
 

@@ -1,21 +1,11 @@
 '''
-### Main script for running ERC networks analysis ###
+### Main script for running the phylogenomics steps of the ERC workflow###
 
 conda activate ERC_networks
 
-Example command:
-    python ERCnet_main.py -j TEST -l 100 -t 50 -r 7 -p 3 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
-    python ERCnet_main.py -j BIGTEST -l 100 -t 1000 -r 7 -p 2 -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/ -x /opt/anaconda3/envs/ERC_networks/bin/
-
-    #Explore filters:
-    python ERCnet_main.py -e -j TPC -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
-    
+Example command:    
     #Full run: 
-    python ERCnet_main.py -j TPC_test -t 50 -p 3 -r 15 -l 100 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
-
-
-#To delete previous runs:
-    #rm -r Gb_alns/ HOG_seqs/ HOG_subtrees/ Stats/ Trees_working/ BL_trees/ Alns/
+    python Phylogenomics.py -j TPC_test -t 50 -p 3 -r 15 -l 100 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
 
 '''
 #During developent, set working directory:
@@ -491,6 +481,21 @@ for HOG_i, HOG_id in enumerate(keeperIDs):
 
 print('Done with RAxML branch length optimization\n\n')
 
+print("Generating input files for GT/ST reconciliation...\n\n Calling R...\n\n")
+
+#Generate the input files for GTST reconciliation.
+input_gen_cmd= 'Rscript Generate_rec_inputs.R '+JOBname+' '+OFpath
+    
+#Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
+if re.search('Generate_rec_inputs.R', input_gen_cmd) and re.search('Rscript', input_gen_cmd):
+    print("Generating input files in R with the folllowing command:")
+    print(input_gen_cmd)
+    subprocess.call(input_gen_cmd, shell=True)
+
+if len(glob.glob('DLCpar/*_NODES_BL.txt')) > 0:
+    print('Finished generateing input files.\n\nInput files written to DLCpar/\n\n')
+    
+
 print('IMPORTANT NOTE: the next step makes use of DLCpar, which requires python 2 (whereas the previous steps are written in python 3).\n' \
       'To run the next step you will need to enter a python 2 anaconda environment and install DLCpar.\n\n' \
           'Example commands:\n' \
@@ -499,7 +504,7 @@ print('IMPORTANT NOTE: the next step makes use of DLCpar, which requires python 
                       'conda install -c bioconda dlcpar\n\n')
 
 print('After successfully completing the above steps, run the next step with the following command:\n\n' \
-      'python Run_ERC.py -j '+JOBname+' -o '+OFpath+"\n"
+      'python GTST_reconciliation.py -j '+JOBname
       )
 
 
