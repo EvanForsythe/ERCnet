@@ -13,7 +13,7 @@ The full ERCnet workflow consistst of the following steps:
 ERCnet directly uses the output from [Orthofinder gene family clustering](https://github.com/davidemms/Orth
 oFinder)
 
-Orthofinder provides [guidelines](https://davidemms.github.io/orthofinder_tutorials/orthofinder-best-practices.html) to selecting taxa and obtaining and preparing proteome files. In addition, please adhere to the f
+Orthofinder provides [guidelines](https://davidemms.github.io/orthofinder_tutorials/orthofinder-best-practices.html)to selecting taxa and obtaining and preparing proteome files. In addition, please adhere to the f
 ollowing ERCnet-specific guidelines/recommendations to running Orthofinder upstream of ERCnet:
 
 * For easy installation  of Orthofinder, we recommend creating an [anaconda environment](https://www.anaconda.com/) and using conda to install with the following command `conda install -c bioconda orthofinder=2.5.4
