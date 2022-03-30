@@ -14,7 +14,6 @@ Example command:
 #os.chdir('/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/')
 
 #Storebought modules
-import logging
 import os
 import sys
 import argparse
@@ -114,21 +113,15 @@ out_dir= 'OUT_'+JOBname+'/'
 #Make a directory for storing stats (and log file)
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
-    print('created folder: '+out_dir+'\nAll output files will be written to this folder\n\n')
-else: print('All output files will be written to '+out_dir+'\n\n')
-
-#Create log file
-logging.basicConfig(filename=(out_dir+'ERCnet.log'), encoding='utf-8', level=logging.DEBUG, force=True) #Note force is so there's not conflicting handlers (I think)
-
-#Print statement about log file
-print('Check ERCnet.log for verbose log')
+    print('created folder: '+out_dir+'\nAll output files will be written to this folder\n')
+else: print('All output files will be written to '+out_dir+'\n')
 
 #Check N1file exists 
 if os.path.isfile(N1_file_path):
-    logging.info('N1 HOG file located at:\n'+ N1_file_path+'\n\n')
+    print('N1 HOG file located at:\n'+ N1_file_path+'\n')
     
 else:
-    logging.critical('N1 HOG file not found. Quitting...\n\n')
+    print('N1 HOG file not found. Quitting...\n')
     sys.exit()
 
 
@@ -145,7 +138,8 @@ if SPmap:
         mapping_table=pd.read_csv("Species_mapping.csv", sep=',')
 
     else:
-        print('Could not find Species_mapping.csv')
+        print('Could not find Species_mapping.csv. Quitting...')
+        sys.exit()
 else:
     print('Attempting to create Species_mapping.csv in output directory.')
     mapping_table = pd.DataFrame(data={'Prefix': sp_list_temp, 'SpeciesID': sp_list_temp})
@@ -155,31 +149,25 @@ mapping_table.to_csv(out_dir+'Species_mapping.csv', sep=',' , index=False)
 sp_prefix=list(mapping_table['Prefix'])
 sp_names=list(mapping_table['SpeciesID'])
 
-### WORKING: Change Filter to HOGs to use the species mapping!
-
 print("The following species identifiers will be used: \n"+str(sp_names))
 print("These should match the column headers in the N1 file and the tip labels in the species tree")
 
-
-print("\n\nThe following species identifiers will be used: \n"+str(sp_prefix))
+print("\nThe following species identifiers will be used: \n"+str(sp_prefix))
 print("These should be present in the sequence IDs in alignments etc...\n")
-
-print('Generating sequence counts\n\n')
-logging.info('Generating counts dataframe from HOG file located at:\n'+ N1_file_path+'\n.......\n\n')
 
 #Generate a dataframe of the counts data using the my outside module from filterHOGs.py
 seq_counts_df=make_seq_counts_df(N1_file_path, out_dir+'Species_mapping.csv')
 
 #Check if the dataframe was assinged properly
 if 'HOG' in list(seq_counts_df.columns):
-    logging.info('Sequence counts per sepecies dataframe successfully generated\n\n')
+    print('Sequence counts per sepecies dataframe successfully generated\n')
 else:
-    logging.critical('Sequence counts per sepecies dataframe not properly generated. Quitting...\n\n')
+    print('ERROR: Sequence counts per sepecies dataframe not properly generated. Quitting...\n')
     sys.exit()
 
 #If the -e flag was chosen, run the parameter scan to explore the data filtering options
 if explore_filters:
-    print('-e / --explore_filters flag chosen\nExploring filtering options and quitting\n\n')
+    print('-e / --explore_filters flag chosen\nExploring filtering options and quitting\n')
     
     
     #Set filter ranges
@@ -213,13 +201,13 @@ if explore_filters:
     retained_trees_df.set_axis(min_rep_vals, axis=1, inplace=True)
     
     #Print the table
-    print('\n\nOutputting table of the total retained trees under different filtering parameter combinations\n')
+    print('\n\nOutputting table of the total retained trees under different filtering parameter combinations to "Retained_genes_counts.csv"\n')
+    retained_trees_df.to_csv(out_dir+'Retained_genes_counts.csv', sep=',' , index=False)
+    print('Number of retained genes:')
     print(retained_trees_df)
-    print('\nColumns: minimum requred number or species represented\nRows:Maximum allowed number of paralogs/species\n\n')
+    print('\nColumns: minimum requred number or species represented\nRows:Maximum allowed number of paralogs/species\n')
     
-    logging.info('\n\nOutputting table of the total retained trees under different filtering parameter combinations\n\n%s' %retained_trees_df)
-    logging.info('\nColumns: minimum requred number or species represented\nRows:Maximum allowed number of paralogs/species\n\n')
-    
+    print('Parameter exporation complete. To run full analyses, choose -p and -r parameters based on the table above and rerun Phylogenomics.py without the --explore_filters / -e flag.')
     #Exit program (the user will need to rerun after viewing the parameter scan results)
     sys.exit()
     
@@ -241,17 +229,17 @@ if isinstance(Test_num, int):
 #Write csv file and report the number of gene trees included after filtering
 if 'HOG' in list(Keeper_HOGs_df.columns):
     Keeper_HOGs_df.to_csv(out_dir+'Filtered_genefam_dataset.csv', sep=',' , index=False)
-    logging.info('Filtered list of gene families successfully generated. \nFiltered dataset contains %d genes.\nCsv file written to Filtered_genefam_dataset.csv \n\n' %Keeper_HOGs_df.shape[0])
+    print('Filtered list of gene families successfully generated. \n\nFiltered dataset contains %d genes.\n\nCsv file written to Filtered_genefam_dataset.csv \n' %Keeper_HOGs_df.shape[0])
 else:
-    logging.critical('Sequence counts per sepecies dataframe not properly generated. Quitting...\n\n')
+    print('Error: sequence counts per sepecies dataframe not properly generated. Quitting...\n')
     sys.exit()
 
 ### Extract the subtree sequences to be aligned
 #make a dir to store the new fasta files
 if not os.path.isdir(out_dir+'HOG_seqs'):
     os.makedirs(out_dir+'HOG_seqs')
-    print("created folder : HOG_seqs\nfasta files will be written to HOG_seqs/\n\n")
-else: print('Fasta files will be written to HOG_seqs/\n\n')
+    print("created folder : HOG_seqs\n\nfasta files will be written to HOG_seqs/\n")
+else: print('Fasta files will be written to HOG_seqs/\n')
 
 #Loop through all rows
 for row_i, row in Keeper_HOGs_df.iterrows():
@@ -282,52 +270,46 @@ seq_file_names = glob.glob(out_dir+'HOG_seqs/HOG*')
 #Report the number of files that were written
 #Write csv file and report the number of gene trees included after filtering
 if len(seq_file_names)>0:
-    logging.info('%f HOG sequence files written to HOG_seqs/\n\n' %len(seq_file_names))
+    print('%d HOG sequence files written to HOG_seqs/\n' %int(len(seq_file_names)))
 else:
-    logging.critical('Writing HOG sequence files failed. Quitting...n\n')
+    print('ERROR: writing HOG sequence files failed. Quitting...\n')
     sys.exit()
 
 ### Run mafft alignment
 mafft_msg= str(subprocess.Popen(['mafft', '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate())
 
 if re.search('MAFFT', mafft_msg):
-    print('Beginning multiple sequence alignment of %d files with MAFFT\n\n' %len(seq_file_names))
-    logging.info('Beginning multiple sequence alignment with %s \n\n' %str(re.findall(r'MAFFT\s*v\s*\d*.\d*', mafft_msg)))
+    print('Beginning multiple sequence alignment of %d files with MAFFT\n' %len(seq_file_names))
+    print('Using MAFFT version %s \n' %str(re.findall(r'MAFFT\s*v\s*\d*.\d*', mafft_msg)))
 else:
-    print('MAFFT not avaialable. Quitting... \n\n')
-    logging.critical('MAFFT not available. Check that mafft is installed and added to $PATH. Quitting...\n\n')
+    print('ERROR: MAFFT not avaialable. Check that mafft is installed and added to $PATH. Quitting... \n')
     sys.exit()
     
 #Make a directory for alignments
 if not os.path.isdir(out_dir+'Alns'):
     os.makedirs(out_dir+'Alns')
-    print("created folder : Alns/\n\n")
+    print("created folder : Alns/\n")
 else: 
-    print('MAFFT alignments will be written to Alns/\n\n')
-    
+    print('MAFFT alignments will be written to Alns/\n')
+
+print('Alignments finished: ')
 for file_i, file in enumerate(seq_file_names):
-    if file_i % 100 == 0:
-        print('%d alignments done!' %file_i)
-    if file_i % 1000 == 0:    
-        logging.info('%d alignments done!' %file_i)
+    if file_i % 10 == 0:
+        print(file_i)
     os.system('mafft-linsi --quiet '+file+' > '+out_dir+'Alns/ALN_'+file.replace(out_dir+"HOG_seqs/", ""))
     #os.system('mafft-linsi '+file+' >Alns/ALN_'+file.replace("HOG_seqs/", "")+' 2>&1') #' 2>&1' suppressed stderr from mafft
     #print('mafft-linsi --quiet '+file+' > Alns/ALN_'+file.replace("HOG_seqs/", ""))
 
 #Check alignment status
 if len(glob.glob(out_dir+'Alns/ALN*')) == len(seq_file_names):
-    print('Alignment finished succesfully\n')
-    logging.info('Alignment finished succesfully\n')
+    print('\n\nDone with multiple sequences alignments\n')
 elif len(glob.glob(out_dir+'Alns/ALN*')) < len(seq_file_names):
-    print('WARNING: some alignments did not finish. Proceeding (with caution)...\n')
-    logging.critical('WARNING: some alignments did not finish. Proceeding (with caution)...\n\n')
+    print('\nWARNING: some alignments did not finish. Proceeding (with caution)...\n')
 elif len(glob.glob(out_dir+'Alns/ALN*')) < len(seq_file_names):
-    print('WARNING: there are more alignments in the folder than expected. Proceeding (with caution)...\n\n')
-    logging.critical('WARNING: there are more alignments in the folder than expected. Proceeding (with caution)...\n\n')
+    print('\nWARNING: there are more alignments in the folder than expected. Proceeding (with caution)...\n')
 
 ###GBLOCKS cleaning alignments
 print('Beginning GBLOCKS\n')
-logging.info('Beginning GBLOCKS\n')
 
 #Get list of all alns (that haven't been gblocked yet)
 aln_file_names = [x for x in glob.glob(out_dir+'Alns/ALN*') if "-gb" not in x]
@@ -343,17 +325,16 @@ else:
 #Make a directory for gblocks trimmed alignments
 if not os.path.isdir(out_dir+'Gb_alns'):
     os.makedirs(out_dir+'Gb_alns')
-    print("created folder: Gb_alns/\n\n")
+    print("created folder: Gb_alns/\n")
 else: 
-    print('Gblocks-trimmed alignments will be stored to Gb_alns/\n\n')
-
+    print('Gblocks-trimmed alignments will be stored to Gb_alns/\n')
 
 #Make a directory for gblocks trimmed alignments that are too short 
 if not os.path.isdir(out_dir+'Gb_alns/Too_short/'):
     os.makedirs(out_dir+'Gb_alns/Too_short/')
-    print("created folder: Gb_alns/Too_short/\n\n")
+    print("created folder: Gb_alns/Too_short/\n")
 else: 
-    print('Trimmed alignents that are too short will be stored to Gb_alns/Too_short/\n\n')
+    print('Trimmed alignents that are too short will be stored to Gb_alns/Too_short/\n')
 
 #Loop through the files that need to Gblocks trimmed
 for aln in aln_file_names:
@@ -382,29 +363,29 @@ for aln in aln_file_names:
                 os.replace(str(aln+'-gb'), str(aln+'-gb').replace('Alns/', 'Gb_alns/'))
                 #os.replace(str(aln+'-gb.htm'), str(aln+'-gb.htm').replace('Alns/', 'Gb_alns/HTML_files/'))
             else:
-                logging.info('%s not long enough. Moving to gblocks files to Gb_alns/Too_short/\n' %aln.replace('Alns/', ''))
+                print('%s not long enough. Moving to gblocks files to Gb_alns/Too_short/' %aln.replace('Alns/', ''))
                 os.replace(str(aln+'-gb'), str(aln+'-gb').replace('Alns/', 'Gb_alns/Too_short/'))
                 #os.replace(str(aln+'-gb.htm'), str(aln+'-gb.htm').replace('Alns/', 'Gb_alns/Too_short/'))
             
         else:
-            print('Something wrong with Gblocks stdout. Quitting...\n\n')
-            logging.critical('Something wrong with Gblocks stdout. Quitting...\n\n')
+            print('ERROR: something wrong with Gblocks stdout. Quitting...\n')
+            sys.exit()
+
             
     else:
-        print('WARNING: Something wrong with Gblocks command...\n\n')
-        logging.critical('WARNING: Something wrong with Gblocks command...\n\n')
+        print('WARNING: Something wrong with Gblocks command...\n')
+        sys.exit()
 
 ### Get the subtree tree files (to use in branch length optimization)
 #Create folder to store subtrees
 #Make a directory for gblocks trimmed alignments that are too short 
 if not os.path.isdir(out_dir+'HOG_subtrees/'):
     os.makedirs(out_dir+'HOG_subtrees/')
-    print("created folder: HOG_subtrees/\n\n")
+    print("\nCreated folder: HOG_subtrees/\n")
 else: 
-    print('HOG subtrees will be stored in HOG_subtrees/\n\n')
+    print('HOG subtrees will be stored in HOG_subtrees/\n')
     
-print('Running subtree extraction. Check Non-binary_subtrees.txt for list of trees that are excluded for being non-bifurcating\n\n')
-logging.info('Extracting subtrees\n\n')
+print('Running subtree extraction. Check Non-binary_subtrees.txt for list of trees that are excluded for being non-bifurcating\n')
 
 #Call the R-script used to extract trees
 get_st_cmd= 'Rscript Get_subtree.R '+OG_trees_dir+' '+out_dir
@@ -417,11 +398,9 @@ if re.search('Get_subtree.R', get_st_cmd) and re.search(OG_trees_dir, get_st_cmd
 
 #Checj if it worked
 if len(glob.glob(out_dir+'HOG_subtrees/*tree.txt')) > 0:
-    print('Finished running subtree extraction. Check "Non-binary_subtrees.txt" for a list trees that were excluded\n\n')
-    logging.info('Finished running subtree extraction. Check "Non-binary_subtrees.txt" for a list trees that were excluded\n\n')
+    print('\nFinished running subtree extraction. Check "Non-binary_subtrees.txt" for a list trees that were excluded\n')
 else:
-    print('An error occured during subtree extraction. Quitting...\n')
-    logging.critical('An error occured during subtree extraction. Quitting...\n')
+    print('ERROR: An error occured during subtree extraction. Quitting...\n')
     sys.exit()
 
 ### Infer trees with Raxml
@@ -436,31 +415,28 @@ def intersection(lst1, lst2):
 #Get a list of the IDs that sucessfully created alignments and subtrees
 keeperIDs = intersection([x.replace(out_dir+'Gb_alns/ALN_', '').replace('.fa-gb', '') for x in glob.glob(out_dir+'Gb_alns/ALN_*')], [y.replace(out_dir+'HOG_subtrees/', '').replace('_tree.txt', '') for y in glob.glob(out_dir+'HOG_subtrees/*_tree.txt')])
 
-print('Starting Branch Length Optimization with RAxML\n\n')
-logging.info('Starting branch length optimization\n\n')
+print('Starting Branch Length Optimization with RAxML\n')
       
 #Make directory to work in
 if not os.path.isdir(out_dir+'Trees_working/'):
     os.makedirs(out_dir+'Trees_working/')
-    print("created folder: Trees_working/\n\n")
+    print("created folder: Trees_working/\n")
 else: 
-    print('HOG subtrees will be stored in Trees_working/\n\n')
+    print('HOG subtrees will be stored in Trees_working/\n')
     
 #Make directory to write output to
 if not os.path.isdir(out_dir+'BL_trees/'):
     os.makedirs(out_dir+'BL_trees/')
-    print("created folder: BL_trees/\n\n")
+    print("created folder: BL_trees/\n")
 else: 
-    print('HOG subtrees will be stored in BL_trees/\n\n')
+    print('HOG subtrees will be stored in BL_trees/\n')
 
- 
+print('Trees finished: ') 
 # Loop through files to process
 for HOG_i, HOG_id in enumerate(keeperIDs):
     #Track progress
-    if HOG_i % 100 == 0:
-        print('%d branch-length trees done!' %HOG_i)
-    if HOG_i % 1000 == 0:    
-        logging.info('%d branch-length trees done!' %HOG_i)
+    if HOG_i % 10 == 0:
+        print(HOG_i)
 
     #Copy the needed files to the directory
     #tree
@@ -479,32 +455,31 @@ for HOG_i, HOG_id in enumerate(keeperIDs):
         subprocess.call(raxml_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         #subprocess.call(raxml_cmd, shell=True)
 
-print('Done with RAxML branch length optimization\n\n')
+print('\n\nDone with RAxML branch length optimization\n')
 
-print("Generating input files for GT/ST reconciliation...\n\n Calling R...\n\n")
+print("Generating input files for GT/ST reconciliation...\n")
 
 #Generate the input files for GTST reconciliation.
 input_gen_cmd= 'Rscript Generate_rec_inputs.R '+JOBname+' '+OFpath
     
 #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
 if re.search('Generate_rec_inputs.R', input_gen_cmd) and re.search('Rscript', input_gen_cmd):
-    print("Generating input files in R with the folllowing command:")
-    print(input_gen_cmd)
+    print("Calling R with the folllowing command:")
+    print(input_gen_cmd, end="\n\n")
     subprocess.call(input_gen_cmd, shell=True)
 
 if len(glob.glob('DLCpar/*_NODES_BL.txt')) > 0:
-    print('Finished generateing input files.\n\nInput files written to DLCpar/\n\n')
+    print('Finished generateing input files.\nInput files written to DLCpar/\n')
     
 
-print('IMPORTANT NOTE: the next step makes use of DLCpar, which requires python 2 (whereas the previous steps are written in python 3).\n' \
-      'To run the next step you will need to enter a python 2 anaconda environment and install DLCpar.\n\n' \
-          'Example commands:\n' \
+print('\nIMPORTANT NOTE: the next step makes use of DLCpar, which requires python 2 (whereas the previous steps are written in python 3).\n' \
+      'To run the next step you will need to enter a python 2 anaconda environment and install DLCpar.\n' \
+          '\nExample commands:\n' \
               'conda create --name dlcpar_py27 python=2.7\n' \
                   'conda activate dlcpar_py27\n' \
-                      'conda install -c bioconda dlcpar\n\n')
+                      'conda install -c bioconda dlcpar\n')
 
-print('After successfully completing the above steps, run the next step with the following command:\n\n' \
+print('After successfully completing the above steps, run the next step with the following command:\n' \
       'python GTST_reconciliation.py -j '+JOBname
       )
-
 
