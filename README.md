@@ -134,5 +134,7 @@ To run the *Phylogenomic analyses*, you'll need to set parameters that specify l
 
 Example:
 ```
-python Phylogenomics.py -j TPC_test -e -s -o <path/to/orthofinder/results/> -x <path/to/raxml/installation/>
+python Phylogenomics.py -j <jobname> -e -s -o <path/to/orthofinder/results/> -x <path/to/raxml/installation/>
 ```
+
+
