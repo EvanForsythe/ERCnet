@@ -85,7 +85,7 @@ conda install -c bioconda gblocks
 conda install -c bioconda raxml
 ```
 
-#### Runnng Phylogenomic analyses
+#### Running Phylogenomic analyses
 To see a list of arguments for ERCnet use `Phylogenomics.py --help`
 
 * Input files:
