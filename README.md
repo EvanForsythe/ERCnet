@@ -129,3 +129,10 @@ S_noctiflora,S_noctiflora_prot
 S_polyrhiza,S_polyrhiza_prot
 V_vinifera,V_vinifera_prot
 ```
+
+To run the *Phylogenomic analyses*, you'll need to set parameters that specify level of stringency with which to filter the Orthofinder gene families to be input into the phylogenomic pipeline. To inform this decision, we recommend running Phylogenomics.py with the --explore_filters (-e) flag, which will perform a parameter scan and return a table indicating the number of gene families retained under different filters.
+
+Example:
+```
+python Phylogenomics.py -j TPC_test -e -s -o <path/to/orthofinder/results/> -x <path/to/raxml/installation/>
+```
