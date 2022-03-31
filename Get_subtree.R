@@ -1,5 +1,10 @@
 #! /usr/local/bin/Rscript --vanilla --default-packages=utils
 
+#Load packages
+library("ape")
+library("stringr")
+
+#Set the working directory with the path to this script
 getScriptPath <- function(){
   cmd.args <- commandArgs()
   m <- regexpr("(?<=^--file=).+", cmd.args, perl=TRUE)
@@ -16,19 +21,6 @@ setwd(working_dir)
 
 #Because the above function returns "." as the working dir, using this command to set the full path (to avoid issues below)
 working_dir<-paste0(getwd(),"/")
-
-print(working_dir)
-
-#Load packages
-package_list<-c("ape", "stringr")
-
-#Loop to check if package is installed and libraried
-for(p in 1:length(package_list)){
-  if (!require(package_list[p], character.only = TRUE)) {
-    install.packages(package_list[p], dependencies = TRUE)
-    library(package_list[p], character.only=TRUE)
-  }
-}
 
 #Read in arguments
 args = commandArgs(trailingOnly=TRUE)

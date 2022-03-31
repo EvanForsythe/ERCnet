@@ -3,18 +3,12 @@
 #USAGE
 #Rscript Generate_rec_inputs.R /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/
 
-
 #Load packages
-package_list<-c("ape", "stringr", "phytools")
+library("ape")
+library("stringr")
+library("phytools")
 
-#Loop to check if package is installed and libraried
-for(p in 1:length(package_list)){
- if (!require(package_list[p], character.only = TRUE)) {
-   install.packages(package_list[p], dependencies = TRUE)
-   library(package_list[p], character.only=TRUE)
- }
-}
-
+#Set the working directory with the path to this script
 getScriptPath <- function(){
   cmd.args <- commandArgs()
   m <- regexpr("(?<=^--file=).+", cmd.args, perl=TRUE)
