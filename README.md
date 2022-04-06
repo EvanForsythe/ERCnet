@@ -1,4 +1,4 @@
-# ERCnet: a program for running genome-wide ERC analyses in the presence of gene duplication and performingnetwork analyses on ERC results
+# ERCnet: a program for running genome-wide ERC analyses in the presence of gene duplication and performing ERC-based network analyses.
 
 ## Overview
 The full ERCnet workflow consistst of the following steps:
