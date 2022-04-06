@@ -160,7 +160,9 @@ seq_counts_df=make_seq_counts_df(N1_file_path, out_dir+'Species_mapping.csv')
 
 #Check if the dataframe was assinged properly
 if 'HOG' in list(seq_counts_df.columns):
-    print('Sequence counts per sepecies dataframe successfully generated\n')
+    print('Sequence counts per species dataframe successfully generated\n')
+    print('Writing sequence counts per sepecies table to "Seq_counts_per_species.csv"\n')
+    seq_counts_df.to_csv(out_dir+'Seq_counts_per_species.csv', sep=',' , index=False)
 else:
     print('ERROR: Sequence counts per sepecies dataframe not properly generated. Quitting...\n')
     sys.exit()
@@ -169,10 +171,9 @@ else:
 if explore_filters:
     print('-e / --explore_filters flag chosen\nExploring filtering options and quitting\n')
     
-    
     #Set filter ranges
-    max_paralogs_vals=list(range(1, 7, 1))
-    min_rep_vals=list(range(3, len(sp_names), 1))
+    max_paralogs_vals=list(range(1, 5, 1))
+    min_rep_vals=list(range(5, len(sp_names), 1))
     
     #Make blank array for parameter scan
     retained_trees=np.zeros((len(max_paralogs_vals), len(min_rep_vals)))
