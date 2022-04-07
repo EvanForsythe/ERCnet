@@ -68,7 +68,7 @@ for file_i, file in enumerate(input_GTs):
     subprocess.call(["dlcpar_search", "-sSpeciesTree_rooted_node_labels.txt", "-SspeciesIDs.smap", file]) #adding spaces after -s and -S were causing problems
     
     #Report progress
-    if file_i % 100 == 0:
+    if file_i % 10 == 0:
         print('%d reconciliations done!' %file_i)
 
 #Change back to original directory

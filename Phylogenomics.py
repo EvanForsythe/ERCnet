@@ -46,6 +46,7 @@ parser.add_argument('-e','--explore_filters', action='store_true', required=Fals
 parser.add_argument('-l', '--Min_len', type=int, metavar='', required=False, help='Integer: minimum length of alignment (after trimming with Gblocks) required to retain gene' )
 parser.add_argument('-x', '--Rax_dir', type=str, metavar='', required=True, help='Full path to the location of your raxml install (use which raxmlHPC to locate). Include "/" at the end of the string') 
 parser.add_argument('-s','--SPmap', action='store_true', required=False, help='Add this flag to provide a custom species mapping file. This mapping file must be formatted in certian way. See instuctions')
+parser.add_argument('-n', '--Node', type=int, metavar='', required=False, help='Integer: node number on orthofinder species tree to be used to obtain HOGs (1 by default)' )
 
 
 #Define the parser
@@ -61,6 +62,7 @@ Min_len=args.Min_len
 Test_num=args.Test_num
 Rax_dir=args.Rax_dir
 SPmap=args.SPmap
+Node=args.Node
 
 
 '''
@@ -87,6 +89,7 @@ Min_len=100
 Test_num=50
 Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
 SPmap=True
+Node=1
 #END DEV
 '''
 
@@ -100,9 +103,22 @@ if not Rax_dir.endswith('/'):
     print('Rax_dir does not end with a "/". Quitting...\n')
     sys.exit()
 
+print("Finding the Orthofinder HOG file to be used to designate ingroup subtrees\n")
+
+#Get the status of the variable from the --Node argument
+if Node is None:
+    print("--Node (-n) not defined. Choosing N1.tsv HOF file by default\nNote that N1.tsv is only appropriate if your species tree contains a single outgroup species.\n")
+    Node=1
+else:
+    if isinstance(Node, int):
+        print("--Node (-n) argument used to select N"+str(Node)+".tsv HOG file\n")
+    else:
+        print("ERROR: Invalid value for --Node (-n). This should be an interger. (e.g. for N2.tsv: '-n 2'')\nQuitting....\n")
+        sys.exit()
+
 #Get path to some needed Orthofinder files 
 sp_tr_path = OFpath+'Species_Tree/SpeciesTree_rooted_node_labels.txt'
-N1_file_path = OFpath+'Phylogenetic_Hierarchical_Orthogroups/N1.tsv'
+HOG_file_path = OFpath+'Phylogenetic_Hierarchical_Orthogroups/N'+str(Node)+'.tsv'
 OG_trees_dir = OFpath+'Resolved_Gene_Trees/'
 OGseqdir = OFpath+'Orthogroup_Sequences/'
 
@@ -116,20 +132,20 @@ if not os.path.isdir(out_dir):
     print('created folder: '+out_dir+'\nAll output files will be written to this folder\n')
 else: print('All output files will be written to '+out_dir+'\n')
 
-#Check N1file exists 
-if os.path.isfile(N1_file_path):
-    print('N1 HOG file located at:\n'+ N1_file_path+'\n')
+#Check HOG file exists 
+if os.path.isfile(HOG_file_path):
+    print('HOG file for selected node located at:\n'+ HOG_file_path+'\n')
     
 else:
-    print('N1 HOG file not found. Quitting...\n')
+    print('OG file for selected node not found. Quitting...\n')
     sys.exit()
 
 
-#open N1 file
-N1_file=pd.read_csv(N1_file_path, sep='\t')
+#open HOG file
+HOG_file=pd.read_csv(HOG_file_path, sep='\t')
 
 #Make a list of species
-sp_list_temp = list(N1_file.columns[3:])
+sp_list_temp = list(HOG_file.columns[3:])
 
 #Generate species mapping file
 if SPmap:
@@ -150,13 +166,13 @@ sp_prefix=list(mapping_table['Prefix'])
 sp_names=list(mapping_table['SpeciesID'])
 
 print("The following species identifiers will be used: \n"+str(sp_names))
-print("These should match the column headers in the N1 file and the tip labels in the species tree")
+print("These should match the column headers in the HOG file (e.g. N1.tsv) and the tip labels in the species tree")
 
 print("\nThe following species identifiers will be used: \n"+str(sp_prefix))
 print("These should be present in the sequence IDs in alignments etc...\n")
 
 #Generate a dataframe of the counts data using the my outside module from filterHOGs.py
-seq_counts_df=make_seq_counts_df(N1_file_path, out_dir+'Species_mapping.csv')
+seq_counts_df=make_seq_counts_df(HOG_file_path, out_dir+'Species_mapping.csv')
 
 #Check if the dataframe was assinged properly
 if 'HOG' in list(seq_counts_df.columns):
@@ -184,7 +200,7 @@ if explore_filters:
             para_value=p_val
             rep_value=s_val
 
-            passed_only_df = filter_gene_fams(N1_file, seq_counts_df, sp_names, para_value, rep_value)
+            passed_only_df = filter_gene_fams(HOG_file, seq_counts_df, sp_names, para_value, rep_value)
             #Number of rows in the dataframe
             retained_trees[p_count,s_count]=passed_only_df.shape[0]
             
@@ -216,14 +232,21 @@ if explore_filters:
 if 'MaxP_val' in globals() and isinstance(MaxP_val, int) and'MinR_val' in globals() and isinstance(MinR_val, int):
     print('--MaxP_val set to {} and --MinR_val set to {}\nFiltering data....'.format(MaxP_val,MinR_val))
 else:
-    print('--MaxP_val and --MinR_val required (unless you use the --explore_filters flag)\nexiting...')
+    print('ERROR: --MaxP_val and --MinR_val required (unless you use the --explore_filters flag)\nexiting...')
     sys.exit()
 
 ##Filter results according to filter criteria
 #Use the module from Filter_stats.py to filter the list
-Keeper_HOGs_df= filter_gene_fams(N1_file, seq_counts_df, sp_names, MaxP_val, MinR_val)
+Keeper_HOGs_df= filter_gene_fams(HOG_file, seq_counts_df, sp_names, MaxP_val, MinR_val)
 
-#FOR TESTING: filter the dataset to a user-defined subset
+#Check if any HOGs were retained
+if Keeper_HOGs_df.shape[0] > 0:
+    print("Dataset filtering successful\n")
+else:
+    print('ERROR: It appears that zero HOGs were retained. Adjust --MaxP_val and --MinR_val and rerun...\nQuitting....')
+    sys.exit()
+
+#FOR TESTING: subset the dataset to a user-defined subset
 if isinstance(Test_num, int):
     Keeper_HOGs_df = Keeper_HOGs_df.sample(n=Test_num)
 
@@ -262,7 +285,7 @@ for row_i, row in Keeper_HOGs_df.iterrows():
     HOG_dict= {k: OG_dict[k] for k in OG_dict.keys() & seq_list}
     
     #Write file
-    with open(str(out_dir+'HOG_seqs/'+HOGtemp.replace("N1.", "")+'.fa'), 'w') as handle:
+    with open(str(out_dir+'HOG_seqs/'+HOGtemp.replace("N"+str(Node)+".", "")+'.fa'), 'w') as handle:
         SeqIO.write(HOG_dict.values(), handle, 'fasta')
 
 #Get list of files that were written

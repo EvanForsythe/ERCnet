@@ -42,7 +42,6 @@ out_dir<-paste0("OUT_", jobname, "/")
 #Read results in (store as separate variable)
 bxb_measure_df_res<-read.table(file = paste0(working_dir, out_dir, "BL_results/bxb_BLs_normalized.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 r2t_measure_df_res<-read.table(file = paste0(working_dir, out_dir, "BL_results/r2t_BLs_normalized.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-#Input_N1_df<-read.table(file = paste0(working_dir, "BL_results/N1_input_file.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 #Get all pairwise comparisons (without repeats) (this helps avoid nested for-loops)
 ERC_df<-as.data.frame(t(combn(unique(bxb_measure_df_res$HOG_ID), 2)))
