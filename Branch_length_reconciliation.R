@@ -143,8 +143,16 @@ for(m in 1:length(rec_files_list)){
   BL_measure_df[m,]<-c(str_replace(rec_files_list[m], "_NODES_BL.txt", ""),sp_branches_df_temp$gene_tree_BL_measure)
 
   ### pull out root to tip distances
-  #Find the node on the gene tree that maps to N1 on the species tree
-  gt_root_node<-rec_df_replace$Gene_tree_node[which(rec_df_replace$Sp_tree_location=="N1")]
+  #Find the node on the gene tree that maps to the node of interest (selected with --Node/-n in the Phylogenomics.py step) on the species tree
+  #To figure out with node is used on this run, read in one of the earlier ouput files and pull out the N1/N2/etc.. string
+  
+  #Read second line of seq_counts file to pull of the node
+  con <- file(paste0(out_dir, "Seq_counts_per_species.csv"),"r")
+  second_line <- readLines(con, n = 2)[2]
+  close(con)
+  nodeID<-unlist(str_split(second_line, "\\."))[1]
+  
+  gt_root_node<-rec_df_replace$Gene_tree_node[which(rec_df_replace$Sp_tree_location==nodeID)]
 
   #Loop through all the branches that need r2t measures
   for(x in 2:ncol(r2t_measure_df)){

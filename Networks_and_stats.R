@@ -122,8 +122,8 @@ comms_df<-comms_df[order(comms_df$Community),]
 #Read in the HOG file
 All_HOGs_df<-read.table(file = paste0(working_dir, out_dir, "Filtered_genefam_dataset.csv"), header = TRUE, sep = ",", stringsAsFactors = FALSE)
 
-#Remove the "N1."
-All_HOGs_df$HOG<-gsub(All_HOGs_df$HOG, pattern = "N1.", replacement = "")
+#Remove the "N1." (or N2. N3. etc...) from the string
+All_HOGs_df$HOG<-sapply(strsplit(as.character(All_HOGs_df$HOG), "\\."), `[`, 2)
 
 #Join the dataframes
 comms_w_IDs<-merge(x = comms_df, y = All_HOGs_df, by="HOG", all.x=TRUE)

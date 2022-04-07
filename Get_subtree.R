@@ -31,7 +31,7 @@ OG_file_path<-paste(args[1])
 
 #Read in the csv file of filtered gene gene families
 out_dir<-paste(args[2])
-#out_dir<-"OUT_TEST/"
+#out_dir<-"OUT_TPC_TEST/"
 out_dir_full<-paste0(working_dir, out_dir)
 
 #Read in file
@@ -68,9 +68,13 @@ keeper_tips<-unlist(strsplit(str_replace_all(toString(raw_strings), " ", ""), sp
 subtree_temp<-keep.tip(phy = full_tree_temp, tip =c(keeper_tips))
 
 #Get the name of the outfile
-out_file_name<-paste0(HOGs_df$HOG[h], "_tree.txt")
-#Remove the N1 string
-out_file_name<-str_replace(out_file_name, "N1.", "")
+out_file_name<-paste0(HOGs_df$HOG[h])
+
+#Remove the N1 (or N2, N3, etc...) string
+out_file_name<-unlist(str_split(out_file_name, "\\."))[2]
+
+#Add suffix
+out_file_name<-paste0(out_file_name, "_tree.txt")
 
 #Check if subtrees has polytomies
 if(is.binary(subtree_temp)){
