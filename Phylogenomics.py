@@ -161,7 +161,7 @@ seq_counts_df=make_seq_counts_df(N1_file_path, out_dir+'Species_mapping.csv')
 #Check if the dataframe was assinged properly
 if 'HOG' in list(seq_counts_df.columns):
     print('Sequence counts per species dataframe successfully generated\n')
-    print('Writing sequence counts per sepecies table to "Seq_counts_per_species.csv"\n')
+    print('Writing sequence counts per species table to "Seq_counts_per_species.csv"\n')
     seq_counts_df.to_csv(out_dir+'Seq_counts_per_species.csv', sep=',' , index=False)
 else:
     print('ERROR: Sequence counts per sepecies dataframe not properly generated. Quitting...\n')
