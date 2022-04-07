@@ -61,7 +61,7 @@ conda activate ERCnet_py3
 conda install -c conda-forge r-base
 conda install -c conda-forge r-stringr
 conda install -c conda-forge r-ape=5.6
-conda install -c bioconda r-phytools
+conda install -c conda-forge r-phytools
 
 #Install python modules
 conda install -c anaconda pandas
