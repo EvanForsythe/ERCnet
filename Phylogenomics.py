@@ -189,7 +189,7 @@ if explore_filters:
     
     #Set filter ranges
     max_paralogs_vals=list(range(1, 5, 1))
-    min_rep_vals=list(range(5, len(sp_names), 1))
+    min_rep_vals=list(range(5, (len(sp_names)+1), 1))
     
     #Make blank array for parameter scan
     retained_trees=np.zeros((len(max_paralogs_vals), len(min_rep_vals)))
