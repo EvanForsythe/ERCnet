@@ -74,7 +74,7 @@ conda install -c bioconda raxml
 ```
 
 #### Running Phylogenomic analyses
-To see a list of arguments for ERCnet use `python Phylogenomics.py --help`
+To see a list of arguments for ERCnet use `./Phylogenomics.py --help`
 
 * Input files:
     * Output from Orthofinder found in the folowing folders:
@@ -117,7 +117,7 @@ To run the *Phylogenomic analyses*, you'll need to set parameters that specify l
 
 Example:
 ```
-python Phylogenomics.py -j <jobname> -e -s -o <path/to/orthofinder/results/> -x <path/to/raxml/installation/>
+./Phylogenomics.py -j <jobname> -e -s -o <path/to/orthofinder/results/> -x <path/to/raxml/installation/>
 ```
 
 All options for Phylogenomics.py:

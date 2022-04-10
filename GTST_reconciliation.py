@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 '''
 ### Main script for running the GTST reconciliation step in DLCpar ###
 
@@ -7,6 +9,7 @@ Example command:
     python GTST_reconciliation.py -j TPC_test
 
 '''
+
 #During developent, set working directory:
 #import os
 #working_dir = '/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/'
@@ -79,4 +82,4 @@ print('IMPORTANT NOTE: for the next step, switch back to the python 3 environeme
           'For a reminder of the avialable environents:\n' \
               'conda info --envs\n')
 
-print('After switching to python3 environment, run the next step with the following command:\n\npython ERC_analyses.py -j '+JOBname)
+print('After switching to python3 environment, run the next step with the following command:\n\n./ERC_analyses.py -j '+JOBname+'\n\n')
