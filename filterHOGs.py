@@ -1,5 +1,4 @@
-#/opt/anaconda3/envs/ERC_networks python
-
+#!/usr/bin/env python3
 
 import pandas as pd
 import numpy as np

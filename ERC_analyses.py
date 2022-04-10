@@ -1,9 +1,10 @@
+#!/usr/bin/env python3
 '''
 Script for performing BL reconcilation and ERC correlation analyses. This should be run in python3
 
 conda activate ERC_networks
 
-python Run_ERC.py -j TEST -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/
+./Run_ERC.py -j TEST -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/
 
 '''
 
@@ -87,7 +88,7 @@ print("ERC correlation analyses finished. Exiting....")
 print('ERC correlation analyses finished. Exiting....\n\n'\
       'To perform network analyses, run Network_analyses.py. See associated help menu for required arguments.'\
           '\nExample command:\n\n' \
-          'python Network_analyses.py -j '+JOBname+' -m bxb -f pval -c 0.001 -y fg -s <focal_sp>\n' 
+          './Network_analyses.py -j '+JOBname+' -m bxb -f pval -c 0.001 -y fg -s <focal_sp>\n\n' 
       )
 
 

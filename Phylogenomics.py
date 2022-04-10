@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 '''
 ### Main script for running the phylogenomics steps of the ERC workflow###
 
@@ -5,7 +6,7 @@ conda activate ERC_networks
 
 Example command:    
     #Full run: 
-    python Phylogenomics.py -j TPC_test -t 50 -p 3 -r 15 -l 100 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
+    ./Phylogenomics.py -j TPC_test -t 30 -p 3 -r 15 -l 100 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
 
 '''
 #During developent, set working directory:
@@ -35,7 +36,7 @@ working_dir = sys.path[0]+'/'
 os.chdir(working_dir)
 
 #Set up an argumanet parser
-parser = argparse.ArgumentParser(description='Main ERCnet script')
+parser = argparse.ArgumentParser(description='Script for running the first step of ERCnet')
 
 parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help='Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok)') 
 parser.add_argument('-o', '--OFpath', type=str, metavar='', required=True, help='Full path to the Orthofinder results dir (should contain Species_Tree/, Phylogenetic_Hierarchical_Orthogroups/ etc...)\n Include "/" at the end of the string') 
@@ -122,6 +123,37 @@ HOG_file_path = OFpath+'Phylogenetic_Hierarchical_Orthogroups/N'+str(Node)+'.tsv
 OG_trees_dir = OFpath+'Resolved_Gene_Trees/'
 OGseqdir = OFpath+'Orthogroup_Sequences/'
 
+##Check if expected Othofinder files exist
+print("Checking if expected input files exist (output file from Orthofinder)...\n")
+
+#Species tree
+if os.path.isfile(sp_tr_path):
+    print("Found species tree!")
+else:
+    print("ERROR: species tree not fond! Quitting....\n")
+    sys.exit()
+
+#HOG file
+if os.path.isfile(HOG_file_path):
+    print("Found HOG file!")
+else:
+    print("ERROR: expected HOG file (N"+str(Node)+".tsv) not fond! Quitting....\n")
+    sys.exit()
+
+#Resolved gene trees
+if os.path.isdir(OG_trees_dir):
+    print("Found Resolved_Gene_Trees/ directory!")
+else:
+    print("ERROR: Resolved_Gene_Trees/ directory not fond! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
+    sys.exit()
+
+#Resolved gene trees
+if os.path.isdir(OGseqdir):
+    print("Found Orthogroup_Sequences/ directory!\n")
+else:
+    print("ERROR: Orthogroup_Sequences/ directory not fond! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
+    sys.exit()
+    
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
 
@@ -504,6 +536,5 @@ print('\nIMPORTANT NOTE: the next step makes use of DLCpar, which requires pytho
                       'conda install -c bioconda dlcpar\n')
 
 print('After successfully completing the above steps, run the next step with the following command:\n' \
-      'python GTST_reconciliation.py -j '+JOBname
-      )
+      './GTST_reconciliation.py -j '+JOBname+'\n\n')
 

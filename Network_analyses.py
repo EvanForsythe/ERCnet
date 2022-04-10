@@ -1,7 +1,8 @@
+#!/usr/bin/env python3
 '''
 Script for performing Network analyses
 
-python Network_analyses.py -j TPC_test -m bxb -f pval -c 0.05 -y fg -s Atha
+./Network_analyses.py -j TPC_test -m bxb -f pval -c 0.05 -y fg -s Atha
 
 #delete previous runs
 #rm -r DLCpar/ BL_results/
@@ -88,5 +89,5 @@ if re.search('Networks_and_stats.R', Net_cmd) and re.search('Rscript', Net_cmd):
 if len(glob.glob(out_dir+'Network_analyses/*pdf')) > 0:
     print('Finished network analyses.\n\nResults files written to Network_analyses/\n\n')
 else:
-    print('Something went wrong with network analyses...\n')
+    print('Something went wrong with network analyses...\n\n')
 
