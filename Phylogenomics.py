@@ -6,7 +6,7 @@ conda activate ERC_networks
 
 Example command:    
     #Full run: 
-    ./Phylogenomics.py -j TPC_test -t 30 -p 3 -r 15 -l 100 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
+    ./Phylogenomics.py -j testtesttest -t 30 -p 3 -r 15 -l 100 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
 
 '''
 #During developent, set working directory:
@@ -81,13 +81,13 @@ Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
 
 '''
 #DEV: hardcode arguments
-JOBname = "TPC_testing"
+JOBname = "TPC_quick"
 OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/"
 MaxP_val=3
 MinR_val=17
 explore_filters=False
 Min_len=100
-Test_num=50
+Test_num=20
 Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
 SPmap=True
 Node=1
@@ -394,13 +394,16 @@ else:
 
 #Loop through the files that need to Gblocks trimmed
 for aln in aln_file_names:
-    #aln = aln_file_names[0]
+
     #Get number of sequences in alignment
+    #open connection
     aln_file = open(aln, "r")
     line_count = 0
     for line in aln_file:
         if re.search(r">", line):
             line_count += 1
+    #Close the connection
+    aln_file.close()
     
     #Create gblocks command
     gblocks_cmd = 'Gblocks '+aln+' -b5=h -b4=5 -p=n -b2='+str(math.floor((line_count/2)+1))
@@ -412,8 +415,19 @@ for aln in aln_file_names:
         
         #Extract the length of the trimmed alignment by parsing Gblocks stdout 
         if re.search('Gblocks alignment', output): #putting this in an if statement to make sure it's parsing the right thing
-            trm_aln_ln= int(output.split(r'\n')[6].split(' ')[3]) #This works but I think it could break easily
+
+            #Regular expression to pull out the trimmed alignment length    
+            match = re.search('\d+|$', re.search(r'(?<=Gblocks alignment:).*|$', output).group()).group() #note that "|$" at the end of both search strings means that match = '' if no hit is found
             
+            if match != '':
+               trm_aln_ln = int(match)
+            else:
+                print("ERROR: Problem parsing the Gblocks output for alignment: "+aln+" Something must of gone wrong with Gblocks.")
+                print("To trouble shoot Gblocks, try running Gblocks from the command line with:")
+                print(gblocks_cmd)
+                print("\nQuitting...\n")
+                sys.exit()
+           
             #Move the gblocks files to the appropriate folder
             if trm_aln_ln >= Min_len:
                 os.replace(str(aln+'-gb'), str(aln+'-gb').replace('Alns/', 'Gb_alns/'))
