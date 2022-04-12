@@ -122,18 +122,31 @@ Example:
 
 All options for Phylogenomics.py:
 
-| Short flag  | Long flag | Description| Required? |
-| ------------- |:-------------:|:-------------:|:-------------:|
-| -h | --help | Print help menu | no |
-| -o | --OFPath | Full path to the Orthofinder results dir (should containSpecies_Tree/, Phylogenetic_Hierarchical_Orthogroups/ etc...) Include "/" at the end of the string | yes |
-| -p | --MaxP | Integer: maximum number of paralogs per species allowed ineach gene family | yes, unless -e is chosen |
-| -r | --MinR | Integer: minimum number of species represented required ineach gene family | yes, unless -e is chosen |
-| -t  | --Test_num | Integer: number of gene families to analyze. This option is intended to help you test whether ERCnet is working on your system by running a small subset of genes before running the full dataset | no |
-| -e | --explore_filters | Add this flag to explore filtering options (-p and -r parameters). If selected, program will output parameter scan table and quit without running downstream steps. If -e is chosen it will negate -p and -r | no |
-| -l | --Min_len | Integer: minimum length of alignment (after trimming with Gblocks) required to retain gene for downstream analyses | yes |
-| -x | --Rax_dir | Full path to the location of your raxml installation (use which raxmlHPC to locate). Include "/" at the end of the string. | yes |
-| -s | --SPmap | Add this flag to provide a custom species mapping file. Not required if the tip labels on the orthofinder species tree exactly match the species prefix in sequence IDs. Mapping file must be formatted in certian way. See instuctions | no |
-| -n | --Node |Interger: indicate the node on the species tree that you would like to use to retrieve orthofinder HOGs (subtrees). Assuming your species tree has a single outgroup, you'll probably want N1 (default). However, if you species tree has multiple outgroups (or if you'd just like to perform an ERC analysis on a subset of the species tree), you can indicate which node to use for subtree extracting. E.g. For N2.tsv, "-n 2" or "--Node 2"  | no |
+| Short flag  | Long flag | Description| Required? | Default value |
+| ------------- |:-------------:|:-------------:|:-------------:|:-------------:|
+| -h | --help | Print help menu | no | NA |
+| -o | --OFPath | Full path to the Orthofinder results dir (should containSpecies_Tree/, Phylogenetic_Hierarchical_Orthogroups/ etc...) Include "/" at the end of the string | yes | NA |
+| -p | --MaxP | Integer: maximum number of paralogs per species allowed ineach gene family | yes, unless -e is chosen | 3* |
+| -r | --MinR | Integer: minimum number of species represented required ineach gene family | yes, unless -e is chosen | 10* |
+| -t  | --Test_num | Integer: number of gene families to analyze. This option is intended to help you test whether ERCnet is working on your system by running a small subset of genes before running the full dataset | no | NA |
+| -e | --explore_filters | Add this flag to explore filtering options (-p and -r parameters). If selected, program will output parameter scan table and quit without running downstream steps. If -e is chosen it will negate -p and -r | no | NA |
+| -l | --Min_len | Integer: minimum length of alignment (after trimming with Gblocks) required to retain gene for downstream analyses | yes | 100 |
+| -x | --Rax_dir | Full path to the location of your raxml installation (use which raxmlHPC to locate). Include "/" at the end of the string. | yes | NA |
+| -s | --SPmap | Add this flag to provide a custom species mapping file. Not required if the tip labels on the orthofinder species tree exactly match the species prefix in sequence IDs. Mapping file must be formatted in certian way. See instuctions | no | NA |
+| -n | --Node |Interger: indicate the node on the species tree that you would like to use to retrieve orthofinder HOGs (subtrees). Assuming your species tree has a single outgroup, you'll probably want N1 (default). However, if you species tree has multiple outgroups (or if you'd just like to perform an ERC analysis on a subset of the species tree), you can indicate which node to use for subtree extracting. E.g. For N2.tsv, "-n 2" or "--Node 2"  | no | 1* |
+
+*Values for these parameters can have a profound impact on analyses so make sure the values make biological sense for your analysis before opting for default values.
+
+Use the table output by running the --explore_filters option (above) to choose reasonable values for -p and -r. 
+
+Use the options described above to run the full *Phylogenomic analyses*
+
+Example:
+```
+./Phylogenomics.py -j <jobname> -e -s -p 3 -r 10 -l 100 -n 1 -o <path/to/orthofinder/results/> -x <path/to/raxml/installation/>
+```
+
+
 
 
 
