@@ -159,10 +159,24 @@ out_dir= 'OUT_'+JOBname+'/'
 
 #Create the output folder
 #Make a directory for storing stats (and log file)
-if not os.path.isdir(out_dir):
-    os.makedirs(out_dir)
+if os.path.isdir(out_dir):
+    while True:
+        user_input = input("This jobname already exists. Would you like to overwrite? (y/n) \n")
+        if user_input == 'y':
+            print("Clearing contents of " + out_dir + " All output files will be written to this folder\n") 
+            shutil.rmtree(out_dir)
+            os.makedirs(out_dir)
+            break
+        if user_input == 'n':
+            print('Unique jobname required. Exiting...')
+            sys.exit()
+            break
+        else:
+            print("Command not recognized.\n")     
+
+else:
+    os.makedirs(out_dir) 
     print('created folder: '+out_dir+'\nAll output files will be written to this folder\n')
-else: print('All output files will be written to '+out_dir+'\n')
 
 #Check HOG file exists 
 if os.path.isfile(HOG_file_path):
