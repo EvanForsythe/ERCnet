@@ -58,13 +58,13 @@ conda create -n ERCnet_py3 python=3
 conda activate ERCnet_py3
 
 #Install R package (specific versions included when important)
-conda install -c conda-forge r-base
+conda install -c conda-forge r-base=4.1.2
 conda install -c conda-forge r-stringr
 conda install -c conda-forge r-ape=5.6
 conda install -c conda-forge r-phytools
 
 #Install python modules
-conda install -c anaconda pandas
+conda install -c conda-forge pandas
 conda install -c conda-forge biopython
 
 #Install additional programs
