@@ -51,26 +51,24 @@ Below we provide detailed instructions for configuring environments for each ste
 Before running the *Phylogenomic analyses* of ERCnet, we recommend installing all dependencies in an anaconda environment by running the following lines of code:
 
 ```
-#Create conda environment
-conda create -n ERCnet_py3 python=3
+#Create a conda environment with python 3
+conda create -n test3 python=3.9.7
+conda activate test3
 
-#Activate env
-conda activate ERCnet_py3
+#Install python modules
+conda install -c conda-forge pandas
+conda install -c conda-forge biopython
+
+#Install phylogenetics-related programs
+conda install -c bioconda mafft
+conda install -c bioconda gblocks
+conda install -c bioconda raxml
 
 #Install R package (specific versions included when important)
 conda install -c conda-forge r-base=4.1.2
 conda install -c conda-forge r-stringr
 conda install -c conda-forge r-ape=5.6
 conda install -c conda-forge r-phytools
-
-#Install python modules
-conda install -c conda-forge pandas
-conda install -c conda-forge biopython
-
-#Install additional programs
-conda install -c bioconda mafft
-conda install -c bioconda gblocks
-conda install -c bioconda raxml
 ```
 
 #### Running Phylogenomic analyses
