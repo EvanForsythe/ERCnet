@@ -69,6 +69,7 @@ conda install -c conda-forge r-base=4.1.2
 conda install -c conda-forge r-stringr
 conda install -c conda-forge r-ape=5.6
 conda install -c conda-forge r-phytools
+conda install -c conda-forge r-igraph
 ```
 
 #### Running Phylogenomic analyses
