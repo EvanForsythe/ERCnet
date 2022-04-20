@@ -6,7 +6,7 @@ conda activate ERC_networks
 
 Example command:    
     #Full run: 
-    ./Phylogenomics.py -j test -t 30 -p 3 -r 15 -l 100 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
+    ./Phylogenomics.py -j test -t 3 -p 2 -r 15 -l 100 -m 4 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
 
 '''
 #During developent, set working directory:
@@ -48,6 +48,7 @@ parser.add_argument('-l', '--Min_len', type=int, metavar='', required=False, def
 parser.add_argument('-x', '--Rax_dir', type=str, metavar='', required=True, help='Full path to the location of your raxml install (use which raxmlHPC to locate). Include "/" at the end of the string') 
 parser.add_argument('-s','--SPmap', action='store_true', required=False, help='Add this flag to provide a custom species mapping file. This mapping file must be formatted in certian way. See instuctions')
 parser.add_argument('-n', '--Node', type=int, metavar='', required=False, help='Integer: node number on orthofinder species tree to be used to obtain HOGs (default = 1)' )
+parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=1, help='Integer: number of threads avilable for parallel computing (default = 1)' )
 
 
 #Define the parser
@@ -64,33 +65,22 @@ Test_num=args.Test_num
 Rax_dir=args.Rax_dir
 SPmap=args.SPmap
 Node=args.Node
+Mult_threads=args.Mult_threads
 
 
 '''
 #DEV: hardcode arguments
-JOBname = "TEST"
-OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/"
-MaxP_val=2
-MinR_val=8
-explore_filters=False
-Min_len=100
-Test_num=50
-Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
-#END DEV
-'''
-
-'''
-#DEV: hardcode arguments
-JOBname = "TPC_quick"
+JOBname = "test"
 OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/"
 MaxP_val=3
 MinR_val=17
 explore_filters=False
 Min_len=100
-Test_num=20
+Test_num=5
 Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
 SPmap=True
 Node=1
+Mult_threads=2
 #END DEV
 '''
 
@@ -424,7 +414,7 @@ for aln in aln_file_names:
     
     if re.search('Gblocks', gblocks_cmd) and re.search('-b5', gblocks_cmd) and re.search('-p=n', gblocks_cmd):
         #Run cmd and capture std output (in order to know the trimmed alignment length)
-        proc = subprocess.Popen(gblocks_cmd, stdout=subprocess.PIPE, shell=True) #apparently shell=True can create 'security issues' (so I put it under an if statement to make sure the cmd is what it shoudl be)
+        proc = subprocess.Popen(gblocks_cmd, stdout=subprocess.PIPE, shell=True) #apparently shell=True can create 'security issues' (so I put it under an if statement to make sure the cmd is what it should be)
         output = str(proc.stdout.read())
         
         #Extract the length of the trimmed alignment by parsing Gblocks stdout 
@@ -444,12 +434,11 @@ for aln in aln_file_names:
            
             #Move the gblocks files to the appropriate folder
             if trm_aln_ln >= Min_len:
-                os.replace(str(aln+'-gb'), str(aln+'-gb').replace('Alns/', 'Gb_alns/'))
+                os.replace(str(aln+'-gb'), str(str(aln).replace("ALN_", "GB_ALN_")).replace('Alns/', 'Gb_alns/'))
                 #os.replace(str(aln+'-gb.htm'), str(aln+'-gb.htm').replace('Alns/', 'Gb_alns/HTML_files/'))
             else:
                 print('%s not long enough. Moving to gblocks files to Gb_alns/Too_short/' %aln.replace('Alns/', ''))
-                os.replace(str(aln+'-gb'), str(aln+'-gb').replace('Alns/', 'Gb_alns/Too_short/'))
-                #os.replace(str(aln+'-gb.htm'), str(aln+'-gb.htm').replace('Alns/', 'Gb_alns/Too_short/'))
+                os.replace(str(aln+'-gb'), str(str(aln).replace("ALN_", "GB_ALN_")).replace('Alns/', 'Gb_alns/Too_short/'))
             
         else:
             print('ERROR: something wrong with Gblocks stdout. Quitting...\n')
@@ -460,6 +449,15 @@ for aln in aln_file_names:
         print('WARNING: Something wrong with Gblocks command...\n')
         sys.exit()
 
+
+
+
+
+
+
+
+
+### NOTE: I could possible decide to use the subtrees as the 'reference trees' and add bootstraps to it. For now I'm commenting it out.'
 ### Get the subtree tree files (to use in branch length optimization)
 #Create folder to store subtrees
 #Make a directory for gblocks trimmed alignments that are too short 
@@ -487,7 +485,132 @@ else:
     print('ERROR: An error occured during subtree extraction. Quitting...\n')
     sys.exit()
 
-### Infer trees with Raxml
+
+
+
+
+
+
+
+
+
+
+#### Perform bootstrap replication with raxml
+print("Beginning tbootstrapping with raxml.\n")
+
+if Mult_threads == 1:
+    print("Number of threads set to 1. Consider adding threads to parallelize if possible.\n")
+elif Mult_threads > 1:
+    print("Will attempt to parallelize with "+str(Mult_threads)+" threads. Note that choosing more threads than are avilable can slow raxml performance.\n")
+else:
+    print("Number of threads argument does not appear to be an interger. Quitting....")
+    sys.exit()
+
+if not os.path.isdir(out_dir+'BS_reps/'):
+    os.makedirs(out_dir+'BS_reps/')
+    print("\nCreated folder: BS_reps/\n")
+else: 
+    print('Trees with bootstrap values will be stored in BS_reps/\n')
+
+if not os.path.isdir(out_dir+'BS_trees/'):
+    os.makedirs(out_dir+'BS_trees/')
+    print("\nCreated folder: BS_trees/\n")
+else: 
+    print('Trees with bootstrap values will be stored in BS_trees/\n')
+
+#Get a list of HOGs with retained alignments
+HOGs2BS=[x.replace(out_dir+'Gb_alns/GB_ALN_', '').replace('.fa', '') for x in glob.glob(out_dir+'Gb_alns/GB_ALN_*')]
+
+print('Number of trees finished: ') 
+# Loop through files to process
+for HOG_i, HOG_id in enumerate(HOGs2BS):
+    #Track progress
+    if HOG_i % 10 == 0:
+        print(HOG_i)
+        
+    #Because I always forget what the raxml arguments mean:
+    #-s sequence alignment input -n outputfile_filename -w output directory (Full path)
+    '''
+    #Build the command
+    raxml_BS_cmd= Rax_dir+'raxmlHPC-PTHREADS -s '+working_dir+out_dir+'Gb_alns/GB_ALN_'+HOG_id+'.fa '+'-w '+working_dir+out_dir+'BS_trees/'+ \
+    ' -n '+HOG_id+'_BS.txt'+' -m PROTGAMMALGF -p 12345 -x 12345 -f a -# 100 -T '+str(Mult_threads)
+    '''
+    
+    #Build the bootstrap command
+    raxml_BS_cmd= Rax_dir+'raxmlHPC-PTHREADS -s '+working_dir+out_dir+'Gb_alns/GB_ALN_'+HOG_id+'.fa '+'-w '+working_dir+out_dir+'BS_reps/'+ \
+    ' -n '+HOG_id+'_BS.txt'+' -m PROTGAMMALGF -p 12345 -x 12345 -# 100 -T '+str(Mult_threads)
+
+    
+    #Run the command (note, raxml was installed with conda so this wont work in spyder)
+    if re.search('raxmlHPC', raxml_BS_cmd) and re.search('PROTGAMMALGF', raxml_BS_cmd) and re.search('12345', raxml_BS_cmd):
+        #print("Running:\n"+raxml_BS_cmd)
+        subprocess.call(raxml_BS_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        #subprocess.call(raxml_BS_cmd, shell=True)
+    
+    #Map the bootstrap scores to the HOG subtree from the orthofinder trees
+    #Build the raxml mapping command
+    raxml_BSmap_cmd= Rax_dir+'raxmlHPC-PTHREADS -z '+working_dir+out_dir+'BS_reps/RAxML_bootstrap.'+HOG_id+'_BS.txt '+'-w '+working_dir+out_dir+'BS_trees/'+ \
+    ' -n '+HOG_id+'_BS.txt'+' -t '+working_dir+out_dir+'HOG_subtrees/'+HOG_id+'_tree.txt -f b -m PROTGAMMALGF -T '+str(Mult_threads)
+
+    #Run the command (note, raxml was installed with conda so this wont work in spyder)
+    if re.search('raxmlHPC', raxml_BSmap_cmd):
+        #subprocess.call(raxml_BSmap_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.call(raxml_BSmap_cmd, shell=True)
+
+
+    
+print("Bootstrap tree inference finished.\n")
+
+
+## Do the root/rearrange step with Treerecs (GT/ST reconciliation)
+
+#Copy the species tree into outdir
+shutil.copy2(sp_tr_path, out_dir)
+
+#Read in the species tree file (as text file)
+with open(str(out_dir+'SpeciesTree_rooted_node_labels.txt'), 'r') as file:
+  sptr_file = file.read()
+
+#The the names in the speices tree 
+#Loop through all rows in the species mapping table
+for row_i, row in mapping_table.iterrows():
+    
+    #Get the relevant OG and HOG string 
+    SpeciesID = row['SpeciesID']
+    Prefix = row['Prefix']
+    
+    sptr_file=sptr_file.replace(SpeciesID, Prefix)
+    
+#Write the new file
+with open(str(out_dir+'SpeciesTree_mapped_names.txt'), 'w') as file:
+    file.write(sptr_file)
+    
+#create folder
+if not os.path.isdir(out_dir+'Rearranged_trees/'):
+    os.makedirs(out_dir+'Rearranged_trees/')
+    print("\nCreated folder: Rearranged_trees/\n")
+else: 
+    print('Rearranged gene trees will be stored in Rearranged_trees/\n')
+
+#Get list of all BS trees
+all_bs_trees=glob.glob(out_dir+'BS_trees/RAxML_bipartitions.*')
+
+print('Number of trees rearranged:')
+
+for bs_tree_i, bs_tree in enumerate(all_bs_trees):
+    
+    #Build the treerecs command
+    treerecs_cmd='treerecs -s '+str(out_dir+'SpeciesTree_mapped_names.txt')+' -g '+bs_tree+' -f -t 80 --output-without-description -r -q -O newick -o '+str(out_dir+'Rearranged_trees/')
+
+    if re.search('treerecs', treerecs_cmd) and re.search(bs_tree, treerecs_cmd):
+        #subprocess.call(treerecs_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.call(treerecs_cmd, shell=True)
+        
+    if bs_tree_i % 10 == 0:
+        print(bs_tree_i)
+    
+
+### Infer branch-length optimized trees with Raxml (BL trees)
 #Get list of gblocks alns (after filters) and subtrees (after filters) and find the overlap
 
 #Make quick function for finding intersect 
@@ -497,23 +620,16 @@ def intersection(lst1, lst2):
     return lst3
 
 #Get a list of the IDs that sucessfully created alignments and subtrees
-keeperIDs = intersection([x.replace(out_dir+'Gb_alns/ALN_', '').replace('.fa-gb', '') for x in glob.glob(out_dir+'Gb_alns/ALN_*')], [y.replace(out_dir+'HOG_subtrees/', '').replace('_tree.txt', '') for y in glob.glob(out_dir+'HOG_subtrees/*_tree.txt')])
+keeperIDs = intersection([x.replace(out_dir+'Gb_alns/GB_ALN_', '').replace('.fa', '') for x in glob.glob(out_dir+'Gb_alns/GB_ALN_*')], [y.replace(out_dir+'Rearranged_trees/RAxML_bipartitions.', '').replace('_BS.txt_recs.nwk', '') for y in glob.glob(out_dir+'Rearranged_trees/*_BS.txt_recs.nwk')])
 
-print('Starting Branch Length Optimization with RAxML\n')
-      
-#Make directory to work in
-if not os.path.isdir(out_dir+'Trees_working/'):
-    os.makedirs(out_dir+'Trees_working/')
-    print("created folder: Trees_working/\n")
-else: 
-    print('HOG subtrees will be stored in Trees_working/\n')
-    
+print('Starting Branch length optimization with RAxML\n')
+
 #Make directory to write output to
 if not os.path.isdir(out_dir+'BL_trees/'):
     os.makedirs(out_dir+'BL_trees/')
     print("created folder: BL_trees/\n")
 else: 
-    print('HOG subtrees will be stored in BL_trees/\n')
+    print('Branch length optimized trees will be stored in BL_trees/\n')
 
 print('Trees finished: ') 
 # Loop through files to process
@@ -522,30 +638,53 @@ for HOG_i, HOG_id in enumerate(keeperIDs):
     if HOG_i % 10 == 0:
         print(HOG_i)
 
-    #Copy the needed files to the directory
-    #tree
-    shutil.copy2(out_dir+'HOG_subtrees/'+HOG_id+'_tree.txt', out_dir+'Trees_working/'+HOG_id+'_tree.txt')
-    
-    #alignment (remove -gb suffix)
-    shutil.copy2(out_dir+'Gb_alns/ALN_'+HOG_id+'.fa-gb', out_dir+'Trees_working/GB_ALN_'+HOG_id+'.fa')
-    
-    #Build the command
-    raxml_cmd= Rax_dir+'raxmlHPC '+'-s '+working_dir+out_dir+'Trees_working/GB_ALN_'+HOG_id+'.fa '+'-w '+working_dir+out_dir+'BL_trees/'+ \
-    ' -n '+HOG_id+'_BL.txt'+' -t '+working_dir+out_dir+'Trees_working/'+HOG_id+'_tree.txt'+ \
-    ' -m PROTGAMMALGF -p 12345 -f e'
+    #Build the raxml command
+    raxml_bl_cmd=Rax_dir+'raxmlHPC-PTHREADS -s '+str(working_dir+out_dir+'Gb_alns/GB_ALN_'+HOG_id+'.fa')+ \
+        ' -w '+str(working_dir+out_dir+'BL_trees/')+' -n '+str(HOG_id+'_BL.txt')+ \
+            ' -t '+str(working_dir+out_dir+'Rearranged_trees/RAxML_bipartitions.'+HOG_id+'_BS.txt_recs.nwk')+ \
+                ' -m PROTGAMMALGF -p 12345 -f e -T '+str(Mult_threads)
+                
     
     #Run the command (note, raxml was installed with conda so this wont work in spyder)
-    if re.search('raxmlHPC', raxml_cmd) and re.search('PROTGAMMALGF', raxml_cmd) and re.search('12345', raxml_cmd):
-        subprocess.call(raxml_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if re.search('raxmlHPC', raxml_bl_cmd) and re.search('PROTGAMMALGF', raxml_bl_cmd) and re.search('12345', raxml_bl_cmd):
+        subprocess.call(raxml_bl_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         #subprocess.call(raxml_cmd, shell=True)
 
 print('\n\nDone with RAxML branch length optimization\n')
 
 print("Generating input files for GT/ST reconciliation...\n")
 
-#Generate the input files for GTST reconciliation.
-input_gen_cmd= 'Rscript Generate_rec_inputs.R '+JOBname+' '+OFpath
+
+#Make directory to write output to
+if not os.path.isdir(out_dir+'DLCpar/'):
+    os.makedirs(out_dir+'DLCpar/')
+    print("created folder: DLCpar/\n")
+else: 
+    print('Branch length optimized trees will be stored in DLCpar/\n')
     
+#Copy species tree and species mapping file to DLCpar dir
+shutil.copy2(sp_tr_path, str(out_dir+'DLCpar/'))
+
+#Create the mapping file
+for row_i, row in mapping_table.iterrows():
+    #Add the * to the prefix
+    row['Prefix'] = str(row['Prefix']).replace(str(row['Prefix']), str(row['Prefix']+'*'))
+    
+#Write the file for DLCpar
+mapping_table.to_csv(out_dir+'DLCpar/speciesIDs.smap', sep='\t' , index=False, header=False)
+
+'''
+#Copy trees to DLCpar folder
+tree2copy=glob.glob(out_dir+'BL_trees/RAxML_result.*')
+
+for t in tree2copy:
+    shutil.copy2(t, out_dir+'DLCpar/')
+'''
+
+#Generate the input files for GTST reconciliation.
+input_gen_cmd= 'Rscript Generate_rec_inputs.R '+JOBname
+#input_gen_cmd= 'Rscript Generate_rec_inputs.R '+JOBname+' '+OFpath    
+
 #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
 if re.search('Generate_rec_inputs.R', input_gen_cmd) and re.search('Rscript', input_gen_cmd):
     print("Calling R with the folllowing command:")
