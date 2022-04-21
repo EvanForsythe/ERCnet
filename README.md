@@ -124,6 +124,7 @@ All options for Phylogenomics.py:
 | Short flag  | Long flag | Description| Required? | Default value |
 | ------------- |:-------------:|:-------------:|:-------------:|:-------------:|
 | -h | --help | Print help menu | no | NA |
+| -j | --JOBname | Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok) | yes | NA |
 | -o | --OFPath | Full path to the Orthofinder results dir (should containSpecies_Tree/, Phylogenetic_Hierarchical_Orthogroups/ etc...) Include "/" at the end of the string | yes | NA |
 | -p | --MaxP | Integer: maximum number of paralogs per species allowed ineach gene family | yes, unless -e is chosen | 3* |
 | -r | --MinR | Integer: minimum number of species represented required ineach gene family | yes, unless -e is chosen | 10* |
@@ -136,7 +137,7 @@ All options for Phylogenomics.py:
 | -m | --Mult_threads |Integer: number of threads avilable for parallel computing (default = 1). Performing a full-genome analyses will likely require supercomputing resources| no | 1 |
 
 
-*Values for these parameters can have a profound impact on analyses so make sure the values make biological sense for your analysis before opting for default values.
+*Values for these parameters can have a large impact on analyses so make sure the values make biological sense for your analysis before opting for default values.
 
 Use the table output by running the --explore_filters option (above) to choose reasonable values for -p and -r. 
 
@@ -144,7 +145,7 @@ Use the options described above to run the full *Phylogenomic analyses*
 
 Example:
 ```
-./Phylogenomics.py -j <jobname> -e -s -p 3 -r 10 -l 100 -n 1 -o <path/to/orthofinder/results/> -x <path/to/raxml/installation/>
+./Phylogenomics.py -j test_job -e -s -p 3 -r 10 -l 100 -n 1 -o <path/to/orthofinder/results/> -x <path/to/raxml/installation/>
 ```
 
 Brief(ish) walkthrough of what Phylogenomics.py does:
@@ -156,6 +157,107 @@ Brief(ish) walkthrough of what Phylogenomics.py does:
 * Rearrange/correct poorly-supported (<80% bootstrap support) branches and root the tree
    * Rearrangement and rooting are both accomlished by gene-tree/species-tree reconciliation in Treerecs
 * Optimize branch lengths with raxml using the the Gblocks-trimmed alignments and the new rearranged trees as constraint trees.
+
+
+## 2. Gene-tree/Species-tree reconciliation
+This step uses DLCpar GT/ST reconciliation to 'map' the nodes on the gene trees to appropriate nodes on the species tree. This mapping information is necessary for the subsequence branch-length reconciliation step (which occurs later during the ERC analysis step of ERCnet). Note that GT/ST reconciliation was used in a different context (correcting/rooting trees) in the Phylogenomics step above. 
+
+#### Installing dependencies
+This step uses DLCpar, which is written in python2. This means you'll need to setup a python2 environment to run this step of the analysis. Below are instuctions for setting up the environment and installing DLCpar with anaconda
+```
+#Create python2 env
+conda create --name dlcpar_py27 python=2.7
+#Activate it
+conda activate dlcpar_py27
+#Install dlcpar
+conda install -c bioconda dlcpar
+```
+#### Running Gene-tree/Species-tree reconciliation analyses
+All options for GTST_reconciliation.py:
+
+| Short flag  | Long flag | Description| Required? | Default value |
+| ------------- |:-------------:|:-------------:|:-------------:|:-------------:|
+| -h | --help | Print help menu | no | NA |
+| -j | --JOBname | Unique job name for this run of ERCnet. This should be the exact same as the jobname used for the Phylogenomics step | yes | NA |
+
+Example command:
+```
+./GTST_reconciliation.py -j test_job
+```
+
+## 3. ERC analyses
+Here we extract branch lengths from the gene trees generated above and compare those branch lengths across each pair of genes to ask if those genes show signs of coevolving. Extracting the branch lengths is not trivial, requiring the development of a new approach (described below).
+
+#### Installing dependencies
+The rest of ERCnet using python3 so you'll need to switch back to the original anacona env you setup above
+```
+#List available envs as a reminder
+conda info --envs
+#Activate the previously setup env (named test3 if you followed along above)
+conda activate test3
+```
+#### Running ERC analyses
+All options for ERC_analyses.py:
+
+| Short flag  | Long flag | Description| Required? | Default value |
+| ------------- |:-------------:|:-------------:|:-------------:|:-------------:|
+| -h | --help | Print help menu | no | NA |
+| -j | --JOBname | Unique job name for this run of ERCnet. This should be the exact same as the jobname used in the previous steps | yes | NA |
+
+Example command:
+```
+./ERC_analyses.py -j test_job
+```
+
+What ERC_analyses.py does:
+* Branch-length reconciliation
+The overall goal of ERCnet is to compare branch lengths (i.e. rates of evolution) between different gene trees. However, when two gene trees have been subject to different histories of duplication/loss (even low levels), they do not have the same branches, so there is not a clear 'apples-to-apples' comparison. In the past, this challenge has been side-stepped by using the length of paths of several branches leading from the root of the tree to a given tip (i.e. root-to-tip approach). This approach is not ideal and can introduce error (both type I and type II). Therefore, we developed a strategy for measuring the rate of evolution along individual branches of the tree (i.e. branch-by-branch). The method is build on similar logic to GT/ST reconciliation, which recognizes that all gene trees have evolved within an over-arching species tree. Therefore, the species tree can be used as a common denominator for making 'apples-to-apples' comparisons between gene trees with vastily different duplication/loss histories. To accomplish this, we use the branches on each gene tree to measure the amount of evolution that occured along branches of the species tree. Sometimes multiple gene tree branches existed within in single species tree branch (e.g. two paralogs both evolving in the same species), meaning we average the branch-lengths. Sometimes a gene tree does not have branches that speak to the evolution in a species tree branch (e.g. the gene was lost in a particular species), meaning the branch legnth is NA for that particular gene. As long and we can successfully map the gene tree branches to the species tree branch, we can extract all available branch length information for use in ERC analyses.
+* Root-to-tip branch length extraction
+   * Because it's relatively simple, we extract root-to-tip branch lengths in addition to the branch-by-branch approach described above. The user can decide which to use in downstream analyses.
+* Normalization of branch lengths
+   * branch lengths in each gene are normalized by the genome-wide
+* Pair-wise all-by-all ERC analyses
+   * Branch length correlation analyses are performed between all combinations of genes
+
+## 4. Network analyses
+The all-by-all nature of the ERC results mean that graph theory is a useful framework to explore interactions. Here, we generate networks representing significant 'ERC hits'. The user difines the type of correlation statistic and the cutoff values for what to consider 'significant'.
+
+#### Installing dependencies
+This step makes use of the R package igraph. If you followed the instructions above, igraph should already be installed on your python3 environment. 
+
+#### Running Network analyses
+All options for Network_analyses.py:
+
+| Short flag  | Long flag | Description| Required? | Default value |
+| ------------- |:-------------:|:-------------:|:-------------:|:-------------:|
+| -h | --help | Print help menu | no | NA |
+| -j | --JOBname | Unique job name for this run of ERCnet. This should be the exact same as the jobname used in the previous steps | yes | NA |
+| -m | --BLmethod | Branch length method ERC results to be used in the network. "bxb" for Branch-by-branch. "r2t" for root-to-tip. | yes | NA |
+| -f | --Filterstat | Correlation statistic to be used to filter ERC hits. "pval" for p-value, "R2" for R-squared | yes | NA |
+| -c | --Cutoff | Cuttoff P/R-squared value by which to filter ERC hits in network. float between 0 and 1. Correlations below/above this number will br retained (depending on your choice of pval vs R2). | yes | NA |
+| -y | --Clustmeth | Clustering method to be used to identify communities in network. "fg" for fast-and-greedy, "eb" for edge-betweenness (slow). | yes | NA |
+| -s | --FocalSP | The name of the focal species to represent each gene family (should exactly match the tip label of the species tree). See further description below | yes | NA |
+
+Example command:
+```
+./ERC_analyses.py -j test_job
+```
+
+What Network_analyses.py does:
+* Filter the ERC results to retain only the 'significant' correlations. 
+   * The user uses the -m argument to choose which branch lengths should be used for correlation analyses 
+   * The user uses the -f argument to choose whether to use the p-value or R-squared value
+   * The user uses the -c argument to choose what cutoff value to use. Note that -f=pval means lower values are more stringent whereas -f=R2 means higher values are more stringent. 
+* Generate a network diagram from ERC results
+   * Nodes represent genes 
+   * edges represent significant ERC correlation between genes
+* Cluster communities of connected genes
+   * Clustering is a complicated task in graph theory. Currently we provide two different algorithms, which the user selects with the -y argument.
+* Extract gene names associated with communities
+   * A common downstream analysis would be to ask if the genes within a community are enriched for a particular function. To do this, you'll need a gene ID to represnt each gene in the network (technically the nodes represnt gene families/trees). The user can set which species is the best model organism to represent the gene family using the -s argument. We recommend using the species that has the best functional annotations. 
+* Extract other global network statistics (TBD) 
+
+
 
 
 
