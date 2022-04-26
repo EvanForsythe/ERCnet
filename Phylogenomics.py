@@ -5,8 +5,12 @@
 conda activate ERC_networks
 
 Example command:    
-    #Full run: 
+    #Test a small subset: 
     ./Phylogenomics.py -j test -t 3 -p 2 -r 15 -l 100 -m 4 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
+    
+    #Test an a priori subset
+    ./Phylogenomics.py -j test -a -p 4 -r 10 -l 100 -m 4 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
+
 
 '''
 #During developent, set working directory:
@@ -49,6 +53,7 @@ parser.add_argument('-x', '--Rax_dir', type=str, metavar='', required=True, help
 parser.add_argument('-s','--SPmap', action='store_true', required=False, help='Add this flag to provide a custom species mapping file. This mapping file must be formatted in certian way. See instuctions')
 parser.add_argument('-n', '--Node', type=int, metavar='', required=False, help='Integer: node number on orthofinder species tree to be used to obtain HOGs (default = 1)' )
 parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=1, help='Integer: number of threads avilable for parallel computing (default = 1)' )
+parser.add_argument('-a','--Apriori', action='store_true', required=False, help='Add this flag to provide an apriori set of genes to analyze. The input file listing those genes must be formatted in certian way. See instuctions')
 
 
 #Define the parser
@@ -66,7 +71,7 @@ Rax_dir=args.Rax_dir
 SPmap=args.SPmap
 Node=args.Node
 Mult_threads=args.Mult_threads
-
+Apriori=args.Apriori
 
 '''
 #DEV: hardcode arguments
@@ -81,6 +86,7 @@ Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
 SPmap=True
 Node=1
 Mult_threads=2
+Apriori=True
 #END DEV
 '''
 
@@ -282,7 +288,36 @@ else:
     print('ERROR: It appears that zero HOGs were retained. Adjust --MaxP_val and --MinR_val and rerun...\nQuitting....')
     sys.exit()
 
-#FOR TESTING: subset the dataset to a user-defined subset
+#Add a filter that can search for an apriori gene set.
+if bool(Apriori):
+    print('A priori gene dataset option selected (-a/--Apriori). Retrieving genes of interest...\n')
+    if isinstance(Test_num, int):
+        print('Warning: -t option is also selected. -t could cause problems when used with the -a option. Proceed with caution...\n')
+    
+    #Read in the file
+    apriori_df=pd.read_csv("A_priori_genes.csv", sep=',')
+    
+    col_header= str(apriori_df.keys()[0])
+    
+    gene_array=list(apriori_df[col_header])
+    
+    Keeper_HOGs_df=Keeper_HOGs_df[Keeper_HOGs_df[col_header].str.contains('|'.join(gene_array), case=False, na=False)]
+    
+    if Keeper_HOGs_df.shape[0] > 0:
+        print("Dataset filtering for a priori genes successful\n")
+        if len(gene_array) == Keeper_HOGs_df.shape[0]:
+            print("It looks like all of the genes you were searching for were present!\n")
+        elif len(gene_array) > Keeper_HOGs_df.shape[0]:
+            print("It looks like "+str(len(gene_array)-Keeper_HOGs_df.shape[0])+" of your a priori genes were not found")
+        else:
+            print("ERROR: Something went worng with a priori filter. The dataframe after filtering has more rows than expected. Quitting...\n")
+            sys.exit()
+        
+    else:
+        print('ERROR: It appears that zero HOGs were retained. Check to make sure at least some of the exact sequence ID strings are contained in the HOG file. \nQuitting....')
+        sys.exit()
+
+#For testing the performance of ERCnet on a small number of genes subset the dataset to a user-defined subset
 if isinstance(Test_num, int):
     Keeper_HOGs_df = Keeper_HOGs_df.sample(n=Test_num)
 
@@ -354,7 +389,7 @@ else:
 
 print('Alignments finished: ')
 for file_i, file in enumerate(seq_file_names):
-    if file_i % 10 == 0:
+    if file_i % 2 == 0:
         print(file_i)
     os.system('mafft-linsi --quiet '+file+' > '+out_dir+'Alns/ALN_'+file.replace(out_dir+"HOG_seqs/", ""))
     #os.system('mafft-linsi '+file+' >Alns/ALN_'+file.replace("HOG_seqs/", "")+' 2>&1') #' 2>&1' suppressed stderr from mafft
@@ -452,13 +487,8 @@ for aln in aln_file_names:
 
 
 
+### Get the subtrees from orthofinder to use as a constraint tree from bootstrap scoring
 
-
-
-
-
-### NOTE: I could possible decide to use the subtrees as the 'reference trees' and add bootstraps to it. For now I'm commenting it out.'
-### Get the subtree tree files (to use in branch length optimization)
 #Create folder to store subtrees
 #Make a directory for gblocks trimmed alignments that are too short 
 if not os.path.isdir(out_dir+'HOG_subtrees/'):
@@ -486,17 +516,8 @@ else:
     sys.exit()
 
 
-
-
-
-
-
-
-
-
-
 #### Perform bootstrap replication with raxml
-print("Beginning tbootstrapping with raxml.\n")
+print("Beginning bootstrapping with raxml.\n")
 
 if Mult_threads == 1:
     print("Number of threads set to 1. Consider adding threads to parallelize if possible.\n")
@@ -525,7 +546,7 @@ print('Number of trees finished: ')
 # Loop through files to process
 for HOG_i, HOG_id in enumerate(HOGs2BS):
     #Track progress
-    if HOG_i % 10 == 0:
+    if HOG_i % 2 == 0:
         print(HOG_i)
         
     #Because I always forget what the raxml arguments mean:
@@ -554,11 +575,9 @@ for HOG_i, HOG_id in enumerate(HOGs2BS):
 
     #Run the command (note, raxml was installed with conda so this wont work in spyder)
     if re.search('raxmlHPC', raxml_BSmap_cmd):
-        #subprocess.call(raxml_BSmap_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.call(raxml_BSmap_cmd, shell=True)
+        subprocess.call(raxml_BSmap_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        #subprocess.call(raxml_BSmap_cmd, shell=True)
 
-
-    
 print("Bootstrap tree inference finished.\n")
 
 
@@ -606,7 +625,7 @@ for bs_tree_i, bs_tree in enumerate(all_bs_trees):
         #subprocess.call(treerecs_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.call(treerecs_cmd, shell=True)
         
-    if bs_tree_i % 10 == 0:
+    if bs_tree_i % 2 == 0:
         print(bs_tree_i)
     
 
@@ -635,7 +654,7 @@ print('Trees finished: ')
 # Loop through files to process
 for HOG_i, HOG_id in enumerate(keeperIDs):
     #Track progress
-    if HOG_i % 10 == 0:
+    if HOG_i % 2 == 0:
         print(HOG_i)
 
     #Build the raxml command
