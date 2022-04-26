@@ -87,7 +87,7 @@ Create a comma-seperated file that indicates a prefix text string found in the s
 
 Name the species mapping file "Species_mapping.csv" and save in the main ERC net directory (where all the scripts live).
 
-Example:
+Example Species_mapping.csv:
 ```
 Prefix,SpeciesID
 A_aulacocarpa,A_aulacocarpa_prot
@@ -110,6 +110,21 @@ S_lycopersicum,S_lycopersicum_prot
 S_noctiflora,S_noctiflora_prot
 S_polyrhiza,S_polyrhiza_prot
 V_vinifera,V_vinifera_prot
+```
+
+You may also optionally provide a list of genes you'd like to study. To do so, use the --A_priori/a flag (see below). To use this option you must create a file named "A_priori_genes.csv", which should have one column containing text strings unique to the sequence ID of your genes of interest. The first line of the file should be the species idenifier (see SpeciesID in the table above) of the species that contains the a priori genes.
+
+Example A_priori_genes.csv:
+```
+A_thaliana_prot
+AT1G49970
+AT1G12410
+AT1G09130
+AT4G17040
+AT3G17000
+AT5G17380
+AT5G48020
+AT1G06550
 ```
 
 To run the *Phylogenomic analyses*, you'll need to set parameters that specify level of stringency with which to filter the Orthofinder gene families to be input into the phylogenomic pipeline. To inform this decision, we recommend running Phylogenomics.py with the --explore_filters (-e) flag, which will perform a parameter scan and return a table indicating the number of gene families retained under different filters.
@@ -135,6 +150,7 @@ All options for Phylogenomics.py:
 | -s | --SPmap | Add this flag to provide a custom species mapping file. Not required if the tip labels on the orthofinder species tree exactly match the species prefix in sequence IDs. Mapping file must be formatted in certian way. See instuctions | no | NA |
 | -n | --Node |Interger: indicate the node on the species tree that you would like to use to retrieve orthofinder HOGs (subtrees). Assuming your species tree has a single outgroup, you'll probably want N1 (default). However, if you species tree has multiple outgroups (or if you'd just like to perform an ERC analysis on a subset of the species tree), you can indicate which node to use for subtree extracting. E.g. For N2.tsv, "-n 2" or "--Node 2"  | no | 1* |
 | -m | --Mult_threads |Integer: number of threads avilable for parallel computing (default = 1). Performing a full-genome analyses will likely require supercomputing resources| no | 1 |
+| -a | --Apriori | Add this flag to provide an *a priori* list of genes to analyze. The list must be in a file named "A_priori_genes.csv" and formatted in a specific way. See instructions above for more information | no | NA |
 
 
 *Values for these parameters can have a large impact on analyses so make sure the values make biological sense for your analysis before opting for default values.
