@@ -63,6 +63,7 @@ conda install -c conda-forge biopython
 conda install -c bioconda mafft
 conda install -c bioconda gblocks
 conda install -c bioconda raxml
+conda install -c bioconda treerecs
 
 #Install R package (specific versions included when important)
 conda install -c conda-forge r-base=4.1.2
