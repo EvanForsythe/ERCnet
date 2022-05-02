@@ -259,7 +259,7 @@ All options for Network_analyses.py:
 
 Example command:
 ```
-./ERC_analyses.py -j test_job
+./Network_analyses.py -j test_job -m bxb -f pval -c 0.001 -y fg -s A_thaliana_prot
 ```
 
 What Network_analyses.py does:
