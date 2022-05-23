@@ -370,6 +370,7 @@ else:
     print('ERROR: writing HOG sequence files failed. Quitting...\n')
     sys.exit()
 
+    
 ### Run mafft alignment
 mafft_msg= str(subprocess.Popen(['mafft', '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate())
 
@@ -388,13 +389,15 @@ else:
     print('MAFFT alignments will be written to Alns/\n')
 
 print('Alignments finished: ')
+##Begin paralellization of alignments
 for file_i, file in enumerate(seq_file_names):
-    if file_i % 2 == 0:
+    if file_i % 5 == 0: #report the number finished occasionally
         print(file_i)
     os.system('mafft-linsi --quiet '+file+' > '+out_dir+'Alns/ALN_'+file.replace(out_dir+"HOG_seqs/", ""))
     #os.system('mafft-linsi '+file+' >Alns/ALN_'+file.replace("HOG_seqs/", "")+' 2>&1') #' 2>&1' suppressed stderr from mafft
     #print('mafft-linsi --quiet '+file+' > Alns/ALN_'+file.replace("HOG_seqs/", ""))
-
+##End paralellization of alignments
+    
 #Check alignment status
 if len(glob.glob(out_dir+'Alns/ALN*')) == len(seq_file_names):
     print('\n\nDone with multiple sequences alignments\n')
@@ -432,6 +435,7 @@ else:
     print('Trimmed alignents that are too short will be stored to Gb_alns/Too_short/\n')
 
 #Loop through the files that need to Gblocks trimmed
+##Begin paralellization of gblocks trimming
 for aln in aln_file_names:
 
     #Get number of sequences in alignment
@@ -484,8 +488,7 @@ for aln in aln_file_names:
         print('WARNING: Something wrong with Gblocks command...\n')
         sys.exit()
 
-
-
+##End paralellization of gblocks trimming
 
 ### Get the subtrees from orthofinder to use as a constraint tree from bootstrap scoring
 
@@ -508,7 +511,7 @@ if re.search('Get_subtree.R', get_st_cmd) and re.search(OG_trees_dir, get_st_cmd
     print(get_st_cmd)
     subprocess.call(get_st_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-#Checj if it worked
+#Check if it worked
 if len(glob.glob(out_dir+'HOG_subtrees/*tree.txt')) > 0:
     print('\nFinished running subtree extraction. Check "Non-binary_subtrees.txt" for a list trees that were excluded\n')
 else:
@@ -544,9 +547,10 @@ HOGs2BS=[x.replace(out_dir+'Gb_alns/GB_ALN_', '').replace('.fa', '') for x in gl
 
 print('Number of trees finished: ') 
 # Loop through files to process
+##Begin paralellization of raxml bootstrap inference (note that this is already multithreaded with the mult_threads command so we may eventually want to hard code Mult_threads to 1?)
 for HOG_i, HOG_id in enumerate(HOGs2BS):
     #Track progress
-    if HOG_i % 2 == 0:
+    if HOG_i % 5 == 0:
         print(HOG_i)
         
     #Because I always forget what the raxml arguments mean:
@@ -578,8 +582,9 @@ for HOG_i, HOG_id in enumerate(HOGs2BS):
         subprocess.call(raxml_BSmap_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         #subprocess.call(raxml_BSmap_cmd, shell=True)
 
-print("Bootstrap tree inference finished.\n")
+##End paralellization of raxml bootstrap inference        
 
+print("Bootstrap tree inference finished.\n")
 
 ## Do the root/rearrange step with Treerecs (GT/ST reconciliation)
 
@@ -616,6 +621,7 @@ all_bs_trees=glob.glob(out_dir+'BS_trees/RAxML_bipartitions.*')
 
 print('Number of trees rearranged:')
 
+##Begin paralellization of rearranement
 for bs_tree_i, bs_tree in enumerate(all_bs_trees):
     
     #Build the treerecs command
@@ -625,9 +631,9 @@ for bs_tree_i, bs_tree in enumerate(all_bs_trees):
         #subprocess.call(treerecs_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.call(treerecs_cmd, shell=True)
         
-    if bs_tree_i % 2 == 0:
+    if bs_tree_i % 5 == 0:
         print(bs_tree_i)
-    
+##End paralellization of rearranement
 
 ### Infer branch-length optimized trees with Raxml (BL trees)
 #Get list of gblocks alns (after filters) and subtrees (after filters) and find the overlap
@@ -652,9 +658,10 @@ else:
 
 print('Trees finished: ') 
 # Loop through files to process
+##Begin paralellization of raxml branch length optimization
 for HOG_i, HOG_id in enumerate(keeperIDs):
     #Track progress
-    if HOG_i % 2 == 0:
+    if HOG_i % 5 == 0:
         print(HOG_i)
 
     #Build the raxml command
@@ -668,7 +675,8 @@ for HOG_i, HOG_id in enumerate(keeperIDs):
     if re.search('raxmlHPC', raxml_bl_cmd) and re.search('PROTGAMMALGF', raxml_bl_cmd) and re.search('12345', raxml_bl_cmd):
         subprocess.call(raxml_bl_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         #subprocess.call(raxml_cmd, shell=True)
-
+##End paralellization of raxml branch length optimization
+        
 print('\n\nDone with RAxML branch length optimization\n')
 
 print("Generating input files for GT/ST reconciliation...\n")
