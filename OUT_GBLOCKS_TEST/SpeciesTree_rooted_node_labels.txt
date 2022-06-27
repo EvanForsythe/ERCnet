@@ -1,0 +1,1 @@
+(((Spol:1,Zmar:1)N2:1,((Aoff:1,Dala:1)N4:1,(Macu:1,(Acom:1,((Otho:1,((Svir:1,(Phal:1,Pvir:1)N15:1)N12:1,(Zmay:1,(Sbic:1,Msin:1)N16:1)N13:1)N10:1)N8:1,(Osat:1,(Bdis:1,(Hvul:1,Taes:1)N14:1)N11:1)N9:1)N7:1)N6:1)N5:1)N3:1)N1:1,Atha:1)N0;
