@@ -64,7 +64,7 @@ conda install -c bioconda mafft
 conda install -c bioconda gblocks
 conda install -c bioconda raxml
 conda install -c bioconda treerecs
-pip install joblib
+conda install -c conda-forge joblib
 
 #Install R package (specific versions included when important)
 conda install -c conda-forge r-base=4.1.2
@@ -163,7 +163,7 @@ core_distribution groups for Phylogenomics.py.
 | ------------- |:-------------:|:-------------:|
 | 1 | num_cores / 2 | 2 |
 | 2 | 2 | num_cores / 2 |
-| 3 | num_cores / 4 | 2 |
+| 3 | num_cores / 4 | 4 |
 
 *'Front End' parallelization refers to the paralellization support from Joblib, indicating the number of processes inside any given Phylogenetics computational step are being spawned.
 
