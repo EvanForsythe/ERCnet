@@ -176,6 +176,9 @@ else:
     os.makedirs(out_dir) 
     print('created folder: '+out_dir+'\nAll output files will be written to this folder\n')
 
+if Mult_threads < 4:
+    print("Parallel processing is not viable below 4 cores. ERCnet will continue as a linear process.")
+
 #Check HOG file exists 
 if os.path.isfile(HOG_file_path):
     print('HOG file for selected node located at:\n'+ HOG_file_path+'\n')
@@ -561,15 +564,20 @@ HOGs2BS=[x.replace(out_dir+'Gb_alns/GB_ALN_', '').replace('.fa', '') for x in gl
 
 print("Raxml Parallel Group Chosen: " + str(core_dist) + "\n")
  
-if(core_dist == 2):
-    Rax_front_cores = 2
-    Rax_back_cores = int(Mult_threads/2)
-elif(core_dist == 3):
-    Rax_front_cores = int(Mult_threads/4)
-    Rax_back_cores = 4
+if (Mult_threads >= 4):
+    if(core_dist == 2):
+        Rax_front_cores = 2
+        Rax_back_cores = int(Mult_threads/2)
+    elif(core_dist == 3):
+        Rax_front_cores = int(Mult_threads/4)
+        Rax_back_cores = 4
+    else:
+        Rax_front_cores = int(Mult_threads/2)
+        Rax_back_cores = 2
 else:
-    Rax_front_cores = int(Mult_threads/2)
-    Rax_back_cores = 2
+    Rax_front_cores = 1
+    Rax_back_cores = 1
+
 
 print('Number of trees finished: ') 
 
