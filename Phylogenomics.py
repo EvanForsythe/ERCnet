@@ -20,17 +20,18 @@ Example command:
 
 #Storebought modules
 import os
-import sys
-import argparse
-import pandas as pd
-import numpy as np
-import itertools
-import glob
-import subprocess
 import re
+import sys
+import glob
 import math
 import shutil
+import argparse
+import itertools
+import subprocess
+import numpy as np
+import pandas as pd
 from Bio import SeqIO
+from joblib import Parallel, delayed
 
 #Homemade modules
 from filterHOGs import make_seq_counts_df, filter_gene_fams
@@ -54,7 +55,7 @@ parser.add_argument('-s','--SPmap', action='store_true', required=False, help='A
 parser.add_argument('-n', '--Node', type=int, metavar='', required=False, help='Integer: node number on orthofinder species tree to be used to obtain HOGs (default = 1)' )
 parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=1, help='Integer: number of threads avilable for parallel computing (default = 1)' )
 parser.add_argument('-a','--Apriori', action='store_true', required=False, help='Add this flag to provide an apriori set of genes to analyze. The input file listing those genes must be formatted in certian way. See instuctions')
-
+parser.add_argument('-c', '--core_distribution', type=int, metavar='', required=False, default=1, help='Integer: Sets the core distribution group which affects number of cores split between front end and back end paralellization of raxml bootstrapping')
 
 #Define the parser
 args = parser.parse_args()
@@ -72,6 +73,7 @@ SPmap=args.SPmap
 Node=args.Node
 Mult_threads=args.Mult_threads
 Apriori=args.Apriori
+core_dist=args.core_distribution
 
 '''
 #DEV: hardcode arguments
@@ -173,6 +175,9 @@ if os.path.isdir(out_dir):
 else:
     os.makedirs(out_dir) 
     print('created folder: '+out_dir+'\nAll output files will be written to this folder\n')
+
+if Mult_threads < 4:
+    print("Parallel processing is not viable below 4 cores. ERCnet will continue as a linear process.")
 
 #Check HOG file exists 
 if os.path.isfile(HOG_file_path):
@@ -390,14 +395,19 @@ else:
 
 print('Alignments finished: ')
 ##Begin paralellization of alignments
-for file_i, file in enumerate(seq_file_names):
-    if file_i % 5 == 0: #report the number finished occasionally
-        print(file_i)
+
+def iterate_maf(seq_file_names):
+    for file in [seq_file_names]:
+        return file
+
+def par_maf_alns(file):
     os.system('mafft-linsi --quiet '+file+' > '+out_dir+'Alns/ALN_'+file.replace(out_dir+"HOG_seqs/", ""))
     #os.system('mafft-linsi '+file+' >Alns/ALN_'+file.replace("HOG_seqs/", "")+' 2>&1') #' 2>&1' suppressed stderr from mafft
     #print('mafft-linsi --quiet '+file+' > Alns/ALN_'+file.replace("HOG_seqs/", ""))
 ##End paralellization of alignments
-    
+
+Parallel(n_jobs = Mult_threads, verbose=100)(delayed(par_maf_alns)(file) for file in iterate_maf(seq_file_names))
+
 #Check alignment status
 if len(glob.glob(out_dir+'Alns/ALN*')) == len(seq_file_names):
     print('\n\nDone with multiple sequences alignments\n')
@@ -436,7 +446,12 @@ else:
 
 #Loop through the files that need to Gblocks trimmed
 ##Begin paralellization of gblocks trimming
-for aln in aln_file_names:
+
+def iterate_alns(aln_file_names):
+    for aln in [aln_file_names]:
+        return aln
+
+def par_gblocks(aln):
 
     #Get number of sequences in alignment
     #open connection
@@ -489,6 +504,8 @@ for aln in aln_file_names:
         sys.exit()
 
 ##End paralellization of gblocks trimming
+
+Parallel(n_jobs= Mult_threads, verbose=100)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names))
 
 ### Get the subtrees from orthofinder to use as a constraint tree from bootstrap scoring
 
@@ -545,14 +562,36 @@ else:
 #Get a list of HOGs with retained alignments
 HOGs2BS=[x.replace(out_dir+'Gb_alns/GB_ALN_', '').replace('.fa', '') for x in glob.glob(out_dir+'Gb_alns/GB_ALN_*')]
 
+print("Raxml Parallel Group Chosen: " + str(core_dist) + "\n")
+ 
+if (Mult_threads >= 4):
+    if(core_dist == 2):
+        Rax_front_cores = 2
+        Rax_back_cores = int(Mult_threads/2)
+    elif(core_dist == 3):
+        Rax_front_cores = int(Mult_threads/4)
+        Rax_back_cores = 4
+    else:
+        Rax_front_cores = int(Mult_threads/2)
+        Rax_back_cores = 2
+else:
+    Rax_front_cores = 1
+    Rax_back_cores = 1
+
+
 print('Number of trees finished: ') 
+
+#define rax filepath
+file_path = working_dir+out_dir
+
+
+def iterate_HOGS(HOGs2BS):
+    for HOG in [HOGs2BS]:
+        return HOG
+
 # Loop through files to process
 ##Begin paralellization of raxml bootstrap inference (note that this is already multithreaded with the mult_threads command so we may eventually want to hard code Mult_threads to 1?)
-for HOG_i, HOG_id in enumerate(HOGs2BS):
-    #Track progress
-    if HOG_i % 5 == 0:
-        print(HOG_i)
-        
+def par_raxml(HOG_id, Rax_dir, file_path, cores): 
     #Because I always forget what the raxml arguments mean:
     #-s sequence alignment input -n outputfile_filename -w output directory (Full path)
     '''
@@ -562,8 +601,8 @@ for HOG_i, HOG_id in enumerate(HOGs2BS):
     '''
     
     #Build the bootstrap command
-    raxml_BS_cmd= Rax_dir+'raxmlHPC-PTHREADS -s '+working_dir+out_dir+'Gb_alns/GB_ALN_'+HOG_id+'.fa '+'-w '+working_dir+out_dir+'BS_reps/'+ \
-    ' -n '+HOG_id+'_BS.txt'+' -m PROTGAMMALGF -p 12345 -x 12345 -# 100 -T '+str(Mult_threads)
+    raxml_BS_cmd= Rax_dir+'raxmlHPC-PTHREADS -s '+file_path+'Gb_alns/GB_ALN_'+HOG_id+'.fa '+'-w '+file_path+'BS_reps/'+ \
+    ' -n '+HOG_id+'_BS.txt'+' -m PROTGAMMALGF -p 12345 -x 12345 -# 100 -T '+str(cores)
 
     
     #Run the command (note, raxml was installed with conda so this wont work in spyder)
@@ -574,8 +613,8 @@ for HOG_i, HOG_id in enumerate(HOGs2BS):
     
     #Map the bootstrap scores to the HOG subtree from the orthofinder trees
     #Build the raxml mapping command
-    raxml_BSmap_cmd= Rax_dir+'raxmlHPC-PTHREADS -z '+working_dir+out_dir+'BS_reps/RAxML_bootstrap.'+HOG_id+'_BS.txt '+'-w '+working_dir+out_dir+'BS_trees/'+ \
-    ' -n '+HOG_id+'_BS.txt'+' -t '+working_dir+out_dir+'HOG_subtrees/'+HOG_id+'_tree.txt -f b -m PROTGAMMALGF -T '+str(Mult_threads)
+    raxml_BSmap_cmd= Rax_dir+'raxmlHPC-PTHREADS -z '+file_path+'BS_reps/RAxML_bootstrap.'+HOG_id+'_BS.txt '+'-w '+file_path+'BS_trees/'+ \
+    ' -n '+HOG_id+'_BS.txt'+' -t '+file_path+'HOG_subtrees/'+HOG_id+'_tree.txt -f b -m PROTGAMMALGF -T '+str(cores)
 
     #Run the command (note, raxml was installed with conda so this wont work in spyder)
     if re.search('raxmlHPC', raxml_BSmap_cmd):
@@ -583,6 +622,8 @@ for HOG_i, HOG_id in enumerate(HOGs2BS):
         #subprocess.call(raxml_BSmap_cmd, shell=True)
 
 ##End paralellization of raxml bootstrap inference        
+
+Parallel(n_jobs = Rax_front_cores, verbose=100)(delayed(par_raxml)(HOG, Rax_dir, file_path, Rax_back_cores) for HOG in iterate_HOGS(HOGs2BS))
 
 print("Bootstrap tree inference finished.\n")
 
@@ -621,8 +662,13 @@ all_bs_trees=glob.glob(out_dir+'BS_trees/RAxML_bipartitions.*')
 
 print('Number of trees rearranged:')
 
+def iterate_trees(all_bs_trees):
+    for bs_tree in [all_bs_trees]:
+        return bs_tree
+
+
 ##Begin paralellization of rearranement
-for bs_tree_i, bs_tree in enumerate(all_bs_trees):
+def par_tree_arrange(bs_tree):
     
     #Build the treerecs command
     treerecs_cmd='treerecs -s '+str(out_dir+'SpeciesTree_mapped_names.txt')+' -g '+bs_tree+' -f -t 80 --output-without-description -r -q -O newick -o '+str(out_dir+'Rearranged_trees/')
@@ -630,10 +676,9 @@ for bs_tree_i, bs_tree in enumerate(all_bs_trees):
     if re.search('treerecs', treerecs_cmd) and re.search(bs_tree, treerecs_cmd):
         #subprocess.call(treerecs_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.call(treerecs_cmd, shell=True)
-        
-    if bs_tree_i % 5 == 0:
-        print(bs_tree_i)
 ##End paralellization of rearranement
+
+Parallel(n_jobs = Mult_threads, verbose=100)(delayed(par_tree_arrange)(bs_tree) for bs_tree in iterate_trees(all_bs_trees))
 
 ### Infer branch-length optimized trees with Raxml (BL trees)
 #Get list of gblocks alns (after filters) and subtrees (after filters) and find the overlap
