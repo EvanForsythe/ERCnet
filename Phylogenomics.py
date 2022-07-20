@@ -1,18 +1,7 @@
 #!/usr/bin/env python3
-'''
+
 ### Main script for running the phylogenomics steps of the ERC workflow###
 
-conda activate ERC_networks
-
-Example command:    
-    #Test a small subset: 
-    ./Phylogenomics.py -j test -t 3 -p 2 -r 15 -l 100 -m 4 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
-    
-    #Test an a priori subset
-    ./Phylogenomics.py -j test -a -p 4 -r 10 -l 100 -m 4 -s -o /Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/ -x /opt/anaconda3/envs/ERC_networks/bin/
-
-
-'''
 #During developent, set working directory:
 #import os
 #working_dir = '/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/'
@@ -177,7 +166,7 @@ else:
     print('created folder: '+out_dir+'\nAll output files will be written to this folder\n')
 
 if Mult_threads < 4:
-    print("Parallel processing is not viable below 4 cores. ERCnet will continue as a linear process.")
+    print("Parallel processing is not viable for tree building below 4 cores due to overhead. ERCnet will continue as a linear process for Raxml runs.")
 
 #Check HOG file exists 
 if os.path.isfile(HOG_file_path):
@@ -701,25 +690,37 @@ if not os.path.isdir(out_dir+'BL_trees/'):
 else: 
     print('Branch length optimized trees will be stored in BL_trees/\n')
 
-print('Trees finished: ') 
 # Loop through files to process
 ##Begin paralellization of raxml branch length optimization
+'''
 for HOG_i, HOG_id in enumerate(keeperIDs):
     #Track progress
     if HOG_i % 5 == 0:
         print(HOG_i)
+'''
+
+def iterate_keeps(keeperIDs):
+    for k_ID in [keeperIDs]:
+        return k_ID
+
+##Begin paralellization of raxml bootstrap inference (note that this is already multithreaded with the mult_threads command so we may eventually want to hard code Mult_threads to 1?)
+def par_BL_opt(k_ID, cores): 
 
     #Build the raxml command
-    raxml_bl_cmd=Rax_dir+'raxmlHPC-PTHREADS -s '+str(working_dir+out_dir+'Gb_alns/GB_ALN_'+HOG_id+'.fa')+ \
-        ' -w '+str(working_dir+out_dir+'BL_trees/')+' -n '+str(HOG_id+'_BL.txt')+ \
-            ' -t '+str(working_dir+out_dir+'Rearranged_trees/RAxML_bipartitions.'+HOG_id+'_BS.txt_recs.nwk')+ \
-                ' -m PROTGAMMALGF -p 12345 -f e -T '+str(Mult_threads)
+    raxml_bl_cmd=Rax_dir+'raxmlHPC-PTHREADS -s '+str(working_dir+out_dir+'Gb_alns/GB_ALN_'+k_ID+'.fa')+ \
+        ' -w '+str(working_dir+out_dir+'BL_trees/')+' -n '+str(k_ID+'_BL.txt')+ \
+            ' -t '+str(working_dir+out_dir+'Rearranged_trees/RAxML_bipartitions.'+k_ID+'_BS.txt_recs.nwk')+ \
+                ' -m PROTGAMMALGF -p 12345 -f e -T '+str(cores)
                 
     
     #Run the command (note, raxml was installed with conda so this wont work in spyder)
     if re.search('raxmlHPC', raxml_bl_cmd) and re.search('PROTGAMMALGF', raxml_bl_cmd) and re.search('12345', raxml_bl_cmd):
         subprocess.call(raxml_bl_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        #subprocess.call(raxml_cmd, shell=True)
+
+
+#Call paralell
+Parallel(n_jobs = Rax_front_cores, verbose=100)(delayed(par_BL_opt)(k_ID, Rax_back_cores) for k_ID in iterate_keeps(keeperIDs))
+
 ##End paralellization of raxml branch length optimization
         
 print('\n\nDone with RAxML branch length optimization\n')
