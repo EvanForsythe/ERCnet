@@ -165,7 +165,6 @@ legend("topleft",
 
 dev.off()
 
-#
 
 ## Get the genes in each community
 #Create df
