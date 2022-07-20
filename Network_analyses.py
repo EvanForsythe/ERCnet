@@ -29,8 +29,8 @@ parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help
 parser.add_argument('-m', '--BLmethod', type=str, metavar='', required=True, help='Branch length method ERC results to be used in the network. "bxb" for Branch-by-branch. "r2t" for root-to-tip.') 
 parser.add_argument('-f', '--Filterstat', type=str, metavar='', required=True, help='Correlation statistic to be used to filter ERC hits. "pval" for p-value, "R2" for R-squared') 
 parser.add_argument('-c', '--Cutoff', type=float, metavar='', required=True, help='Cuttoff P/R-squared value by which to filter ERC hits in network. float between 0 and 1. Correlations below/above this number will be retained (depending on your choice of pval vs R2).') 
-parser.add_argument('-y', '--Clustmeth', type=str, metavar='', required=True, help='Clustering method to be used to identify communities in network. "fg" for fast-and-greedy, "eb" for edge-betweenness (slow).') 
-parser.add_argument('-t', '--Trim_Cutoff', type=int, metavar='', required=False, help='The user-selected cutoff will be the minimum number of genes necessary for a community to be displayed on the network plot. Must be an integer. 0 (no trimming) is default.', default=0)
+parser.add_argument('-y', '--Clustmeth', type=str, metavar='', required=True, help='Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap.') 
+parser.add_argument('-t', '--Trim_Cutoff', type=int, metavar='', required=False, help='The user-selected cutoff will be the minimum number of genes necessary for a community to be displayed on the network plot.This is mainly for network visualization and is not recommended for data collection. Must be an integer. 0 (no trimming) is default.', default=0)
 parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help='The name of the focal species to represent each gene family (should exactly match the tip label of the species tree)') 
 
 

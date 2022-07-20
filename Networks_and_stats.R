@@ -102,7 +102,7 @@ if(clust_method == "fg"){
 }
 
 
-#TRIM OR NO TRIM (if statement)
+#TRIM OR NO TRIM
 
 if (trim_cutoff > 0){
  
@@ -121,17 +121,21 @@ if (trim_cutoff > 0){
   #Network layout and colors
   LO <- layout_nicely(network_graph)
   LO_final <- LO[comms_keep_v_idxs, ]
-  comms_plot_col <- rainbow(length(communities(comms)), alpha = 0.3)[comms_keep_ids]
-  comms_plot_border <- rainbow(length(communities(comms)), alpha = 1)[comms_keep_ids]
+  comms_plot_col <- rainbow(length(communities(comms_final)), alpha = 0.3)[comms_keep_ids]
+  comms_plot_border <- rainbow(length(communities(comms_final)), alpha = 1)[comms_keep_ids]
   
+  #legend colors
+   legend_color <- rainbow(length(comms_final), alpha = 0.3)[comms_keep_ids]
   
 }else{
     network_graph_final <- network_graph
     comms_final <- comms
-    comms_plot_col <- rainbow(length(comms), alpha = 0.3)
-    comms_plot_border <- rainbow(length(comms), alpha = 1)
+    comms_plot_col <- rainbow(length(comms_final), alpha = 0.3)
+    comms_plot_border <- rainbow(length(comms_final), alpha = 1)
     #Network layout
     LO_final <- layout_nicely(network_graph_final)
+    #legend colors
+    legend_color <- rainbow(length(comms_final), alpha = 0.3)
 }
 
 
@@ -143,7 +147,6 @@ pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",BL_type,
 plot(comms_final, network_graph_final,
             vertex.label=NA,
             vertex.size=5,
-            vertex.label.color="black",
             edge.color="black",
             V(network_graph)$color<-"black",
             mark.col = comms_plot_col,
@@ -155,13 +158,14 @@ mysubtitle<-paste0("BL method: ",BL_type, "  |  ", "Filter stat: ", filter_stat,
 mtext(side = 3, line = 0, at = 1, adj = 1, mysubtitle)
 
 legend("topleft",
-       legend = as.factor(1:length(comms)),
-        fill = rainbow(length(comms), alpha = 0.3))
+       legend = as.factor(1:length(comms_final)),
+        fill = legend_color
+)
 
 
 dev.off()
 
-
+#
 
 ## Get the genes in each community
 #Create df
