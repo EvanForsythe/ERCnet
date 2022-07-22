@@ -268,12 +268,13 @@ All options for Network_analyses.py:
 | -m | --BLmethod | Branch length method ERC results to be used in the network. "bxb" for Branch-by-branch. "r2t" for root-to-tip. | yes | NA |
 | -f | --Filterstat | Correlation statistic to be used to filter ERC hits. "pval" for p-value, "R2" for R-squared | yes | NA |
 | -c | --Cutoff | Cuttoff P/R-squared value by which to filter ERC hits in network. float between 0 and 1. Correlations below/above this number will br retained (depending on your choice of pval vs R2). | yes | NA |
-| -y | --Clustmeth | Clustering method to be used to identify communities in network. "fg" for fast-and-greedy, "eb" for edge-betweenness (slow). | yes | NA |
+| -y | --Clustmeth | Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap. | yes | fg |
+| -t | The user-selected cutoff will be the minimum number of genes necessary for a community to be displayed on the network plot. This is mainly for network visualization and is not recommended for data collection. Must be an integer. | no | 0 |
 | -s | --FocalSP | The name of the focal species to represent each gene family (should exactly match the tip label of the species tree). See further description below | yes | NA |
 
 Example command:
 ```
-./Network_analyses.py -j test_job -m bxb -f pval -c 0.001 -y fg -s A_thaliana_prot
+./Network_analyses.py -j test_job -m bxb -f pval -c 0.001 -y fg -t 3 -s A_thaliana_prot
 ```
 
 What Network_analyses.py does:
@@ -285,7 +286,7 @@ What Network_analyses.py does:
    * Nodes represent genes 
    * edges represent significant ERC correlation between genes
 * Cluster communities of connected genes
-   * Clustering is a complicated task in graph theory. Currently we provide two different algorithms, which the user selects with the -y argument.
+   * Clustering is a complicated task in graph theory. Currently we provide four different algorithms, which the user selects with the -y argument.
 * Extract gene names associated with communities
    * A common downstream analysis would be to ask if the genes within a community are enriched for a particular function. To do this, you'll need a gene ID to represnt each gene in the network (technically the nodes represnt gene families/trees). The user can set which species is the best model organism to represent the gene family using the -s argument. We recommend using the species that has the best functional annotations. 
 * Extract other global network statistics (TBD) 
