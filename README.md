@@ -58,13 +58,13 @@ conda activate test3
 #Install python modules
 conda install -c conda-forge pandas
 conda install -c conda-forge biopython
+conda install -c conda-forge joblib
 
 #Install phylogenetics-related programs
 conda install -c bioconda mafft
 conda install -c bioconda gblocks
 conda install -c bioconda raxml
 conda install -c bioconda treerecs
-conda install -c conda-forge joblib
 
 #Install R package (specific versions included when important)
 conda install -c conda-forge r-base=4.1.2
