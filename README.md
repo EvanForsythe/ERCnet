@@ -161,9 +161,10 @@ core_distribution groups for Phylogenomics.py.
 
 | Group | Front End Cores | Back End Cores | 
 | ------------- |:-------------:|:-------------:|
-| 1 | num_cores / 2 | 2 |
+| 1 | num_cores | 1 |
 | 2 | 2 | num_cores / 2 |
 | 3 | num_cores / 4 | 4 |
+| 4 | num_cores / 2 | 2 |
 
 *'Front End' parallelization refers to the paralellization support from Joblib, indicating the number of processes inside any given Phylogenetics computational step are being spawned.
 

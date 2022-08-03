@@ -554,18 +554,21 @@ HOGs2BS=[x.replace(out_dir+'Gb_alns/GB_ALN_', '').replace('.fa', '') for x in gl
 print("Raxml Parallel Group Chosen: " + str(core_dist) + "\n")
  
 if (Mult_threads >= 4):
-    if(core_dist == 2):
-        Rax_front_cores = 2
-        Rax_back_cores = int(Mult_threads/2)
-    elif(core_dist == 3):
-        Rax_front_cores = int(Mult_threads/4)
-        Rax_back_cores = 4
-    else:
-        Rax_front_cores = int(Mult_threads/2)
-        Rax_back_cores = 2
+	if(core_dist == 1):
+		Rax_front_cores = int(Mult_threads)
+		Rax_back_cores = 1
+	elif(core_dist == 2):
+		Rax_front_cores = 2
+		Rax_back_cores = int(Mult_threads/2)
+	elif(core_dist == 3):
+		Rax_front_cores = int(Mult_threads/4)
+		Rax_back_cores = 4
+	else:
+		Rax_front_cores = int(Mult_threads/2)
+		Rax_back_cores = 2
 else:
-    Rax_front_cores = 1
-    Rax_back_cores = 1
+	Rax_front_cores = 1
+	Rax_back_cores = int(Mult_threads)
 
 
 print('Number of trees finished: ') 
@@ -590,7 +593,7 @@ def par_raxml(HOG_id, Rax_dir, file_path, cores):
     '''
     
     #Build the bootstrap command
-    raxml_BS_cmd= Rax_dir+'raxmlHPC-PTHREADS -s '+file_path+'Gb_alns/GB_ALN_'+HOG_id+'.fa '+'-w '+file_path+'BS_reps/'+ \
+    raxml_BS_cmd= Rax_dir+'raxmlHPC-PTHREADS-AVX2 -s '+file_path+'Gb_alns/GB_ALN_'+HOG_id+'.fa '+'-w '+file_path+'BS_reps/'+ \
     ' -n '+HOG_id+'_BS.txt'+' -m PROTGAMMALGF -p 12345 -x 12345 -# 100 -T '+str(cores)
 
     
@@ -602,7 +605,7 @@ def par_raxml(HOG_id, Rax_dir, file_path, cores):
     
     #Map the bootstrap scores to the HOG subtree from the orthofinder trees
     #Build the raxml mapping command
-    raxml_BSmap_cmd= Rax_dir+'raxmlHPC-PTHREADS -z '+file_path+'BS_reps/RAxML_bootstrap.'+HOG_id+'_BS.txt '+'-w '+file_path+'BS_trees/'+ \
+    raxml_BSmap_cmd= Rax_dir+'raxmlHPC-PTHREADS-AVX2 -z '+file_path+'BS_reps/RAxML_bootstrap.'+HOG_id+'_BS.txt '+'-w '+file_path+'BS_trees/'+ \
     ' -n '+HOG_id+'_BS.txt'+' -t '+file_path+'HOG_subtrees/'+HOG_id+'_tree.txt -f b -m PROTGAMMALGF -T '+str(cores)
 
     #Run the command (note, raxml was installed with conda so this wont work in spyder)
@@ -707,7 +710,7 @@ def iterate_keeps(keeperIDs):
 def par_BL_opt(k_ID, cores): 
 
     #Build the raxml command
-    raxml_bl_cmd=Rax_dir+'raxmlHPC-PTHREADS -s '+str(working_dir+out_dir+'Gb_alns/GB_ALN_'+k_ID+'.fa')+ \
+    raxml_bl_cmd=Rax_dir+'raxmlHPC-PTHREADS-AVX2 -s '+str(working_dir+out_dir+'Gb_alns/GB_ALN_'+k_ID+'.fa')+ \
         ' -w '+str(working_dir+out_dir+'BL_trees/')+' -n '+str(k_ID+'_BL.txt')+ \
             ' -t '+str(working_dir+out_dir+'Rearranged_trees/RAxML_bipartitions.'+k_ID+'_BS.txt_recs.nwk')+ \
                 ' -m PROTGAMMALGF -p 12345 -f e -T '+str(cores)
