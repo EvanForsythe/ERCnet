@@ -82,4 +82,4 @@ print('IMPORTANT NOTE: for the next step, switch back to the python 3 environeme
           'For a reminder of the avialable environents:\n' \
               'conda info --envs\n')
 
-print('After switching to python3 environment, run the next step with the following command:\n\n./ERC_analyses.py -j '+JOBname+'\n\n')
+print('After switching to python3 environment, run the next step with the following command:\n\n./ERC_analyses.py -j '+JOBname+'-m 1\n\n')

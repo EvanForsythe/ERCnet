@@ -59,6 +59,7 @@ conda activate test3
 conda install -c conda-forge pandas
 conda install -c conda-forge biopython
 conda install -c conda-forge joblib
+conda install -c conda-forge scipy
 
 #Install phylogenetics-related programs
 conda install -c bioconda mafft
@@ -237,10 +238,11 @@ All options for ERC_analyses.py:
 | ------------- |:-------------:|:-------------:|:-------------:|:-------------:|
 | -h | --help | Print help menu | no | NA |
 | -j | --JOBname | Unique job name for this run of ERCnet. This should be the exact same as the jobname used in the previous steps | yes | NA |
+| -m | --Mult_threads |Integer: number of threads avilable for parallel computing (default = 1). Performing all-by-all analyses means the number of correlations calculated increases exponentially so this step is rate-limiting | no | 1 |
 
 Example command:
 ```
-./ERC_analyses.py -j test_job
+./ERC_analyses.py -j test_job -m 1
 ```
 
 What ERC_analyses.py does:

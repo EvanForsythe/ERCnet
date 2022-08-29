@@ -34,6 +34,14 @@ trim_cutoff <- as.numeric(paste(args[6]))
 #Get the ID of the focal species
 foc_sp<-paste(args[7])
 
+#####Testing
+#jobname<-"testBIG"
+#BL_type<-"bxb"
+#filter_stat<-"pval"
+#filter_stat_cutoff<-"0.001"
+#trim_cutoff<-0
+#foc_sp<-"A_thaliana_prot"
+#working_dir<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/"
 ###
 
 # Set the script path:
@@ -138,7 +146,7 @@ if (trim_cutoff > 0){
 
 
 #save pdf
-pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",BL_type, "_", filter_stat, "_", filter_stat_cutoff, "_", clust_method,".pdf"), width=8, height = 8)
+pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",BL_type, "_", filter_stat, "_", filter_stat_cutoff, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=8, height = 8)
 
 #Plot the graph with all communities
 plot(comms_final, network_graph_final,
@@ -212,7 +220,7 @@ all_HOG_names_df <- data.frame(HOG_ID=unique(c(ERC_results_df$GeneA_HOG,ERC_resu
 degree_cen<-degree(network_graph_final, normalized=TRUE)
 #Authority and hub scores omitted because they are the same as eigenvector in undirected graphs
 network_stats_df <- data.frame(HOG_ID=names(degree_cen),
-           Eigenvector_centrality<-as.numeric(paste(evcent(network_graph_final)$vector)),
+           Eigenvector_centrality=as.numeric(paste(evcent(network_graph_final)$vector)),
            Degree_centrality=as.numeric(paste(degree_cen)),
            Eccentricity_centrality=as.numeric(paste(eccentricity(network_graph_final))),
            Betweenness_centrality=as.numeric(paste(betweenness(network_graph_final))),
@@ -220,8 +228,17 @@ network_stats_df <- data.frame(HOG_ID=names(degree_cen),
            Community_num=as.numeric(paste(membership(comms_final)))
 )
 
+
+
 #merge HOGS not present in graph
 final_network_stats_df <- merge(all_HOG_names_df,network_stats_df,by="HOG_ID",all=TRUE)
 
-write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",BL_type, "_", filter_stat, "_", filter_stat_cutoff, "_", clust_method,".csv"))
+write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",BL_type, "_", filter_stat, "_", filter_stat_cutoff, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"))
+
+#Density plots of centrality measures
+plot(density(na.omit(final_network_stats_df$Eigenvector_centrality)))
+
+
+
+grid.arrange(p1, p2, p3, p4, ncol=1)
 

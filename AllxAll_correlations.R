@@ -35,116 +35,116 @@ args = commandArgs(trailingOnly=TRUE)
 
 #Get the job name (used to identify the proper output folder)
 jobname<-args[1]
-#jobname<-"lab_meeting"
+#jobname<-"testBIG"
 out_dir<-paste0("OUT_", jobname, "/")
 
-### ERC
-#Read results in (store as separate variable)
-bxb_measure_df_res<-read.table(file = paste0(working_dir, out_dir, "BL_results/bxb_BLs_normalized.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-r2t_measure_df_res<-read.table(file = paste0(working_dir, out_dir, "BL_results/r2t_BLs_normalized.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-
-#Get all pairwise comparisons (without repeats) (this helps avoid nested for-loops)
-ERC_df<-as.data.frame(t(combn(unique(bxb_measure_df_res$HOG_ID), 2)))
-names(ERC_df)<-c("GeneA_HOG", "GeneB_HOG")
-
-#Add columns for results
-ERC_results_df<-cbind(ERC_df, 
-                      data.frame(Overlapping_branches_BXB=NA, R2_BXB=NA, Slope_BXB=NA, 
-                                 Pearson_P_BXB=NA, Spearman_P_BXB=NA, 
-                                 Overlapping_branches_R2T=NA, R2_R2T=NA, Slope_R2T=NA, 
-                                 Pearson_P_R2T=NA, Spearman_P_R2T=NA))
-
-#Print a messages
-print("Beginning all-by-all pairwise ERC correlation analysis...")
-
-#Use cat because paste+print doesn't recognize \n
-cat("\nNumber of genes: ", nrow(bxb_measure_df_res), 
-    "\nNumber of pair-wise comparisons: ", nrow(ERC_df), "\n\n")
-
-#Loop through the rows
-for(e in 1:nrow(ERC_results_df)){
-  ## BXB
-  #Make a datafrome of the test-set
-  BXB_df_temp<-data.frame(
-    geneA=paste(bxb_measure_df_res[which(bxb_measure_df_res$HOG_ID==paste(ERC_results_df$GeneA_HOG[e])),]),
-    geneB=paste(bxb_measure_df_res[which(bxb_measure_df_res$HOG_ID==paste(ERC_results_df$GeneB_HOG[e])),])
-  )
-  
-  #Clean up dataframe
-  BXB_df_temp[-1,]
-  BXB_df_temp$geneA<-as.numeric(paste(BXB_df_temp$geneA))
-  BXB_df_temp$geneB<-as.numeric(paste(BXB_df_temp$geneB))
-  BXB_df_temp_complete<-BXB_df_temp[complete.cases(BXB_df_temp), ]
-  
-  #Number of overlapping branches
-  ERC_results_df$Overlapping_branches_BXB[e]<-nrow(BXB_df_temp_complete)
-  
-  #Check if there are at least three points (3 are needed for a linear correlation)
-  if(ERC_results_df$Overlapping_branches_BXB[e]>2){
-    
-    #Get lm
-    BXB_lm_temp<-lm(BXB_df_temp_complete$geneA~BXB_df_temp_complete$geneB)
-    #R2
-    ERC_results_df$R2_BXB[e]<-summary(BXB_lm_temp)$r.squared
-    #Slope
-    ERC_results_df$Slope_BXB[e]<-BXB_lm_temp$coefficients[2]
-    #pearson
-    ERC_results_df$Pearson_P_BXB[e]<-cor.test(x = BXB_df_temp_complete$geneA, y = BXB_df_temp_complete$geneB, method = "pearson")$p.value
-    #spearman
-    ERC_results_df$Spearman_P_BXB[e]<-cor.test(x = BXB_df_temp_complete$geneA, y = BXB_df_temp_complete$geneB, method = "spearman")$p.value
-  }#End points check if
-  
-  ## R2T
-  #Make a test datafrome
-  R2T_df_temp<-data.frame(
-    geneA=paste(r2t_measure_df_res[which(r2t_measure_df_res$HOG_ID==paste(ERC_results_df$GeneA_HOG[e])),]),
-    geneB=paste(r2t_measure_df_res[which(r2t_measure_df_res$HOG_ID==paste(ERC_results_df$GeneB_HOG[e])),])
-  )
-  
-  #Clean up dataframe
-  R2T_df_temp[-1,]
-  R2T_df_temp$geneA<-as.numeric(paste(R2T_df_temp$geneA))
-  R2T_df_temp$geneB<-as.numeric(paste(R2T_df_temp$geneB))
-  R2T_df_temp_complete<-R2T_df_temp[complete.cases(R2T_df_temp), ]
-  
-  #Number of overlapping branches
-  ERC_results_df$Overlapping_branches_R2T[e]<-nrow(R2T_df_temp_complete)
-  
-  #Check if there are at least three points (3 are needed for a linear correlation)
-  if(ERC_results_df$Overlapping_branches_R2T[e]>2){
-    
-    #Get lm
-    R2T_lm_temp<-lm(R2T_df_temp_complete$geneA~R2T_df_temp_complete$geneB)
-    #R2
-    ERC_results_df$R2_R2T[e]<-summary(R2T_lm_temp)$r.squared
-    #Slope
-    ERC_results_df$Slope_R2T[e]<-R2T_lm_temp$coefficients[2]
-    #pearson
-    ERC_results_df$Pearson_P_R2T[e]<-cor.test(x = R2T_df_temp_complete$geneA, y = R2T_df_temp_complete$geneB, method = "pearson")$p.value
-    #spearman
-    ERC_results_df$Spearman_P_R2T[e]<-cor.test(x = R2T_df_temp_complete$geneA, y = R2T_df_temp_complete$geneB, method = "spearman")$p.value
-  }#End points check if
-  
-  #Write each line of file (add header only for the first line)
-  if(e==1){
-    write.table(ERC_results_df[e,], file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE, append = TRUE)
-  }else{
-    write.table(ERC_results_df[e,], file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE, append = TRUE)
-  }
-  
-  #Report progress
-  if((e %% 100000) == 0){
-    print(paste0(e, " correlations calculated"))
-  }
-  
-}#End pairwise combo loop (variable = e)
+# ### ERC
+# #Read results in (store as separate variable)
+# bxb_measure_df_res<-read.table(file = paste0(working_dir, out_dir, "BL_results/bxb_BLs_normalized.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+# r2t_measure_df_res<-read.table(file = paste0(working_dir, out_dir, "BL_results/r2t_BLs_normalized.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+# 
+# #Get all pairwise comparisons (without repeats) (this helps avoid nested for-loops)
+# ERC_df<-as.data.frame(t(combn(unique(bxb_measure_df_res$HOG_ID), 2)))
+# names(ERC_df)<-c("GeneA_HOG", "GeneB_HOG")
+# 
+# #Add columns for results
+# ERC_results_df<-cbind(ERC_df, 
+#                       data.frame(Overlapping_branches_BXB=NA, R2_BXB=NA, Slope_BXB=NA, 
+#                                  Pearson_P_BXB=NA, Spearman_P_BXB=NA, 
+#                                  Overlapping_branches_R2T=NA, R2_R2T=NA, Slope_R2T=NA, 
+#                                  Pearson_P_R2T=NA, Spearman_P_R2T=NA))
+# 
+# #Print a messages
+# print("Beginning all-by-all pairwise ERC correlation analysis...")
+# 
+# #Use cat because paste+print doesn't recognize \n
+# cat("\nNumber of genes: ", nrow(bxb_measure_df_res), 
+#     "\nNumber of pair-wise comparisons: ", nrow(ERC_df), "\n\n")
+# 
+# #Loop through the rows
+# for(e in 1:nrow(ERC_results_df)){
+#   ## BXB
+#   #Make a datafrome of the test-set
+#   BXB_df_temp<-data.frame(
+#     geneA=paste(bxb_measure_df_res[which(bxb_measure_df_res$HOG_ID==paste(ERC_results_df$GeneA_HOG[e])),]),
+#     geneB=paste(bxb_measure_df_res[which(bxb_measure_df_res$HOG_ID==paste(ERC_results_df$GeneB_HOG[e])),])
+#   )
+#   
+#   #Clean up dataframe
+#   BXB_df_temp[-1,]
+#   BXB_df_temp$geneA<-as.numeric(paste(BXB_df_temp$geneA))
+#   BXB_df_temp$geneB<-as.numeric(paste(BXB_df_temp$geneB))
+#   BXB_df_temp_complete<-BXB_df_temp[complete.cases(BXB_df_temp), ]
+#   
+#   #Number of overlapping branches
+#   ERC_results_df$Overlapping_branches_BXB[e]<-nrow(BXB_df_temp_complete)
+#   
+#   #Check if there are at least three points (3 are needed for a linear correlation)
+#   if(ERC_results_df$Overlapping_branches_BXB[e]>2){
+#     
+#     #Get lm
+#     BXB_lm_temp<-lm(BXB_df_temp_complete$geneA~BXB_df_temp_complete$geneB)
+#     #R2
+#     ERC_results_df$R2_BXB[e]<-summary(BXB_lm_temp)$r.squared
+#     #Slope
+#     ERC_results_df$Slope_BXB[e]<-BXB_lm_temp$coefficients[2]
+#     #pearson
+#     ERC_results_df$Pearson_P_BXB[e]<-cor.test(x = BXB_df_temp_complete$geneA, y = BXB_df_temp_complete$geneB, method = "pearson")$p.value
+#     #spearman
+#     ERC_results_df$Spearman_P_BXB[e]<-cor.test(x = BXB_df_temp_complete$geneA, y = BXB_df_temp_complete$geneB, method = "spearman")$p.value
+#   }#End points check if
+#   
+#   ## R2T
+#   #Make a test datafrome
+#   R2T_df_temp<-data.frame(
+#     geneA=paste(r2t_measure_df_res[which(r2t_measure_df_res$HOG_ID==paste(ERC_results_df$GeneA_HOG[e])),]),
+#     geneB=paste(r2t_measure_df_res[which(r2t_measure_df_res$HOG_ID==paste(ERC_results_df$GeneB_HOG[e])),])
+#   )
+#   
+#   #Clean up dataframe
+#   R2T_df_temp[-1,]
+#   R2T_df_temp$geneA<-as.numeric(paste(R2T_df_temp$geneA))
+#   R2T_df_temp$geneB<-as.numeric(paste(R2T_df_temp$geneB))
+#   R2T_df_temp_complete<-R2T_df_temp[complete.cases(R2T_df_temp), ]
+#   
+#   #Number of overlapping branches
+#   ERC_results_df$Overlapping_branches_R2T[e]<-nrow(R2T_df_temp_complete)
+#   
+#   #Check if there are at least three points (3 are needed for a linear correlation)
+#   if(ERC_results_df$Overlapping_branches_R2T[e]>2){
+#     
+#     #Get lm
+#     R2T_lm_temp<-lm(R2T_df_temp_complete$geneA~R2T_df_temp_complete$geneB)
+#     #R2
+#     ERC_results_df$R2_R2T[e]<-summary(R2T_lm_temp)$r.squared
+#     #Slope
+#     ERC_results_df$Slope_R2T[e]<-R2T_lm_temp$coefficients[2]
+#     #pearson
+#     ERC_results_df$Pearson_P_R2T[e]<-cor.test(x = R2T_df_temp_complete$geneA, y = R2T_df_temp_complete$geneB, method = "pearson")$p.value
+#     #spearman
+#     ERC_results_df$Spearman_P_R2T[e]<-cor.test(x = R2T_df_temp_complete$geneA, y = R2T_df_temp_complete$geneB, method = "spearman")$p.value
+#   }#End points check if
+#   
+#   #Write each line of file (add header only for the first line)
+#   if(e==1){
+#     write.table(ERC_results_df[e,], file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE, append = TRUE)
+#   }else{
+#     write.table(ERC_results_df[e,], file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE, append = TRUE)
+#   }
+#   
+#   #Report progress
+#   if((e %% 100000) == 0){
+#     print(paste0(e, " correlations calculated"))
+#   }
+#   
+# }#End pairwise combo loop (variable = e)
 
 #For testing: read back in ERC results file
-#ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", header = TRUE)
+ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", header = TRUE)
 
 #Write tsv files of the ERC results
 #Reorder by bxb pearson p-value
-ERC_results_df_order<-ERC_results_df[order(ERC_results_df$Pearson_P_BXB),]
+ERC_results_df_order<-ERC_results_df[order(ERC_results_df$Pearson_P_R2T),]
 
 #Write the table
 write.table(ERC_results_df_order, file = paste0(working_dir, out_dir, "ERC_results/ERC_results_ordered_full.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
@@ -154,7 +154,7 @@ write.table(ERC_results_df_order, file = paste0(working_dir, out_dir, "ERC_resul
 pdf(file = paste0(working_dir, out_dir, "ERC_results/BxB_overlap_hist.pdf"), width=5, height = 5)
 
 hist(ERC_results_df$Overlapping_branches_BXB, 
-     breaks = (max(ERC_results_df$Overlapping_branches_BXB)-min(ERC_results_df$Overlapping_branches_BXB)+1), 
+     breaks = (max(na.omit(as.numeric(paste(ERC_results_df$Overlapping_branches_BXB))))-min(na.omit(as.numeric(paste(ERC_results_df$Overlapping_branches_BXB)))+1)), 
      main = "Branch-by-branch", xlab = "Branches in common between \nthe two genes being analyzed")
 
 dev.off()
@@ -163,9 +163,16 @@ dev.off()
 pdf(file = paste0(working_dir, out_dir, "ERC_results/R2T_overlap_hist.pdf"), width=5, height = 5)
 
 hist(ERC_results_df$Overlapping_branches_R2T, 
-     breaks = (max(ERC_results_df$Overlapping_branches_R2T)-min(ERC_results_df$Overlapping_branches_R2T)+1),
+     breaks = (max(na.omit(as.numeric(paste(ERC_results_df$Overlapping_branches_R2T))))-min(na.omit(as.numeric(paste(ERC_results_df$Overlapping_branches_R2T)))+1)),
      main = "Root-to-tip", xlab = "Branches in common between \nthe two genes being analyzed")
 
 dev.off()
 
+#Print figures describing the distribution of R-squared values
 
+# plot(density(na.omit(as.numeric(paste(ERC_results_df$Pearson_R2_BXB)))), col = "dark red")
+# lines(density(na.omit(as.numeric(paste(ERC_results_df$Spearman_R2_BXB)))), col = "light red")
+# lines(density(na.omit(as.numeric(paste(ERC_results_df$Pearson_R2_R2T)))), col = "dark blue")
+# lines(density(na.omit(as.numeric(paste(ERC_results_df$Spearman_R2_R2T)))), col = "light blue")
+
+#Note: these are not very compelling figures. Skipping for now. 
