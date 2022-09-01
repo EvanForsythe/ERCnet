@@ -151,9 +151,9 @@ pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",BL_type,
 #Plot the graph with all communities
 plot(comms_final, network_graph_final,
             vertex.label=NA,
-            vertex.size=5,
-            edge.color="black",
-            V(network_graph)$color<-"black",
+            vertex.size=2,
+            edge.color=rgb(0,0,0,0.3),
+            adjustcolor(V(network_graph_final)$color<-"black", alpha = .5),
             mark.col = comms_plot_col,
             mark.border = comms_plot_border,
             layout=LO_final,
@@ -217,6 +217,12 @@ for(n in min(foc_sp_df$Community):max(foc_sp_df$Community)){
 #Get all HOG names pre-filter
 all_HOG_names_df <- data.frame(HOG_ID=unique(c(ERC_results_df$GeneA_HOG,ERC_results_df$GeneB_HOG)))
 
+#make HOG column name match in foc_sp_df
+names(foc_sp_df)[names(foc_sp_df) == 'HOG'] <- 'HOG_ID'
+
+#only keep relevant columns
+subset_focal_sp_df <- subset(foc_sp_df, select = c("HOG_ID", "Focal_sp_ID"))
+
 degree_cen<-degree(network_graph_final, normalized=TRUE)
 #Authority and hub scores omitted because they are the same as eigenvector in undirected graphs
 network_stats_df <- data.frame(HOG_ID=names(degree_cen),
@@ -228,10 +234,11 @@ network_stats_df <- data.frame(HOG_ID=names(degree_cen),
            Community_num=as.numeric(paste(membership(comms_final)))
 )
 
-
-
 #merge HOGS not present in graph
-final_network_stats_df <- merge(all_HOG_names_df,network_stats_df,by="HOG_ID",all=TRUE)
+all_HOGs_and_focalsp_df <- merge(all_HOG_names_df,subset_focal_sp_df,by="HOG_ID",all=TRUE, sort = FALSE)
+
+#merge
+final_network_stats_df <- merge(all_HOGs_and_focalsp_df,network_stats_df,by="HOG_ID",all=TRUE, sort = FALSE)
 
 write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",BL_type, "_", filter_stat, "_", filter_stat_cutoff, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"))
 
