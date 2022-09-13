@@ -35,119 +35,44 @@ args = commandArgs(trailingOnly=TRUE)
 
 #Get the job name (used to identify the proper output folder)
 jobname<-args[1]
-#jobname<-"testBIG"
+#jobname<-"Clptest"
 out_dir<-paste0("OUT_", jobname, "/")
 
-# ### ERC
-# #Read results in (store as separate variable)
-# bxb_measure_df_res<-read.table(file = paste0(working_dir, out_dir, "BL_results/bxb_BLs_normalized.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-# r2t_measure_df_res<-read.table(file = paste0(working_dir, out_dir, "BL_results/r2t_BLs_normalized.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-# 
-# #Get all pairwise comparisons (without repeats) (this helps avoid nested for-loops)
-# ERC_df<-as.data.frame(t(combn(unique(bxb_measure_df_res$HOG_ID), 2)))
-# names(ERC_df)<-c("GeneA_HOG", "GeneB_HOG")
-# 
-# #Add columns for results
-# ERC_results_df<-cbind(ERC_df, 
-#                       data.frame(Overlapping_branches_BXB=NA, R2_BXB=NA, Slope_BXB=NA, 
-#                                  Pearson_P_BXB=NA, Spearman_P_BXB=NA, 
-#                                  Overlapping_branches_R2T=NA, R2_R2T=NA, Slope_R2T=NA, 
-#                                  Pearson_P_R2T=NA, Spearman_P_R2T=NA))
-# 
-# #Print a messages
-# print("Beginning all-by-all pairwise ERC correlation analysis...")
-# 
-# #Use cat because paste+print doesn't recognize \n
-# cat("\nNumber of genes: ", nrow(bxb_measure_df_res), 
-#     "\nNumber of pair-wise comparisons: ", nrow(ERC_df), "\n\n")
-# 
-# #Loop through the rows
-# for(e in 1:nrow(ERC_results_df)){
-#   ## BXB
-#   #Make a datafrome of the test-set
-#   BXB_df_temp<-data.frame(
-#     geneA=paste(bxb_measure_df_res[which(bxb_measure_df_res$HOG_ID==paste(ERC_results_df$GeneA_HOG[e])),]),
-#     geneB=paste(bxb_measure_df_res[which(bxb_measure_df_res$HOG_ID==paste(ERC_results_df$GeneB_HOG[e])),])
-#   )
-#   
-#   #Clean up dataframe
-#   BXB_df_temp[-1,]
-#   BXB_df_temp$geneA<-as.numeric(paste(BXB_df_temp$geneA))
-#   BXB_df_temp$geneB<-as.numeric(paste(BXB_df_temp$geneB))
-#   BXB_df_temp_complete<-BXB_df_temp[complete.cases(BXB_df_temp), ]
-#   
-#   #Number of overlapping branches
-#   ERC_results_df$Overlapping_branches_BXB[e]<-nrow(BXB_df_temp_complete)
-#   
-#   #Check if there are at least three points (3 are needed for a linear correlation)
-#   if(ERC_results_df$Overlapping_branches_BXB[e]>2){
-#     
-#     #Get lm
-#     BXB_lm_temp<-lm(BXB_df_temp_complete$geneA~BXB_df_temp_complete$geneB)
-#     #R2
-#     ERC_results_df$R2_BXB[e]<-summary(BXB_lm_temp)$r.squared
-#     #Slope
-#     ERC_results_df$Slope_BXB[e]<-BXB_lm_temp$coefficients[2]
-#     #pearson
-#     ERC_results_df$Pearson_P_BXB[e]<-cor.test(x = BXB_df_temp_complete$geneA, y = BXB_df_temp_complete$geneB, method = "pearson")$p.value
-#     #spearman
-#     ERC_results_df$Spearman_P_BXB[e]<-cor.test(x = BXB_df_temp_complete$geneA, y = BXB_df_temp_complete$geneB, method = "spearman")$p.value
-#   }#End points check if
-#   
-#   ## R2T
-#   #Make a test datafrome
-#   R2T_df_temp<-data.frame(
-#     geneA=paste(r2t_measure_df_res[which(r2t_measure_df_res$HOG_ID==paste(ERC_results_df$GeneA_HOG[e])),]),
-#     geneB=paste(r2t_measure_df_res[which(r2t_measure_df_res$HOG_ID==paste(ERC_results_df$GeneB_HOG[e])),])
-#   )
-#   
-#   #Clean up dataframe
-#   R2T_df_temp[-1,]
-#   R2T_df_temp$geneA<-as.numeric(paste(R2T_df_temp$geneA))
-#   R2T_df_temp$geneB<-as.numeric(paste(R2T_df_temp$geneB))
-#   R2T_df_temp_complete<-R2T_df_temp[complete.cases(R2T_df_temp), ]
-#   
-#   #Number of overlapping branches
-#   ERC_results_df$Overlapping_branches_R2T[e]<-nrow(R2T_df_temp_complete)
-#   
-#   #Check if there are at least three points (3 are needed for a linear correlation)
-#   if(ERC_results_df$Overlapping_branches_R2T[e]>2){
-#     
-#     #Get lm
-#     R2T_lm_temp<-lm(R2T_df_temp_complete$geneA~R2T_df_temp_complete$geneB)
-#     #R2
-#     ERC_results_df$R2_R2T[e]<-summary(R2T_lm_temp)$r.squared
-#     #Slope
-#     ERC_results_df$Slope_R2T[e]<-R2T_lm_temp$coefficients[2]
-#     #pearson
-#     ERC_results_df$Pearson_P_R2T[e]<-cor.test(x = R2T_df_temp_complete$geneA, y = R2T_df_temp_complete$geneB, method = "pearson")$p.value
-#     #spearman
-#     ERC_results_df$Spearman_P_R2T[e]<-cor.test(x = R2T_df_temp_complete$geneA, y = R2T_df_temp_complete$geneB, method = "spearman")$p.value
-#   }#End points check if
-#   
-#   #Write each line of file (add header only for the first line)
-#   if(e==1){
-#     write.table(ERC_results_df[e,], file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE, append = TRUE)
-#   }else{
-#     write.table(ERC_results_df[e,], file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE, append = TRUE)
-#   }
-#   
-#   #Report progress
-#   if((e %% 100000) == 0){
-#     print(paste0(e, " correlations calculated"))
-#   }
-#   
-# }#End pairwise combo loop (variable = e)
+#Get the focal species
+foc_sp<-args[2]
 
-#For testing: read back in ERC results file
-ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", header = TRUE)
+#read in ERC results file
+#ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", header = TRUE)
+ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", header = TRUE, nrows=10000)
 
-#Write tsv files of the ERC results
-#Reorder by bxb pearson p-value
+#Clean data to write tsv file of the ERC results
+#Reorder by R2T pearson R2
 ERC_results_df_order<-ERC_results_df[order(ERC_results_df$Pearson_P_R2T),]
 
+#Read in file that contains sequence IDs
+All_HOGs_df<-read.table(file = paste0(working_dir, out_dir, "Filtered_genefam_dataset.csv"), header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+#Remove the "N1." (or N2. N3. etc...) from the string
+All_HOGs_df$HOG<-sapply(strsplit(as.character(All_HOGs_df$HOG), "\\."), `[`, 2)
+
+All_HOGs_df_trimmed<-cbind(All_HOGs_df[,1:3], data.frame(
+  Focal_sp_ID=sapply(strsplit(All_HOGs_df[,which(names(All_HOGs_df) == foc_sp)], ","), `[`, 1)
+))
+
+#Add space to include gene IDs
+ERC_results_df_plus<-cbind(ERC_results_df_order, data.frame(GeneA_ID=NA, GeneB_ID=NA))
+
+#Loop through rows and add gene ID in
+for(n in 1:nrow(ERC_results_df_plus)){
+  ERC_results_df_plus$GeneA_ID[n]<-All_HOGs_df_trimmed$Focal_sp_ID[which(All_HOGs_df_trimmed$HOG == ERC_results_df_plus$GeneA_HOG[n])]
+  ERC_results_df_plus$GeneB_ID[n]<-All_HOGs_df_trimmed$Focal_sp_ID[which(All_HOGs_df_trimmed$HOG == ERC_results_df_plus$GeneB_HOG[n])]
+  if(n%%1000 == 0){
+    print(n)
+    }
+  }
+
 #Write the table
-write.table(ERC_results_df_order, file = paste0(working_dir, out_dir, "ERC_results/ERC_results_ordered_full.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+write.table(ERC_results_df_plus, file = paste0(working_dir, out_dir, "ERC_results/ERC_results_ordered_full.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
 
 #Print figures describing the common branches between pairs of genes
 #bxb
@@ -167,6 +92,88 @@ hist(ERC_results_df$Overlapping_branches_R2T,
      main = "Root-to-tip", xlab = "Branches in common between \nthe two genes being analyzed")
 
 dev.off()
+
+
+#Print figures describing coorelation between different strategies
+
+#Linear model
+mod0<-lm(Pearson_R2_R2T~Pearson_R2_BXB, data=ERC_results_df_plus)
+modsum0 = summary(mod0)
+
+#r2t vs bxb (Pearson)
+jpeg(file = paste0(working_dir, out_dir, "ERC_results/Branch_length_strategies_pearson.jpg"), quality = 75)
+
+plot(ERC_results_df_plus$Pearson_R2_BXB, ERC_results_df_plus$Pearson_R2_R2T,
+     xlab ="Branch-by-branch R-squared",
+     ylab ="Root-to-tip R-squared",
+     col = rgb(red = 0, green = 0, blue = 0, alpha = 0.2),
+     main = paste0("Pearson R-squared values calculated from \nR2T vs BXB branch lengths", "\nR2=", format(modsum0$adj.r.squared, digits = 3))
+     )
+
+#add trend line
+abline(mod0)
+
+dev.off()
+
+
+#r2t vs bxb (Spearman)
+#Linear model
+mod1<-lm(Spearman_R2_R2T~Spearman_R2_BXB, data=ERC_results_df_plus)
+modsum1 = summary(mod1)
+
+jpeg(file = paste0(working_dir, out_dir, "ERC_results/Branch_length_strategies_spearman.jpg"), quality = 75)
+
+plot(ERC_results_df_plus$Spearman_R2_BXB, ERC_results_df_plus$Spearman_R2_R2T,
+     xlab ="Branch-by-branch R-squared",
+     ylab ="Root-to-tip R-squared",
+     col = rgb(red = 0, green = 0, blue = 0, alpha = 0.2),
+     main = paste0("Spearman R-squared values calculated from \nR2T vs BXB branch lengths", "\nR2=", format(modsum1$adj.r.squared, digits = 3))
+     )
+
+#add trend line
+abline(mod1)
+
+dev.off()
+
+
+#Pearson vs Spearman (R2T)
+#Linear model
+mod2<-lm(Spearman_R2_R2T~Pearson_R2_R2T, data=ERC_results_df_plus)
+modsum2 = summary(mod2)
+
+jpeg(file = paste0(working_dir, out_dir, "ERC_results/Correlation_strategies_R2T.jpg"), quality = 75)
+
+plot(ERC_results_df_plus$Pearson_R2_R2T, ERC_results_df_plus$Spearman_R2_R2T,
+     xlab ="Pearson R-squared",
+     ylab ="Spearman R-squared",
+     col = rgb(red = 0, green = 0, blue = 0, alpha = 0.2),
+     main = paste0("R2T R-squared values calculated from \nPearson vs Spearman correlation", "\nR2=", format(modsum2$adj.r.squared, digits = 3))
+     )
+     
+#add trend line
+abline(mod2)
+
+dev.off()
+
+#Pearson vs Spearman (BXB)
+#Linear model
+mod3<-lm(Spearman_R2_BXB~Pearson_R2_BXB, data=ERC_results_df_plus)
+modsum3 = summary(mod3)
+
+jpeg(file = paste0(working_dir, out_dir, "ERC_results/Correlation_strategies_BXB.jpg"), quality = 75)
+
+plot(ERC_results_df_plus$Pearson_R2_BXB, ERC_results_df_plus$Spearman_R2_BXB,
+     xlab ="Pearson R-squared",
+     ylab ="Spearnam R-squared",
+     col = rgb(red = 0, green = 0, blue = 0, alpha = 0.2),
+     main = paste0("BXB R-squared values calculated from \nPearson vs Spearman correlation", "\nR2=", format(modsum3$adj.r.squared, digits = 3))
+     )
+
+#add trend line
+abline(mod3)
+
+dev.off()
+
 
 #Print figures describing the distribution of R-squared values
 
