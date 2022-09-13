@@ -30,6 +30,8 @@ parser = argparse.ArgumentParser(description='ERC step')
 
 parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help='Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok)') 
 parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=1, help='Integer: number of threads avilable for parallel computing (default = 1)' )
+parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help='The name of the focal species to represent each gene family (should exactly match the tip label of the species tree)') 
+
 
 #Define the parser
 args = parser.parse_args()
@@ -37,8 +39,10 @@ args = parser.parse_args()
 #Store arguments
 JOBname=args.JOBname
 Mult_threads=args.Mult_threads
+FocalSP=args.FocalSP
 #JOBname = "testBIG"
 #Mult_threads = 8
+#FocalSP="A_thaliana_prot"
 
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
@@ -160,7 +164,7 @@ print("Done with all-by-all comparisons...\n")
 ###Use R to create summary figures of the ERC results
 
 #Run the R script
-ERC_rec_cmd= 'Rscript AllxAll_correlations.R '+JOBname
+ERC_rec_cmd= 'Rscript AllxAll_correlations.R '+JOBname+' '+FocalSP
     
 #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
 if re.search('AllxAll_correlations.R', ERC_rec_cmd) and re.search('Rscript', ERC_rec_cmd):
