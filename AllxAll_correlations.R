@@ -66,9 +66,9 @@ ERC_results_df_plus<-cbind(ERC_results_df_order, data.frame(GeneA_ID=NA, GeneB_I
 for(n in 1:nrow(ERC_results_df_plus)){
   ERC_results_df_plus$GeneA_ID[n]<-All_HOGs_df_trimmed$Focal_sp_ID[which(All_HOGs_df_trimmed$HOG == ERC_results_df_plus$GeneA_HOG[n])]
   ERC_results_df_plus$GeneB_ID[n]<-All_HOGs_df_trimmed$Focal_sp_ID[which(All_HOGs_df_trimmed$HOG == ERC_results_df_plus$GeneB_HOG[n])]
-  if(n%%1000 == 0){
-    print(n)
-    }
+  #if(n%%1000 == 0){
+  #  print(n)
+  #  }
   }
 
 #Write the table
