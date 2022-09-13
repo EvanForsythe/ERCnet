@@ -243,7 +243,7 @@ All options for ERC_analyses.py:
 
 Example command:
 ```
-./ERC_analyses.py -j test_job -m 1
+./ERC_analyses.py -j test_job -m 1 -s A_thaliana_prot
 ```
 
 What ERC_analyses.py does:
