@@ -36,14 +36,16 @@ args = commandArgs(trailingOnly=TRUE)
 #Get the job name (used to identify the proper output folder)
 jobname<-args[1]
 #jobname<-"Clptest"
+#jobname<-"FULL"
 out_dir<-paste0("OUT_", jobname, "/")
 
 #Get the focal species
 foc_sp<-args[2]
+#foc_sp<-"A_thaliana_prot"
 
 #read in ERC results file
-#ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", header = TRUE)
-ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", header = TRUE, nrows=10000)
+ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", header = TRUE)
+#ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", header = TRUE, nrows=1000000)
 
 #Clean data to write tsv file of the ERC results
 #Reorder by R2T pearson R2

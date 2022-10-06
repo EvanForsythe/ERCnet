@@ -8,6 +8,7 @@ Script for performing BL reconcilation and ERC correlation analyses. This should
 import os
 import re
 import sys
+import math
 import glob
 import subprocess
 import argparse
@@ -40,8 +41,8 @@ args = parser.parse_args()
 JOBname=args.JOBname
 Mult_threads=args.Mult_threads
 FocalSP=args.FocalSP
-#JOBname = "testBIG"
-#Mult_threads = 8
+#JOBname = "Clptest"
+#Mult_threads = 2
 #FocalSP="A_thaliana_prot"
 
 #Store output dir as a variable
@@ -123,7 +124,8 @@ def par_corr(i, j):
         bxb_results_str= str(bxb_test_df_clean.shape[0]) +'\t'+ str(bxb_corr_stats[0]) +'\t'+ str(bxb_corr_stats[2]**2) +'\t'+ str(bxb_corr_stats[3]) +'\t'+ str(bxb_corr_stats[5]**2) +'\t'+ str(bxb_corr_stats[6])
         #(note r is squared to get r2)
     else:
-        bxb_results_str='NA\tNA\tNA\tNA\tNA\tNA'
+        bxb_results_str='nan\tnan\tnan\tnan\tnan\tnan'
+        #bxb_results_str='NA\tNA\tNA\tNA\tNA\tNA'
     
     #Root to tip branch lengths
     #subset dataframe to the rows of the two test HOGs
@@ -148,11 +150,15 @@ def par_corr(i, j):
         #Create string
         r2t_results_str= str(r2t_test_df_clean.shape[0]) +'\t'+ str(r2t_corr_stats[0]) +'\t'+ str(r2t_corr_stats[2]**2) +'\t'+ str(r2t_corr_stats[3]) +'\t'+ str(r2t_corr_stats[5]**2) +'\t'+ str(r2t_corr_stats[6])
     else:
-        r2t_results_str='NA\tNA\tNA\tNA\tNA\tNA'
+        r2t_results_str='nan\tnan\tnan\tnan\tnan\tnan'
+        #r2t_results_str='NA\tNA\tNA\tNA\tNA\tNA'
     
-    #write (append) to results file
-    with open(out_dir+'ERC_results/ERC_results.tsv', "a") as f:
-        f.write('\n'+ geneA +'\t'+ geneB +'\t'+ bxb_results_str +'\t'+ r2t_results_str)
+    #Only write the results if there's some indication of correlation (this keeps the size of the file from inflating)
+    if ((not bxb_results_str.split("\t")[0] == "nan") and (not r2t_results_str.split("\t")[0] == "nan")):
+        if (float(bxb_results_str.split("\t")[1])>0 or float(r2t_results_str.split("\t")[1])>0) and (float(bxb_results_str.split("\t")[3])<0.05 or float(bxb_results_str.split("\t")[5])<0.05 or float(r2t_results_str.split("\t")[3])<0.05 or float(r2t_results_str.split("\t")[5])<0.05):
+            #write (append) to results file
+            with open(out_dir+'ERC_results/ERC_results.tsv', "a") as f:
+                f.write('\n'+ geneA +'\t'+ geneB +'\t'+ bxb_results_str +'\t'+ r2t_results_str)
 
 
 #Run the correlation analysis (in paralell)
