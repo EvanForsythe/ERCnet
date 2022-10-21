@@ -247,5 +247,5 @@ plot(density(na.omit(final_network_stats_df$Eigenvector_centrality)))
 
 
 
-grid.arrange(p1, p2, p3, p4, ncol=1)
+#grid.arrange(p1, p2, p3, p4, ncol=1)
 

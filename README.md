@@ -240,10 +240,11 @@ All options for ERC_analyses.py:
 | -j | --JOBname | Unique job name for this run of ERCnet. This should be the exact same as the jobname used in the previous steps | yes | NA |
 | -m | --Mult_threads |Integer: number of threads avilable for parallel computing (default = 1). Performing all-by-all analyses means the number of correlations calculated increases exponentially so this step is rate-limiting | no | 1 |
 | -s | --FocalSP | The name of the focal species to represent each gene family (should exactly match the tip label of the species tree). See further description below | yes | NA |
+| -M | --Meta_stats | The type of report of metadata from ERC correlations you want. "none" for no reports, "full" for report including all pairwise-stats (very slow/memory-intensive for large dataset), "hits" for trimmed down report of potential hits | no | none |
 
 Example command:
 ```
-./ERC_analyses.py -j test_job -m 1 -s A_thaliana_prot
+./ERC_analyses.py -j test_job -m 1 -s A_thaliana_prot -M hits
 ```
 
 What ERC_analyses.py does:
