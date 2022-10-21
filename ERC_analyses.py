@@ -190,12 +190,12 @@ def par_corr(i, j):
     if ((not bxb_results_str.split("\t")[0] == "nan") and (not r2t_results_str.split("\t")[0] == "nan")):
         #write (append) to results file
         with open(out_dir+'ERC_results/ERC_results.tsv', "a") as f:
-            f.write('\n'+ geneA +'\t'+ geneA_ID +'\t'+ geneB +'\t'+ geneB_ID +'\t'+ bxb_results_str +'\t'+ r2t_results_str)
+            f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ bxb_results_str +'\t'+ r2t_results_str)
         
         if (float(bxb_results_str.split("\t")[1])>0 or float(r2t_results_str.split("\t")[1])>0) and (float(bxb_results_str.split("\t")[3])<0.05 or float(bxb_results_str.split("\t")[5])<0.05 or float(r2t_results_str.split("\t")[3])<0.05 or float(r2t_results_str.split("\t")[5])<0.05):
             #write (append) to results file (for the potential hits)
             with open(out_dir+'ERC_results/ERC_results_potential_hits.tsv', "a") as f:
-                f.write('\n'+ geneA +'\t'+ geneA_ID +'\t'+ geneB +'\t'+ geneB_ID +'\t'+ bxb_results_str +'\t'+ r2t_results_str)
+                f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ bxb_results_str +'\t'+ r2t_results_str)
 
 
 #Run the correlation analysis (in paralell)

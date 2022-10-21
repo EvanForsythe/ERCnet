@@ -27,7 +27,7 @@ out_dir<-paste0("OUT_", jobname, "/")
 
 #Which file to run stats on
 stats_file<-args[2]
-#stats_file<-"hits"
+#stats_file<-"full"
 
 #read in designated ERC results file
 if(stats_file=="full"){
@@ -102,7 +102,7 @@ modsum2 = summary(mod2)
 
 jpeg(file = paste0(working_dir, out_dir, "ERC_results/Correlation_strategies_R2T.jpg"), quality = 75)
 
-plot(ERC_results_dfs$Pearson_R2_R2T, ERC_results_df$Spearman_R2_R2T,
+plot(ERC_results_df$Pearson_R2_R2T, ERC_results_df$Spearman_R2_R2T,
      xlab ="Pearson R-squared",
      ylab ="Spearman R-squared",
      col = rgb(red = 0, green = 0, blue = 0, alpha = 0.2),
