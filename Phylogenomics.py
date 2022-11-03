@@ -20,6 +20,7 @@ import subprocess
 import numpy as np
 import pandas as pd
 from Bio import SeqIO
+from Bio import AlignIO
 from joblib import Parallel, delayed
 
 #Homemade modules
@@ -45,6 +46,8 @@ parser.add_argument('-n', '--Node', type=int, metavar='', required=False, help='
 parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=1, help='Integer: number of threads avilable for parallel computing (default = 1)' )
 parser.add_argument('-a','--Apriori', action='store_true', required=False, help='Add this flag to provide an apriori set of genes to analyze. The input file listing those genes must be formatted in certian way. See instuctions')
 parser.add_argument('-c', '--core_distribution', type=int, metavar='', required=False, default=1, help='Integer: Sets the core distribution group which affects number of cores split between front end and back end paralellization of raxml bootstrapping')
+parser.add_argument('-P', '--Prune_cutoff', type=float, metavar='', required=False, default=0.9, help='Float: prune seqs from alignments if the proportion of gap sites exceeds this number (default: 0.9)')
+
 
 #Define the parser
 args = parser.parse_args()
@@ -63,10 +66,10 @@ Node=args.Node
 Mult_threads=args.Mult_threads
 Apriori=args.Apriori
 core_dist=args.core_distribution
-
+prune_cutoff=args.Prune_cutoff
 '''
 #DEV: hardcode arguments
-JOBname = "test"
+JOBname = "Clptest"
 OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/"
 MaxP_val=3
 MinR_val=17
@@ -492,14 +495,102 @@ def par_gblocks(aln):
         print('WARNING: Something wrong with Gblocks command...\n')
         sys.exit()
 
+
+#run the parallel command
+Parallel(n_jobs= Mult_threads, verbose=100)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names))
+
 ##End paralellization of gblocks trimming
 
-Parallel(n_jobs= Mult_threads, verbose=100)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names))
+###Check if there are individual sequences that need to be trimmed.
+#Make a directory for storing pruning info
+if not os.path.isdir(out_dir+'Aln_pruning/'):
+    os.makedirs(out_dir+'Aln_pruning/')
+    print("created folder: Aln_pruning/\n")
+else: 
+    print('Alignment pruning info will be stored in Aln_pruning/\n')
+
+#get a list of all the Gblocks output files
+alns_to_check=glob.glob(out_dir+'Gb_alns/GB_ALN_*fa')
+
+
+#Make a function that will write the names of ids that should be pruned
+def check_alns_for_prune(alns_to_check_temp):
+    #Get the file name
+    aln_check_path=str(alns_to_check_temp)
+    
+    #Get the OG name
+    aln_check_OG=aln_check_path.replace(out_dir+"Gb_alns/GB_ALN_", "").replace(".fa", "")
+    
+    #Read in alignment
+    alignment = AlignIO.read(aln_check_path, "fasta")
+    
+    #Get the number of total sites in the alignment
+    n_sites=alignment.get_alignment_length()
+    
+    #Create blank list
+    prune_seqs=[]
+    
+    #Loop through the seqs in the alignment and count the gap sites (add to list if too many gaps)
+    for record in alignment:
+        if record.seq.count("-")>(prune_cutoff*n_sites):
+            prune_seqs.append(record.id)
+    
+    #If there are any on the list
+    if len(prune_seqs) > 0:
+        #Make results file
+        with open(out_dir+'Aln_pruning/Prune_IDs_'+aln_check_OG+".txt", "a") as f:
+            for item in prune_seqs:
+                f.write("%s\n" % item)
+        
+        #write a new version of the file
+        #Open commenction
+        FastaDroppedFile = open(out_dir+"Aln_pruning/GB_ALN_"+aln_check_OG+".fa", 'w')
+        
+        #Loop through the seqs in the alignment and write the keepers to the new file
+        for record in alignment:
+            if not record.seq.count("-")>(prune_cutoff*n_sites):
+                SeqIO.write(record, FastaDroppedFile, 'fasta')
+        #Close connection
+        FastaDroppedFile.close()
+        
+    #I need to have a return statement or map() wont run                
+    return(aln_check_path)
+
+#Run the function on all alns (store the output becuase map() wont run otherwise)
+store_mapped=list(map(check_alns_for_prune, alns_to_check))
+
+### Check if alignments still contain at least 4 sequences
+#get a list of pruned fasta files
+pruned_alns=glob.glob(out_dir+'Aln_pruning/GB_ALN_*fa')
+
+for p in pruned_alns:
+    #Get the OG
+    OG_p=p.replace(out_dir+"Aln_pruning/GB_ALN_", "").replace(".fa", "")
+    
+    #Delete the original version of the file
+    os.remove(out_dir+"Gb_alns/GB_ALN_"+OG_p+".fa")
+    
+    #Read in alignment
+    aln_p = AlignIO.read(p, "fasta")
+    
+    
+    #Check how many seqs remain in the alignment after pruning.
+    #If at least 4, use the pruned version for downstream analyses, else drop the alignment from downstream analyses
+    if len(aln_p) >= 4:
+        #move the pruned file to the main GB folder
+        os.replace(p, p.replace("Aln_pruning/", "Gb_alns/"))
+        
+        #Rename the log file to reflect whether the pruned version was retained
+        os.replace(out_dir+'Aln_pruning/Prune_IDs_'+OG_p+".txt", out_dir+'Aln_pruning/Prune_IDs_'+OG_p+"_ALN_RETAINED.txt")
+    else:
+        #Rename the log file to reflect whether the pruned version was retained
+        os.replace(out_dir+'Aln_pruning/Prune_IDs_'+OG_p+".txt", out_dir+'Aln_pruning/Prune_IDs_'+OG_p+"_ALN_DROPPED.txt")
+
+print("Done pruning super gappy sequences from alignments")
 
 ### Get the subtrees from orthofinder to use as a constraint tree from bootstrap scoring
 
 #Create folder to store subtrees
-#Make a directory for gblocks trimmed alignments that are too short 
 if not os.path.isdir(out_dir+'HOG_subtrees/'):
     os.makedirs(out_dir+'HOG_subtrees/')
     print("\nCreated folder: HOG_subtrees/\n")
