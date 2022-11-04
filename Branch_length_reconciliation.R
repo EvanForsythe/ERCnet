@@ -31,7 +31,7 @@ args = commandArgs(trailingOnly=TRUE)
 #Get the job name (used to identify the proper output folder)
 jobname<-args[1]
 #jobname<-"TEST"
-#jobname<-"TPC_test"
+#jobname<-"Clptest"
 out_dir<-paste0("OUT_", jobname, "/")
 
 ###Use DLCpar output to pull out relevant branch lengths
@@ -141,7 +141,18 @@ for(m in 1:length(rec_files_list)){
   sp_branches_df_temp$gene_tree_BL_measure[which(sp_branches_df_temp$gene_tree_BL_measure==0)]<-NA
 
   BL_measure_df[m,]<-c(str_replace(rec_files_list[m], "_NODES_BL.txt", ""),sp_branches_df_temp$gene_tree_BL_measure)
-
+  
+  #Check if there is an outlier branch
+  #Get the branch values
+  bxb_vals_temp<-as.numeric(paste(na.omit(as.numeric(BL_measure_df[m,-1]))))
+  #Ask if the longest branch is more than 10x the second longest branch
+  
+  if(length(bxb_vals_temp)>0){
+    if(bxb_vals_temp[order(bxb_vals_temp,decreasing = TRUE)][1]>(10*bxb_vals_temp[order(bxb_vals_temp,decreasing = TRUE)][2])){
+      #If there is an outlier branch, set all values to NA for this tree
+      BL_measure_df[m,-1]<-NA
+  }}
+  
   ### pull out root to tip distances
   #Find the node on the gene tree that maps to the node of interest (selected with --Node/-n in the Phylogenomics.py step) on the species tree
   #To figure out with node is used on this run, read in one of the earlier ouput files and pull out the N1/N2/etc.. string
@@ -162,6 +173,16 @@ for(m in 1:length(rec_files_list)){
 
   r2t_measure_df[m,1]<-str_replace(rec_files_list[m], "_NODES_BL.txt", "")
 
+  #Check if there is an outlier branch
+  #Get the branch values
+  r2t_vals_temp<-as.numeric(paste(na.omit(as.numeric(r2t_measure_df[m,-1]))))
+  #Ask if the longest branch is more than 10x the second longest branch
+  if(length(r2t_vals_temp)>0){
+    if(r2t_vals_temp[order(r2t_vals_temp,decreasing = TRUE)][1]>(10*r2t_vals_temp[order(r2t_vals_temp,decreasing = TRUE)][2])){
+      #If there is an outlier branch, set all values to NA for this tree
+      r2t_measure_df[m,-1]<-NA
+  }}#end double if
+  
 }#End subtree loop (variable m)
 
 ### Write the results

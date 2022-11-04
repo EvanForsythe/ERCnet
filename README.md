@@ -157,6 +157,8 @@ All options for Phylogenomics.py:
 | -m | --Mult_threads |Integer: number of threads avilable for parallel computing (default = 1). Performing a full-genome analyses will likely require supercomputing resources| no | 1 |
 | -a | --Apriori | Add this flag to provide an *a priori* list of genes to analyze. The list must be in a file named "A_priori_genes.csv" and formatted in a specific way. See instructions above for more information. When you're using the -a option you probably don't want to use the -t option | no | NA |
 | -c | --core_distribution | Sets the group (1/2/3) core_distribution strategy for Raxml processing. This determines how many 'front end' parallel cores are running and how many 'back end' cores are given to each multi-threaded Raxml process. See table below for group definitions | no | 1 |
+| -P | --Prune_cutoff | Float: prune seqs from alignments if the proportion of gap sites exceeds this number | no | 0.9 |
+
 
 core_distribution groups for Phylogenomics.py. 
 
