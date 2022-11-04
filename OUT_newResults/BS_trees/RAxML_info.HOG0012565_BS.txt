@@ -1,0 +1,47 @@
+
+
+WARNING: RAxML is not checking sequences for duplicate seqs and sites with missing data!
+
+
+
+This is RAxML version 8.2.12 released by Alexandros Stamatakis on May 2018.
+
+With greatly appreciated code contributions by:
+Andre Aberer      (HITS)
+Simon Berger      (HITS)
+Alexey Kozlov     (HITS)
+Kassian Kobert    (HITS)
+David Dao         (KIT and HITS)
+Sarah Lutteropp   (KIT and HITS)
+Nick Pattengale   (Sandia)
+Wayne Pfeiffer    (SDSC)
+Akifumi S. Tanabe (NRIFS)
+Charlie Taylor    (UF)
+
+
+RAxML Bipartition Computation: Drawing support values from trees in file /scratch/summit/zypher@colostate.edu/ERC/ERCnet_new/ERCnet/OUT_newResults/BS_reps/RAxML_bootstrap.HOG0012565_BS.txt onto tree in file /scratch/summit/zypher@colostate.edu/ERC/ERCnet_new/ERCnet/OUT_newResults/HOG_subtrees/HOG0012565_tree.txt
+
+
+RAxML was called as follows:
+
+/projects/zypher@colostate.edu/software/anaconda/envs/ERCnet_py3/bin/raxmlHPC-PTHREADS-SSE3 -z /scratch/summit/zypher@colostate.edu/ERC/ERCnet_new/ERCnet/OUT_newResults/BS_reps/RAxML_bootstrap.HOG0012565_BS.txt -w /scratch/summit/zypher@colostate.edu/ERC/ERCnet_new/ERCnet/OUT_newResults/BS_trees/ -n HOG0012565_BS.txt -t /scratch/summit/zypher@colostate.edu/ERC/ERCnet_new/ERCnet/OUT_newResults/HOG_subtrees/HOG0012565_tree.txt -f b -m PROTGAMMALGF -T 1 
+
+
+
+
+Found 1 tree in File /scratch/summit/zypher@colostate.edu/ERC/ERCnet_new/ERCnet/OUT_newResults/HOG_subtrees/HOG0012565_tree.txt
+
+
+
+Found 100 trees in File /scratch/summit/zypher@colostate.edu/ERC/ERCnet_new/ERCnet/OUT_newResults/BS_reps/RAxML_bootstrap.HOG0012565_BS.txt
+
+
+
+Found 1 tree in File /scratch/summit/zypher@colostate.edu/ERC/ERCnet_new/ERCnet/OUT_newResults/HOG_subtrees/HOG0012565_tree.txt
+
+
+
+Time for Computation of Bipartitions 0.029306
+Tree with bipartitions written to file:  /scratch/summit/zypher@colostate.edu/ERC/ERCnet_new/ERCnet/OUT_newResults/BS_trees/RAxML_bipartitions.HOG0012565_BS.txt
+Tree with bipartitions as branch labels written to file:  /scratch/summit/zypher@colostate.edu/ERC/ERCnet_new/ERCnet/OUT_newResults/BS_trees/RAxML_bipartitionsBranchLabels.HOG0012565_BS.txt
+Execution information file written to :  /scratch/summit/zypher@colostate.edu/ERC/ERCnet_new/ERCnet/OUT_newResults/BS_trees/RAxML_info.HOG0012565_BS.txt

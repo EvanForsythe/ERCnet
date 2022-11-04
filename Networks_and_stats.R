@@ -22,8 +22,8 @@ jobname<-args[1]
 
 #Get parameters for filtering data to be used in networks
 BL_type<-paste(args[2])
-filter_stat<-paste(args[3])
-filter_stat_cutoff<-as.numeric(paste(args[4]))
+RSquared<-paste(args[3])
+PValue<-paste(args[4])
 
 #Get the method to be used
 clust_method<-args[5]
@@ -56,29 +56,14 @@ out_dir<-paste0("OUT_", jobname, "/")
 
 #Read in ERC correlation results
 #Read the table
-ERC_results_df<-read.table(file = paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-
-
-#Filter data to be included in ERC network
-if(BL_type == "bxb"){
-  if(filter_stat=="pval"){
-    ERC_hits_df<-subset(ERC_results_df, Pearson_P_BXB<filter_stat_cutoff)[,c(1,2)]
-  }else if(filter_stat=="R2"){
-    ERC_hits_df<-subset(ERC_results_df, R2_BXB>=filter_stat_cutoff)[,c(1,2)]
-  }
-}else if(BL_type == "r2t"){
-  if(filter_stat=="pval"){
-    ERC_hits_df<-subset(ERC_results_df, Pearson_P_R2T<filter_stat_cutoff)[,c(1,2)]
-  }else if(filter_stat=="R2"){
-    ERC_hits_df<-subset(ERC_results_df, R2_R2T>=filter_stat_cutoff)[,c(1,2)]
-  }
-}
+ERC_hits_df<-read.table(file = paste0(working_dir, out_dir, "ERC_results/Filtered_ERC_Results.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 #Print message
 #Use cat because paste+print doesn't recognize \n
 cat("\nNumber of significant correlations (according to filter parameters): ", nrow(ERC_hits_df), 
     "\nNumber of genes in network: ", length(unique(c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG))),
     "\n\n")
+
 
 print("Printing networks...")
 
@@ -114,7 +99,7 @@ if (trim_cutoff > 0){
  
   comms_keep_ids <- as.numeric(names(sizes(comms)[sizes(comms) >= trim_cutoff]))
   comms_keep_v_idxs <- which(comms$membership %in% comms_keep_ids)
-  
+
   network_graph_final <- induced_subgraph(network_graph, V(network_graph)[comms_keep_v_idxs])
   
   # subset community objects
@@ -123,15 +108,16 @@ if (trim_cutoff > 0){
   comms_final$membership <- comms$membership[comms_keep_v_idxs]
   comms_final$vcount <- length(comms_final$names)
   comms_final$modularity <- modularity(network_graph_final, comms_final$membership, E(network_graph_final)$weight)
-  
+
   #Network layout and colors
   LO <- layout_nicely(network_graph)
   LO_final <- LO[comms_keep_v_idxs, ]
   comms_plot_col <- rainbow(length(communities(comms_final)), alpha = 0.3)[comms_keep_ids]
   comms_plot_border <- rainbow(length(communities(comms_final)), alpha = 1)[comms_keep_ids]
-  
+
   #legend colors
-   legend_color <- rainbow(length(comms_final), alpha = 0.3)[comms_keep_ids]
+  legend_color <- rainbow(length(comms_final), alpha = 0.3)[comms_keep_ids]
+
   
 }else{
     network_graph_final <- network_graph
@@ -146,7 +132,7 @@ if (trim_cutoff > 0){
 
 
 #save pdf
-pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",BL_type, "_", filter_stat, "_", filter_stat_cutoff, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=8, height = 8)
+pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=8, height = 8)
 
 #Plot the graph with all communities
 plot(comms_final, network_graph_final,
@@ -159,7 +145,7 @@ plot(comms_final, network_graph_final,
             layout=LO_final,
             main=paste0(length(comms_final), " communities clustered using ", algo_name, " algorithm"))
 
-mysubtitle<-paste0("BL method: ",BL_type, "  |  ", "Filter stat: ", filter_stat, "  |  ", "Cutoff: ", filter_stat_cutoff)
+mysubtitle<-paste0("BL method: ",BL_type, "  |  ", "Filter stats: ","R2 " ,RSquared ," P ", PValue , "  |  ")
 mtext(side = 3, line = 0, at = 1, adj = 1, mysubtitle)
 
 legend("topleft",
@@ -187,7 +173,9 @@ All_HOGs_df$HOG<-sapply(strsplit(as.character(All_HOGs_df$HOG), "\\."), `[`, 2)
 #Join the dataframes
 comms_w_IDs<-merge(x = comms_df, y = All_HOGs_df, by="HOG", all.x=TRUE)
 
+
 #Get a dataframe with the focal sp IDs
+
 foc_sp_df<-cbind(comms_w_IDs[,c(1,2,3)],
 data.frame(
 Focal_sp_ID=sapply(strsplit(comms_w_IDs[,which(names(comms_w_IDs) == foc_sp)], ","), `[`, 1)
@@ -199,7 +187,7 @@ foc_sp_df$Focal_sp_ID<-gsub(foc_sp_df$Focal_sp_ID, pattern = paste0(foc_sp, "_")
 #Write txt files
 #All genes in the network (as a background for enrichment analyses)
 write.table(paste(na.omit(unique(foc_sp_df$Focal_sp_ID))), 
-            file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_","BACKGROUND_", BL_type, "_", filter_stat, "_", filter_stat_cutoff, "_", clust_method,".txt"), 
+            file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_","BACKGROUND_", BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,".txt"), 
             sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
 
 #Loop through all communities
@@ -207,7 +195,7 @@ for(n in min(foc_sp_df$Community):max(foc_sp_df$Community)){
 
   #Write tsv files
   write.table(paste(na.omit(unique(subset(foc_sp_df$Focal_sp_ID, foc_sp_df$Community==n)))), 
-              file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_",sprintf("%04d", n), "_", BL_type, "_", filter_stat, "_", filter_stat_cutoff, "_", clust_method,".txt"), 
+              file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_",sprintf("%04d", n), "_", BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,".txt"), 
               sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
 
 } 
@@ -240,10 +228,10 @@ all_HOGs_and_focalsp_df <- merge(all_HOG_names_df,subset_focal_sp_df,by="HOG_ID"
 #merge
 final_network_stats_df <- merge(all_HOGs_and_focalsp_df,network_stats_df,by="HOG_ID",all=TRUE, sort = FALSE)
 
-write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",BL_type, "_", filter_stat, "_", filter_stat_cutoff, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"))
+write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", filter_stat_cutoff, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"))
 
 #Density plots of centrality measures
-plot(density(na.omit(final_network_stats_df$Eigenvector_centrality)))
+#plot(density(na.omit(final_network_stats_df$Eigenvector_centrality)))
 
 
 

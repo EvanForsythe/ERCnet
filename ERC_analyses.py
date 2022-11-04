@@ -10,9 +10,9 @@ import re
 import sys
 import math
 import glob
-import subprocess
 import argparse
 import itertools
+import subprocess
 import pandas as pd
 import scipy.stats as stats
 from joblib import Parallel, delayed
@@ -224,9 +224,6 @@ if len(glob.glob(out_dir+'ERC_results/*tsv')) > 0:
     print('Finished ERC.\n\nResults files written to ERC_results/\n\n')
 else:
     print('Something went wrong with ERC analyses...\n')
-
-#Print wrapup statement
-print("ERC correlation analyses finished. Exiting....")
 
 #Print directions for next steps
 print('ERC correlation analyses finished. Exiting....\n\n'\
