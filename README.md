@@ -283,6 +283,7 @@ All options for Network_analyses.py:
 Example command:
 ```
 ./Network_analyses.py -j test_job -m r2t -c spearman -y fg -s A_thaliana_prot
+```
 
 What Network_analyses.py does:
 * Filter the ERC results to retain only the 'significant' correlations. 
