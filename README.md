@@ -273,16 +273,16 @@ All options for Network_analyses.py:
 | -h | --help | Print help menu | no | NA |
 | -j | --JOBname | Unique job name for this run of ERCnet. This should be the exact same as the jobname used in the previous steps | yes | NA |
 | -m | --BLmethod | Branch length method ERC results to be used in the network. "bxb" for Branch-by-branch. "r2t" for root-to-tip. | yes | NA |
-| -f | --Filterstat | Correlation statistic to be used to filter ERC hits. "pval" for p-value, "R2" for R-squared | yes | NA |
-| -c | --Cutoff | Cuttoff P/R-squared value by which to filter ERC hits in network. float between 0 and 1. Correlations below/above this number will br retained (depending on your choice of pval vs R2). | yes | NA |
+| -p | --PValue | Cuttoff for P value by which to filter ERC hits in network. Float between 0 and 1. | no | 0.05 |
+| -r | --RSquared | Cuttoff R-squared value by which to filter ERC hits in network. Float between 0 and 1. | no | 0.50 |
 | -y | --Clustmeth | Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap. | yes | fg |
 | -t | --Trim_Cutoff | Must be an integer. Indicates the minimum number of nodes necessary for a community to be displayed on the network plot. Communitiies smaller than this number will be trimmed from the graph (and associated output tables). This option is mainly for network aesthetics. | no | 0 |
 | -s | --FocalSP | The name of the focal species to represent each gene family (should exactly match the tip label of the species tree). See further description below | yes | NA |
+| -c | --CorrStat | The type of statistical correlation method to use. Enter "spearman" or "pearson". Both are generated, but the final ERC_results file will filter for the selected method. | no | spearman |
 
 Example command:
 ```
-./Network_analyses.py -j test_job -m bxb -f pval -c 0.001 -y fg -t 3 -s A_thaliana_prot
-```
+./Network_analyses.py -j test_job -m r2t -c spearman -y fg -s A_thaliana_prot
 
 What Network_analyses.py does:
 * Filter the ERC results to retain only the 'significant' correlations. 

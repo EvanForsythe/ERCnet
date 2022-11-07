@@ -24,7 +24,7 @@ from Bio import AlignIO
 from joblib import Parallel, delayed
 
 #Homemade modules
-from filterHOGs import make_seq_counts_df, filter_gene_fams
+from filterHOGs import make_seq_counts_df, filter_gene_fams, check_alns_for_prune
 
 #At runtime set working directory to the place where the script lives
 working_dir = sys.path[0]+'/' 
@@ -137,7 +137,7 @@ else:
     print("ERROR: Resolved_Gene_Trees/ directory not fond! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
     sys.exit()
 
-#Resolved gene trees
+#Orthogroup seuquences
 if os.path.isdir(OGseqdir):
     print("Found Orthogroup_Sequences/ directory!\n")
 else:
@@ -148,7 +148,7 @@ else:
 out_dir= 'OUT_'+JOBname+'/'
 
 #Create the output folder
-#Make a directory for storing stats (and log file)
+#Make a directory for storing stats
 if os.path.isdir(out_dir):
     while True:
         user_input = input("This jobname already exists. Would you like to overwrite? (y/n) \n")
@@ -501,7 +501,7 @@ Parallel(n_jobs= Mult_threads, verbose=100)(delayed(par_gblocks)(aln) for aln in
 
 ##End paralellization of gblocks trimming
 
-###Check if there are individual sequences that need to be trimmed.
+###Check if there are individual sequences that need to be pruned.
 #Make a directory for storing pruning info
 if not os.path.isdir(out_dir+'Aln_pruning/'):
     os.makedirs(out_dir+'Aln_pruning/')
@@ -512,56 +512,18 @@ else:
 #get a list of all the Gblocks output files
 alns_to_check=glob.glob(out_dir+'Gb_alns/GB_ALN_*fa')
 
-
-#Make a function that will write the names of ids that should be pruned
-def check_alns_for_prune(alns_to_check_temp):
-    #Get the file name
-    aln_check_path=str(alns_to_check_temp)
-    
-    #Get the OG name
-    aln_check_OG=aln_check_path.replace(out_dir+"Gb_alns/GB_ALN_", "").replace(".fa", "")
-    
-    #Read in alignment
-    alignment = AlignIO.read(aln_check_path, "fasta")
-    
-    #Get the number of total sites in the alignment
-    n_sites=alignment.get_alignment_length()
-    
-    #Create blank list
-    prune_seqs=[]
-    
-    #Loop through the seqs in the alignment and count the gap sites (add to list if too many gaps)
-    for record in alignment:
-        if record.seq.count("-")>(prune_cutoff*n_sites):
-            prune_seqs.append(record.id)
-    
-    #If there are any on the list
-    if len(prune_seqs) > 0:
-        #Make results file
-        with open(out_dir+'Aln_pruning/Prune_IDs_'+aln_check_OG+".txt", "a") as f:
-            for item in prune_seqs:
-                f.write("%s\n" % item)
-        
-        #write a new version of the file
-        #Open commenction
-        FastaDroppedFile = open(out_dir+"Aln_pruning/GB_ALN_"+aln_check_OG+".fa", 'w')
-        
-        #Loop through the seqs in the alignment and write the keepers to the new file
-        for record in alignment:
-            if not record.seq.count("-")>(prune_cutoff*n_sites):
-                SeqIO.write(record, FastaDroppedFile, 'fasta')
-        #Close connection
-        FastaDroppedFile.close()
-        
-    #I need to have a return statement or map() wont run                
-    return(aln_check_path)
-
-#Run the function on all alns (store the output becuase map() wont run otherwise)
-store_mapped=list(map(check_alns_for_prune, alns_to_check))
+#Loop through alignments to check and run  the pruning function
+for a in alns_to_check:
+    #run the function (store output as variable os that it'll run)
+    store_pruned=check_alns_for_prune(a, prune_cutoff, out_dir)
 
 ### Check if alignments still contain at least 4 sequences
 #get a list of pruned fasta files
 pruned_alns=glob.glob(out_dir+'Aln_pruning/GB_ALN_*fa')
+
+#Make a ticker to keep track of how many files were pruned
+prune_replace_ticker=0
+prune_remove_ticker=0
 
 for p in pruned_alns:
     #Get the OG
@@ -572,8 +534,7 @@ for p in pruned_alns:
     
     #Read in alignment
     aln_p = AlignIO.read(p, "fasta")
-    
-    
+
     #Check how many seqs remain in the alignment after pruning.
     #If at least 4, use the pruned version for downstream analyses, else drop the alignment from downstream analyses
     if len(aln_p) >= 4:
@@ -582,11 +543,15 @@ for p in pruned_alns:
         
         #Rename the log file to reflect whether the pruned version was retained
         os.replace(out_dir+'Aln_pruning/Prune_IDs_'+OG_p+".txt", out_dir+'Aln_pruning/Prune_IDs_'+OG_p+"_ALN_RETAINED.txt")
+    
+        prune_replace_ticker += 1
     else:
         #Rename the log file to reflect whether the pruned version was retained
         os.replace(out_dir+'Aln_pruning/Prune_IDs_'+OG_p+".txt", out_dir+'Aln_pruning/Prune_IDs_'+OG_p+"_ALN_DROPPED.txt")
+        
+        prune_remove_ticker += 1
 
-print("Done pruning super gappy sequences from alignments")
+print("Done pruning super gappy sequences from alignments...\n"+str(prune_replace_ticker)+" files replaced\n"+str(prune_remove_ticker)+" files removed because they were pruned too much\n")
 
 ### Get the subtrees from orthofinder to use as a constraint tree from bootstrap scoring
 
@@ -797,7 +762,7 @@ def iterate_keeps(keeperIDs):
     for k_ID in [keeperIDs]:
         return k_ID
 
-##Begin paralellization of raxml bootstrap inference (note that this is already multithreaded with the mult_threads command so we may eventually want to hard code Mult_threads to 1?)
+##Begin paralellization of raxml BL optimization
 def par_BL_opt(k_ID, cores): 
 
     #Build the raxml command

@@ -229,7 +229,7 @@ else:
 print('ERC correlation analyses finished. Exiting....\n\n'\
       'To perform network analyses, run Network_analyses.py. See associated help menu for required arguments.'\
           '\nExample command:\n\n' \
-          './Network_analyses.py -j '+JOBname+' -m bxb -f pval -c 0.001 -y fg -s <focal_sp>\n\n' 
+          './Network_analyses.py -j '+JOBname+' -m r2t -c spearman -y fg -s '+FocalSP+'\n\n' 
       )
 
 
