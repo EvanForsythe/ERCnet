@@ -2,6 +2,8 @@
 
 import pandas as pd
 import numpy as np
+from Bio import AlignIO, SeqIO
+
 
 #Hardcoded for development
 #HOG_file_path='/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/Phylogenetic_Hierarchical_Orthogroups/N1.tsv'
@@ -91,6 +93,55 @@ def filter_gene_fams(HOG_file, counts_df_rearrange, sp_names, para_value, rep_va
     
     #Return the filtered dataframe
     return Keeper_HOGs_df
+
+if __name__ == "__main__":
+    filter_gene_fams(HOG_file, counts_df_rearrange, sp_names, para_value, rep_value)
+
+#Make a function that will write the names of ids that should be pruned
+def check_alns_for_prune(alns_to_check_temp, prune_cutoff, out_dir):
+    #Get the file name
+    aln_check_path=str(alns_to_check_temp)
+    
+    #Get the OG name
+    aln_check_OG=aln_check_path.replace(out_dir+"Gb_alns/GB_ALN_", "").replace(".fa", "")
+    
+    #Read in alignment
+    alignment = AlignIO.read(aln_check_path, "fasta")
+    
+    #Get the number of total sites in the alignment
+    n_sites=alignment.get_alignment_length()
+    
+    #Create blank list
+    prune_seqs=[]
+    
+    #Loop through the seqs in the alignment and count the gap sites (add to list if too many gaps)
+    for record in alignment:
+        if record.seq.count("-")>(prune_cutoff*n_sites):
+            prune_seqs.append(record.id)
+    
+    #If there are any on the list
+    if len(prune_seqs) > 0:
+        #Make results file
+        with open(out_dir+'Aln_pruning/Prune_IDs_'+aln_check_OG+".txt", "a") as f:
+            for item in prune_seqs:
+                f.write("%s\n" % item)
+        
+        #write a new version of the file
+        #Open commenction
+        FastaDroppedFile = open(out_dir+"Aln_pruning/GB_ALN_"+aln_check_OG+".fa", 'w')
+        
+        #Loop through the seqs in the alignment and write the keepers to the new file
+        for record in alignment:
+            if not record.seq.count("-")>(prune_cutoff*n_sites):
+                SeqIO.write(record, FastaDroppedFile, 'fasta')
+        #Close connection
+        FastaDroppedFile.close()
+        
+    #I need to have a return statement or map() wont run                
+    return(aln_check_path)
+
+if __name__ == "__main__":
+    check_alns_for_prune(alns_to_check_temp, prune_cutoff, out_dir)
     
     
 

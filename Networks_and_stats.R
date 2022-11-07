@@ -35,10 +35,11 @@ trim_cutoff <- as.numeric(paste(args[6]))
 foc_sp<-paste(args[7])
 
 #####Testing
-#jobname<-"testBIG"
-#BL_type<-"bxb"
-#filter_stat<-"pval"
-#filter_stat_cutoff<-"0.001"
+#jobname<-"quick_test"
+#BL_type<-"r2t"
+#RSquared<-0.5
+#PValue<-0.05
+#clust_method<-"fg"
 #trim_cutoff<-0
 #foc_sp<-"A_thaliana_prot"
 #working_dir<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/"
@@ -67,10 +68,11 @@ cat("\nNumber of significant correlations (according to filter parameters): ", n
 
 print("Printing networks...")
 
+#make a version of the data frame that contains only the HOGs
+ERC_hits_df_4network<-ERC_hits_df[,grep("HOG", names(ERC_hits_df))]
+
 #Build network
-network_graph<-graph.data.frame(ERC_hits_df, directed = FALSE)
-
-
+network_graph<-graph.data.frame(ERC_hits_df_4network, directed = FALSE)
 
 #CLUSTER COMMUNITIES
 
@@ -167,81 +169,72 @@ dev.off()
 
 ## Get the genes in each community
 #Create df
-#comms_df<-data.frame(HOG=comms_final$names, Community=comms_final$membership)
+comms_df<-data.frame(HOG=comms_final$names, Community=comms_final$membership)
 
 #Reorder
-#comms_df<-comms_df[order(comms_df$Community),]
+comms_df<-comms_df[order(comms_df$Community),]
 
-#Read in the HOG file
-#All_HOGs_df<-read.table(file = paste0(working_dir, out_dir, "Filtered_genefam_dataset.csv"), header = TRUE, sep = ",", stringsAsFactors = FALSE)
+#reformat to create table of HOGs and IDs
+A_genes<-ERC_hits_df[,1:2]
+B_genes<-ERC_hits_df[,3:4]
+names(A_genes)<-c("HOG", "ID")
+names(B_genes)<-c("HOG", "ID")
+ID_df<-rbind(A_genes, B_genes)
 
-#Remove the "N1." (or N2. N3. etc...) from the string
-#All_HOGs_df$HOG<-sapply(strsplit(as.character(All_HOGs_df$HOG), "\\."), `[`, 2)
 
 #Join the dataframes
-#comms_w_IDs<-merge(x = comms_df, y = All_HOGs_df, by="HOG", all.x=TRUE)
+comms_w_IDs<-merge(x = comms_df, y = ID_df, by="HOG", all.x=TRUE)
 
+#Take the first sequence ID when mulitple are present (this is akin to choosing a random representative)
+comms_w_IDs$ID<-sapply(strsplit(comms_w_IDs$ID, ","),`[`, 1)
 
-#Get a dataframe with the focal sp IDs
-
-#foc_sp_df<-cbind(comms_w_IDs[,c(1,2,3)],
-#data.frame(
-#Focal_sp_ID=sapply(strsplit(comms_w_IDs[,which(names(comms_w_IDs) == foc_sp)], ","), `[`, 1)
-#))
-
-#Remove prefix
-#foc_sp_df$Focal_sp_ID<-gsub(foc_sp_df$Focal_sp_ID, pattern = paste0(foc_sp, "_"), replacement = "")
 
 #Write txt files
 #All genes in the network (as a background for enrichment analyses)
-#write.table(paste(na.omit(unique(foc_sp_df$Focal_sp_ID))), 
-#            file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_","BACKGROUND_", BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,".txt"), 
-#            sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+write.table(paste(na.omit(unique(comms_w_IDs$ID))),
+           file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_","BACKGROUND_", BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,".txt"),
+           sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
 
 #Loop through all communities
-#for(n in min(foc_sp_df$Community):max(foc_sp_df$Community)){
+for(n in min(comms_w_IDs$Community):max(comms_w_IDs$Community)){
 
   #Write tsv files
-#  write.table(paste(na.omit(unique(subset(foc_sp_df$Focal_sp_ID, foc_sp_df$Community==n)))), 
-#              file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_",sprintf("%04d", n), "_", BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,".txt"), 
-#              sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+  write.table(paste(na.omit(unique(subset(comms_w_IDs$ID, comms_w_IDs$Community==n)))), 
+              file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_",sprintf("%04d", n), "_", BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,".txt"), 
+              sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
 
-#} 
+}
   
 ###Create centrality metrics spreadsheet###
 
 #Get all HOG names pre-filter
-#all_HOG_names_df <- data.frame(HOG_ID=unique(c(ERC_hits_df$GeneA_HOG,ERC_hits_df$GeneB_HOG)))
+all_HOG_names_df <- data.frame(HOG_ID=unique(c(ERC_hits_df$GeneA_HOG,ERC_hits_df$GeneB_HOG)))
 
 #make HOG column name match in foc_sp_df
-#names(foc_sp_df)[names(foc_sp_df) == 'HOG'] <- 'HOG_ID'
+names(comms_w_IDs)[names(comms_w_IDs) == 'HOG'] <- 'HOG_ID'
 
 #only keep relevant columns
-#subset_focal_sp_df <- subset(foc_sp_df, select = c("HOG_ID", "Focal_sp_ID"))
+subset_focal_sp_df <- subset(comms_w_IDs, select = c("HOG_ID", "ID"))
 
-#degree_cen<-degree(network_graph_final, normalized=TRUE)
-#Authority and hub scores omitted because they are the same as eigenvector in undirected graphs
-#network_stats_df <- data.frame(HOG_ID=names(degree_cen),
-#           Eigenvector_centrality=as.numeric(paste(evcent(network_graph_final)$vector)),
-#           Degree_centrality=as.numeric(paste(degree_cen)),
-#           Eccentricity_centrality=as.numeric(paste(eccentricity(network_graph_final))),
-#           Betweenness_centrality=as.numeric(paste(betweenness(network_graph_final))),
-#           Closeness_centrality=as.numeric(paste(closeness(network_graph_final))),
-#           Community_num=as.numeric(paste(membership(comms_final)))
-#)
+#Get degree info (Authority and hub scores omitted because they are the same as eigenvector in undirected graphs)
+degree_cen<-degree(network_graph_final, normalized=TRUE)
+
+#Make dataframe
+network_stats_df <- data.frame(HOG_ID=names(degree_cen),
+          Eigenvector_centrality=as.numeric(paste(evcent(network_graph_final)$vector)),
+          Degree_centrality=as.numeric(paste(degree_cen)),
+          Eccentricity_centrality=as.numeric(paste(eccentricity(network_graph_final))),
+          Betweenness_centrality=as.numeric(paste(betweenness(network_graph_final))),
+          Closeness_centrality=as.numeric(paste(closeness(network_graph_final))),
+          Community_num=as.numeric(paste(membership(comms_final)))
+)
 
 #merge HOGS not present in graph
-#all_HOGs_and_focalsp_df <- merge(all_HOG_names_df,subset_focal_sp_df,by="HOG_ID",all=TRUE, sort = FALSE)
+all_HOGs_and_focalsp_df <- merge(all_HOG_names_df,subset_focal_sp_df,by="HOG_ID",all=TRUE, sort = FALSE)
 
 #merge
-#final_network_stats_df <- merge(all_HOGs_and_focalsp_df,network_stats_df,by="HOG_ID",all=TRUE, sort = FALSE)
+final_network_stats_df <- merge(all_HOGs_and_focalsp_df,network_stats_df,by="HOG_ID",all=TRUE, sort = FALSE)
 
-#write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"))
+write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"))
 
-#Density plots of centrality measures
-#plot(density(na.omit(final_network_stats_df$Eigenvector_centrality)))
-
-
-
-#grid.arrange(p1, p2, p3, p4, ncol=1)
 
