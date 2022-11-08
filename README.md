@@ -201,6 +201,8 @@ Brief(ish) walkthrough of what Phylogenomics.py does:
    * Rearrangement and rooting are both accomlished by gene-tree/species-tree reconciliation in Treerecs
 * Optimize branch lengths with raxml using the the Gblocks-trimmed alignments and the new rearranged trees as constraint trees.
 
+A VERY busy diagram of what Phylogenomics.py is doing (this is intended for super-users who want all the details):
+![](Phylogenomics_workflow.png)
 
 ## 2. Gene-tree/Species-tree reconciliation
 This step uses DLCpar GT/ST reconciliation to 'map' the nodes on the gene trees to appropriate nodes on the species tree. This mapping information is necessary for the subsequence branch-length reconciliation step (which occurs later during the ERC analysis step of ERCnet). Note that GT/ST reconciliation was used in a different context (correcting/rooting trees) in the Phylogenomics step above. 
