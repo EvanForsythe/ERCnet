@@ -47,6 +47,7 @@ parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False
 parser.add_argument('-a','--Apriori', action='store_true', required=False, help='Add this flag to provide an apriori set of genes to analyze. The input file listing those genes must be formatted in certian way. See instuctions')
 parser.add_argument('-c', '--core_distribution', type=int, metavar='', required=False, default=1, help='Integer: Sets the core distribution group which affects number of cores split between front end and back end paralellization of raxml bootstrapping')
 parser.add_argument('-P', '--Prune_cutoff', type=float, metavar='', required=False, default=0.9, help='Float: prune seqs from alignments if the proportion of gap sites exceeds this number (default: 0.9)')
+parser.add_argument('-T', '--Taper', type=str, metavar='', required=False, default="no", help='Run TAPER trimming of alignments? If selected, the user must include full path to installation of julia (should end in "bin/" (default=no)')
 
 
 #Define the parser
@@ -67,20 +68,23 @@ Mult_threads=args.Mult_threads
 Apriori=args.Apriori
 core_dist=args.core_distribution
 prune_cutoff=args.Prune_cutoff
+taper=args.Taper
 '''
 #DEV: hardcode arguments
-JOBname = "Clptest"
+JOBname = "small2"
 OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/"
 MaxP_val=3
 MinR_val=17
 explore_filters=False
 Min_len=100
-Test_num=5
+Test_num=8
 Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
 SPmap=True
 Node=1
-Mult_threads=2
-Apriori=True
+Mult_threads=1
+Apriori=False
+prune_cutoff=0.9
+taper="/Applications/Bioinformatics/julia-1.8.2/bin/"
 #END DEV
 '''
 
@@ -104,8 +108,31 @@ else:
     if isinstance(Node, int):
         print("--Node (-n) argument used to select N"+str(Node)+".tsv HOG file\n")
     else:
-        print("ERROR: Invalid value for --Node (-n). This should be an interger. (e.g. for N2.tsv: '-n 2'')\nQuitting....\n")
+        print("ERROR: Invalid value for --Node (-n). This should be an interger. (e.g. for N2.tsv: '-n 2'')\nQUITTING....\n")
         sys.exit()
+
+#Check availability of taper and julia
+if not taper == "no":
+    print("-T selected. Checking for TAPER dependencies...")
+    if taper.endswith("/"):
+        julia_msg= str(subprocess.Popen([taper+'julia', '-v'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate())
+        if re.search('version', julia_msg):
+            print("Found julia installation!")
+            taper_msg=str(subprocess.Popen([taper+'julia', 'correction_multi.jl', '-h'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate())
+            if re.search('fasta', taper_msg):
+                print("Found TAPER file (correction_multi.jl)!")
+            else:
+                print("ERROR: Couldn't find TAPER file (correction_multi.jl). This should be located in the main ERCnet dir. QUITTING...\n")
+        else:
+            print("ERROR: Couldn't find installation of julia")
+            sys.exit()
+            
+    else:
+        print('ERROR: -T argument should be followed by full path to julia installation. Path should end with "/". QUITTING...')
+        sys.exit()
+else:
+    print("Skipping TAPER trimming...")
+
 
 #Get path to some needed Orthofinder files 
 sp_tr_path = OFpath+'Species_Tree/SpeciesTree_rooted_node_labels.txt'
@@ -408,11 +435,54 @@ elif len(glob.glob(out_dir+'Alns/ALN*')) < len(seq_file_names):
 elif len(glob.glob(out_dir+'Alns/ALN*')) < len(seq_file_names):
     print('\nWARNING: there are more alignments in the folder than expected. Proceeding (with caution)...\n')
 
+### Running TAPER Alignment trimming (optionally)
+
+if not taper == "no":
+    print("beginning TAPER trimming.")
+    
+    #Make a directory for TAPER trimmed alignments
+    if not os.path.isdir(out_dir+'TAPER_Alns'):
+        os.makedirs(out_dir+'TAPER_Alns')
+        print("created folder : TAPER_Alns/\n")
+    else: 
+        print('Trimmed alignments will be written to TAPER_Alns/\n')
+    
+    #Get list of all alns (that haven't been gblocked yet)
+    aln_file_names = [x for x in glob.glob(out_dir+'Alns/ALN*') if "-gb" not in x]
+    
+    def iterate_taper(aln_file_names):
+        for file in [aln_file_names]:
+            return file
+        
+    def par_taper_trim(file):
+        #Build the command used to call taper
+        taper_cmd= taper+'julia correction_multi.jl -m "-" '+file+' > '+file.replace("Alns/", "TAPER_Alns/")
+        #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
+        if re.search('correction_multi.jl', taper_cmd): #Check if cmd contains expected string and run if so
+            subprocess.call(taper_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+    Parallel(n_jobs = Mult_threads, verbose=100)(delayed(par_taper_trim)(file) for file in iterate_taper(aln_file_names))
+    
+    #Check alignment status
+    if len(glob.glob(out_dir+'TAPER_Alns/ALN*')) == len(aln_file_names):
+        print('\n\nDone with TAPER trimming\n')
+    elif len(glob.glob(out_dir+'TAPER_Alns/ALN*')) < len(aln_file_names):
+        print('\nWARNING: some TAPER timming did not finish. Proceeding (with caution)...\n')
+    elif len(glob.glob(out_dir+'TAPER_Alns/ALN*')) < len(aln_file_names):
+        print('\nWARNING: there are more TAPER trimmed alignments in the folder than expected. Proceeding (with caution)...\n')
+
+
 ###GBLOCKS cleaning alignments
 print('Beginning GBLOCKS\n')
 
-#Get list of all alns (that haven't been gblocked yet)
-aln_file_names = [x for x in glob.glob(out_dir+'Alns/ALN*') if "-gb" not in x]
+if not taper == "no":
+    #Get list of all alns (that haven't been gblocked yet)
+    aln_file_names2 = [x for x in glob.glob(out_dir+'TAPER_Alns/ALN*') if "-gb" not in x]
+
+else:    
+    #Get list of all alns (that haven't been gblocked yet)
+    aln_file_names2 = [x for x in glob.glob(out_dir+'Alns/ALN*') if "-gb" not in x]
 
 
 #Gblocks
@@ -439,8 +509,8 @@ else:
 #Loop through the files that need to Gblocks trimmed
 ##Begin paralellization of gblocks trimming
 
-def iterate_alns(aln_file_names):
-    for aln in [aln_file_names]:
+def iterate_alns(aln_file_names2):
+    for aln in [aln_file_names2]:
         return aln
 
 def par_gblocks(aln):
@@ -480,11 +550,17 @@ def par_gblocks(aln):
            
             #Move the gblocks files to the appropriate folder
             if trm_aln_ln >= Min_len:
-                os.replace(str(aln+'-gb'), str(str(aln).replace("ALN_", "GB_ALN_")).replace('Alns/', 'Gb_alns/'))
-                #os.replace(str(aln+'-gb.htm'), str(aln+'-gb.htm').replace('Alns/', 'Gb_alns/HTML_files/'))
+                if not taper == "no":
+                    os.replace(str(aln+'-gb'), str(str(aln).replace("ALN_", "GB_ALN_")).replace('TAPER_Alns/', 'Gb_alns/'))
+                else:
+                    os.replace(str(aln+'-gb'), str(str(aln).replace("ALN_", "GB_ALN_")).replace('Alns/', 'Gb_alns/'))
             else:
-                print('%s not long enough. Moving to gblocks files to Gb_alns/Too_short/' %aln.replace('Alns/', ''))
-                os.replace(str(aln+'-gb'), str(str(aln).replace("ALN_", "GB_ALN_")).replace('Alns/', 'Gb_alns/Too_short/'))
+                if not taper == "no":
+                    print('%s not long enough. Moving to gblocks files to Gb_alns/Too_short/' %aln.replace('TAPER_Alns/', ''))
+                    os.replace(str(aln+'-gb'), str(str(aln).replace("ALN_", "GB_ALN_")).replace('TAPER_Alns/', 'Gb_alns/Too_short/'))
+                else:
+                    print('%s not long enough. Moving to gblocks files to Gb_alns/Too_short/' %aln.replace('Alns/', ''))
+                    os.replace(str(aln+'-gb'), str(str(aln).replace("ALN_", "GB_ALN_")).replace('Alns/', 'Gb_alns/Too_short/'))
             
         else:
             print('ERROR: something wrong with Gblocks stdout. Quitting...\n')
@@ -497,7 +573,7 @@ def par_gblocks(aln):
 
 
 #run the parallel command
-Parallel(n_jobs= Mult_threads, verbose=100)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names))
+Parallel(n_jobs= Mult_threads, verbose=100)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names2))
 
 ##End paralellization of gblocks trimming
 
