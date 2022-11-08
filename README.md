@@ -162,8 +162,7 @@ All options for Phylogenomics.py:
 | -T | --Taper | Run TAPER trimming of alignments? If selected, the user must include full path to installation of julia (should end in "bin/)" | no | "no" |
 
 A note about (optionally) running the TAPER trimming step:
-[TAPER](https://github.com/chaoszhang/TAPER) is written in julia. We're including the TAPER script (correction_multi.jl) in ERCnet but you'll need to install julia and indicate the full path to the julia executable in order to run TAPER. Follow instructions on the TAPER github page for how to do this.
-
+[TAPER](https://github.com/chaoszhang/TAPER) is written in julia. We're including the TAPER script (correction_multi.jl) in ERCnet but you'll need to install julia and indicate the full path to the julia executable in order to run TAPER. Follow instructions on the TAPER github page for how to 'install' julia (simply unzip precompiled folder).
 
 core_distribution groups for Phylogenomics.py. 
 
