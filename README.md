@@ -38,7 +38,7 @@ Different ERCnet steps require different dependencies. Most notably, the *Gene-t
 
 | ERCnet step  | Python version | Dependencies|
 | ------------- |:-------------:|:-------------:|
-| *Phylogenomic analyses* | 3 | pandas, biopython, mafft, gblocks, raxml, stringr, ape, phytools |
+| *Phylogenomic analyses* | 3 | pandas, biopython, mafft, gblocks, raxml, stringr, ape, phytools, joblib, scipy, treerecs |
 | *Gene-tree/Species-tree reconciliation* | 2 | dlcpar |
 | *ERC analyses* | 3 | ape, stringr, phytools |
 | *Network analyses* | 3 | igraph |
@@ -201,7 +201,7 @@ Brief(ish) walkthrough of what Phylogenomics.py does:
    * Rearrangement and rooting are both accomlished by gene-tree/species-tree reconciliation in Treerecs
 * Optimize branch lengths with raxml using the the Gblocks-trimmed alignments and the new rearranged trees as constraint trees.
 
-A VERY busy diagram of what Phylogenomics.py is doing (this is intended for super-users who want all the details):
+A VERY busy diagram of what Phylogenomics.py is doing (this is intended for super-users who want all the details). Figure generated with LucidCharts:
 ![](Phylogenomics_workflow.png)
 
 ## 2. Gene-tree/Species-tree reconciliation
