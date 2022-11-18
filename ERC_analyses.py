@@ -165,7 +165,7 @@ def par_corr(i, j):
     if ((not results_str.split("\t")[0] == "nan")
         #write (append) to results file
         with open(out_dir+'ERC_results/'+fileName, "a") as f:
-            f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ results_str
+            f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ results_str)
 
 #Run the correlation analysis (in paralell)
 Parallel(n_jobs = int(Mult_threads))(delayed(par_corr)(i,j) for i,j in iterate_corr(pairwise_combos))
@@ -191,7 +191,7 @@ print("Done with all-by-all comparisons...\n")
 #        subprocess.call(ERC_rec_cmd, shell=True)
 
 #Report status
-if len(glob.glob(out_dir+'ERC_results/ERC_results_' + branchMethod + '_' + corrMethod +'/*tsv')) > 0:
+if len(glob.glob(out_dir+'ERC_results/'+fileName)) > 0:
     print('Finished ERC.\n\nResults files written to ERC_results/\n\n')
 else:
     print('Something went wrong with ERC analyses...\n')
