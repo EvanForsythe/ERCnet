@@ -56,6 +56,7 @@ out_dir= 'OUT_'+JOBname+'/'
 fileName = str('ERC_results_' + branchMethod + '_' + corrMethod + '.tsv')
 
 print(str(branchMethod) + ' chosen for branch method.')
+print(str(corrMethod) + ' chosen for statistical inference.')
 
 ### Run the BL_reconciliation
 print("beginning BL reconciliation in R...\n\n Calling R...\n\n")
@@ -87,7 +88,7 @@ if len(glob.glob(out_dir+'ERC_results/'+fileName)) > 0:
 
 #Make results file
 with open(out_dir+'ERC_results/'+str(fileName), "a") as f:
-    f.write("GeneA_HOG" + "\t" + "GeneA_ID" + "\t" + "GeneB_HOG" + "\t" + "GeneB_ID" + "\t" + "Overlapping_branches" + "\t" + "Slope_" + "\t" + "R2" + "\t" + "Pval") 
+    f.write("GeneA_HOG" + "\t" + "GeneA_ID" + "\t" + "GeneB_HOG" + "\t" + "GeneB_ID" + "\t" + "Overlapping_branches" + "\t" + "Slope" + "\t" + "R2" + "\t" + "Pval") 
 
 #Read in BL results
 if (branchMethod == 'BXB'):
@@ -149,7 +150,8 @@ def par_corr(i, j):
             corr_stats=stats.linregress(x=list(test_df_clean['GeneA']), y=list(test_df_clean['GeneB']))
         else:
             corr_stats=stats.spearmanr(test_df_clean['GeneA'], test_df_clean['GeneB'])
-        
+
+        print(corr_stats)
         #Create string
         results_str= str(test_df_clean.shape[0]) +'\t'+ str(corr_stats[0]) +'\t'+ str(corr_stats[2]**2) +'\t'+ str(corr_stats[3])
         #(note r is squared to get r2)
