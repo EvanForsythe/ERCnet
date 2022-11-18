@@ -45,6 +45,7 @@ Mult_threads=args.Mult_threads
 FocalSP=args.FocalSP
 Meta_stats=args.Meta_stats
 branchMethod=args.branchMethod
+corrMethod=args.corrMethod
 #JOBname = "Clptest"
 #Mult_threads = 1
 #FocalSP="A_thaliana_prot"
