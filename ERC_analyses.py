@@ -104,7 +104,7 @@ gene_fams['HOG']=gene_fams['HOG'].str.replace(str(gene_fams['HOG'][0].split(".",
 
 
 #Make list of pairwise combinations
-pairwise_combos=list(itertools.combinations(r2t_BLs['HOG_ID'], 2))
+pairwise_combos=list(itertools.combinations(BLs['HOG_ID'], 2))
 
 
 #Make functions for parralellizing correlation analyses
