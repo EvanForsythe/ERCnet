@@ -33,8 +33,8 @@ parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help
 parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=1, help='Integer: number of threads avilable for parallel computing (default = 1)' )
 parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help='The name of the focal species to represent each gene family (should exactly match the tip label of the species tree)') 
 parser.add_argument('-M', '--Meta_stats',action='store_true', required=False, help='The type of report of metadata from ERC correlations you want (default = False)')
-parser.add_argument('-b', '--branchMethod', type=str, metavar='', required=False, default="R2T", help='This determins which branch reconcilliation method to use. Enter either "BXB" for branch by branch or "R2T" root to tip.'
-parser.add_argument('-c', '--corrMethod', type=str, metavar='', required=False, default='spearman', help='This determines which statistical correlation method that will be used. Enter either "spearman" or "pearson".'
+parser.add_argument('-b', '--branchMethod', type=str, metavar='', required=False, default="R2T", help='This determins which branch reconcilliation method to use. Enter either "BXB" for branch by branch or "R2T" root to tip.')
+parser.add_argument('-c', '--corrMethod', type=str, metavar='', required=False, default='spearman', help='This determines which statistical correlation method that will be used. Enter either "spearman" or "pearson".')
 
 #Define the parser
 args = parser.parse_args()
