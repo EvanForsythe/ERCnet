@@ -151,7 +151,7 @@ def par_corr(i, j):
             results_str= str(test_df_clean.shape[0]) +'\t'+ str(corr_stats[0]) +'\t'+ str(corr_stats[2]**2) +'\t'+ str(corr_stats[3])
         else:
             corr_stats=stats.spearmanr(test_df_clean['GeneA'], test_df_clean['GeneB'])
-            results_str= str(test_def_clean.shape[0]) + '\t' + "nan" + '\t' + str(corr_stats[0]**2) + '\t' + str(corr_stats[1])
+            results_str= str(test_df_clean.shape[0]) + '\t' + "nan" + '\t' + str(corr_stats[0]**2) + '\t' + str(corr_stats[1])
 
         #Create string
         #(note r is squared to get r2)
