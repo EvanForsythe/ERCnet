@@ -52,7 +52,7 @@ branchMethod=args.branchMethod
 
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
-fileName = 'ERC_results_' + branchMethod + '_' + corrMethod + '.tsv'
+fileName = str('ERC_results_' + branchMethod + '_' + corrMethod + '.tsv')
 
 #Check whether a valid Meta_stats was entered
 if not ((Meta_stats == "none") | (Meta_stats == "full") | (Meta_stats == "hits")):
@@ -90,7 +90,7 @@ if len(glob.glob(out_dir+'ERC_results/'+fileName)) > 0:
     os.remove(out_dir+'ERC_results/'+fileName)
 
 #Make results file
-with open(out_dir+'ERC_results/'+fileName, "a") as f:
+with open(out_dir+'ERC_results/'+str(fileName), "a") as f:
     f.write("GeneA_HOG" + "\t" + "GeneA_ID" + "\t" + "GeneB_HOG" + "\t" + "GeneB_ID" + "\t" + "Overlapping_branches" + "\t" + "Slope_" + "\t" + "R2" + "\t" + "Pval") 
 
 #Read in BL results
@@ -164,7 +164,7 @@ def par_corr(i, j):
     #Only write the results if there's some indication of correlation (this keeps the size of the file from inflating)
     if ((not results_str.split("\t")[0] == "nan")
         #write (append) to results file
-        with open(out_dir+'ERC_results/'+fileName, "a") as f:
+        with open(out_dir+'ERC_results/'+str(fileName), "a") as f:
             f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ results_str)
 
 #Run the correlation analysis (in paralell)
