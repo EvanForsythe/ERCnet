@@ -163,7 +163,7 @@ def par_corr(i, j):
         #bxb_results_str='NA\tNA\tNA\tNA\tNA\tNA'
     
     #Only write the results if there's some indication of correlation (this keeps the size of the file from inflating)
-    if ((not results_str.split("\t")[0] == "nan")
+    if (not results_str.split("\t")[0] == "nan"):
         #write (append) to results file
         with open(out_dir+'ERC_results/'+str(fileName), "a") as f:
             f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ results_str)
