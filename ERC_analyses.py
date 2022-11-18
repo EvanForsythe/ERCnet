@@ -55,11 +55,6 @@ corrMethod=args.corrMethod
 out_dir= 'OUT_'+JOBname+'/'
 fileName = str('ERC_results_' + branchMethod + '_' + corrMethod + '.tsv')
 
-#Check whether a valid Meta_stats was entered
-if not ((Meta_stats == "none") | (Meta_stats == "full") | (Meta_stats == "hits")):
-    print("Error: invalid entry for --Meta_stats/-M. Quitting...")
-    sys.exit()
-
 print(str(branchMethod) + ' chosen for branch method.')
 
 ### Run the BL_reconciliation
