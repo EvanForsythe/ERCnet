@@ -14,22 +14,9 @@ def FilterCorrelationType(data,filterType):
     for i in range(len(corrFilter)):
         data.drop(corrFilter[i], axis='columns', inplace=True)
 
-def FilterSignificance(data, R, P, filterType, corrType):
+def FilterSignificance(data, R, P):
 
-    if (filterType == 'BXB'):
-        branchMethod = 'R2T'
-    else:
-        branchMethod = 'BXB'
-
-    if (corrType == 'Pearson'):
-        corrMethod = 'Spearman'
-    else:
-        corrMethod = 'Pearson'
-
-    rFilter = corrMethod + '_R2_' + branchMethod
-    pFilter = corrMethod + '_P_' + branchMethod
-
-    data = data[:][data[rFilter] > R]
-    data = data[:][data[pFilter] < P]
+    data = data[:][data['R2'] > R]
+    data = data[:][data['Pval'] < P]
 
     return data

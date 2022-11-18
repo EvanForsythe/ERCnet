@@ -76,6 +76,7 @@ FocalSP="Atha"
 '''
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
+fileName = 'ERC_results_' + branchFilter + '_' + Corrmethod + '.tsv'
 
 #Make a directory for Network outputs
 if not os.path.isdir(out_dir+'Network_analyses/'):
@@ -91,17 +92,26 @@ if not os.path.isdir(out_dir+'Network_analyses/Communities/'):
 else: 
     print('ERC results will be stored to Network_analyses/Communities/\n\n')
 
+#Check to verify the correct methods have been chosen have a relevant filetype
+print('Verifying chosen branch and statistical methods have a relevant filetype...')
+if s.path.isfile(out_dir+fileName):
+    print('File found. Proceeding on analysis using: ' + str(fileName))
+else:
+    print('No file could be found at the location. Please check -m and -c flags match from ERC_analysis.py step.')
+    print('Analysis will now exit...')
+    sys.exit()
+
 #Run the R script
 print("Beginning network analyses using the R package, igraph...\n\n Calling R...\n\n")
 
 #load in the ERCresults file for filtering, prior to sending over to R Network analysis script.
-tsvData = out_dir + 'ERC_results/ERC_results.tsv'
+tsvData = out_dir + 'ERC_results/' + fileName
 csvData = pd.read_table(tsvData, sep='\t')
 
 #Calls functions from ERC_functions.py to filter the ERC_results file down based on user provided criteria
-FilterBranchType(csvData, branchFilter)
-FilterCorrelationType(csvData, corrFilter)
-csvData = FilterSignificance(csvData, RSquared, PValue, branchFilter, corrFilter)
+#FilterBranchType(csvData, branchFilter)
+#FilterCorrelationType(csvData, corrFilter)
+csvData = FilterSignificance(csvData, RSquared, PValue)
 
 #Output a filtered version of the ERC_results file
 csvData.to_csv(out_dir + "ERC_results/Filtered_ERC_Results.tsv", sep='\t', index=False, header=True) 
