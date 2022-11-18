@@ -53,8 +53,6 @@ branchMethod=args.branchMethod
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
 fileName = 'ERC_results_' + branchMethod + '_' + corrMethod + '.tsv'
-bm = branchMethod
-cm = corrMethod
 
 #Check whether a valid Meta_stats was entered
 if not ((Meta_stats == "none") | (Meta_stats == "full") | (Meta_stats == "hits")):
@@ -97,9 +95,9 @@ with open(out_dir+'ERC_results/'+fileName, "a") as f:
 
 #Read in BL results
 if (branchMethod == 'BXB'):
-    bxb_BLs=pd.read_csv(out_dir+'BL_results/bxb_BLs_normalized.tsv', sep='\t')
+    BLs=pd.read_csv(out_dir+'BL_results/bxb_BLs_normalized.tsv', sep='\t')
 else:
-    r2t_BLs=pd.read_csv(out_dir+'BL_results/r2t_BLs_normalized.tsv', sep='\t')
+    BLs=pd.read_csv(out_dir+'BL_results/r2t_BLs_normalized.tsv', sep='\t')
 
 #Read in gene IDs
 gene_fams=pd.read_csv(out_dir+'Filtered_genefam_dataset.csv')
@@ -134,65 +132,34 @@ def par_corr(i, j):
     geneB_ID=gene_fams._get_value(list(gene_fams['HOG']).index(geneB), FocalSP)
     
 
-    if (branchMethod == 'BXB'):
-        #Branch-by-branch branch lengths
-        #subset dataframe to the rows of the two test HOGs
-        bxb_test_df_temp = bxb_BLs[(bxb_BLs["HOG_ID"] == geneA) | (bxb_BLs["HOG_ID"] == geneB)]
+    #Branch-by-branch branch lengths
+    #subset dataframe to the rows of the two test HOGs
+    test_df_temp = BLs[(BLs["HOG_ID"] == geneA) | (BLs["HOG_ID"] == geneB)]
     
-        #transpose the dataframev
-        bxb_test_df_t=bxb_test_df_temp.transpose()
+    #transpose the dataframev
+    test_df_t=test_df_temp.transpose()
     
-        #Remove the HOG_ID row (first row) and remove rows with NaN
-        bxb_test_df_clean=bxb_test_df_t.iloc[1: , :].dropna()
+    #Remove the HOG_ID row (first row) and remove rows with NaN
+    test_df_clean=test_df_t.iloc[1: , :].dropna()
     
-        #add names to columns
-        bxb_test_df_clean.columns=['GeneA', 'GeneB']
+    #add names to columns
+    test_df_clean.columns=['GeneA', 'GeneB']
     
-        #Perform correlation tests if there are at least 3 datapoints
-        if bxb_test_df_clean.shape[0]>2:
+    #Perform correlation tests if there are at least 3 datapoints
+    if test_df_clean.shape[0]>2:
             
-            if (corrMethod == 'pearson'):
-                #Stats order = (0:slope, 1:intercept, 2:pearson_r, 3:pearson_p, 4:stderr, 5:spearman_r, 6:spearman pvalue)
-                bxb_corr_stats=stats.linregress(x=list(bxb_test_df_clean['GeneA']), y=list(bxb_test_df_clean['GeneB']))
-            else:
-                bxb_corr_stats=stats.spearmanr(bxb_test_df_clean['GeneA'], bxb_test_df_clean['GeneB'])
-        
-            #Create string
-            bxb_results_str= str(bxb_test_df_clean.shape[0]) +'\t'+ str(bxb_corr_stats[0]) +'\t'+ str(bxb_corr_stats[2]**2) +'\t'+ str(bxb_corr_stats[3]) +'\t'+ str(bxb_corr_stats[5]**2) +'\t'+ str(bxb_corr_stats[6])
-            #(note r is squared to get r2)
+        if (corrMethod == 'pearson'):
+            #Stats order = (0:slope, 1:intercept, 2:pearson_r, 3:pearson_p, 4:stderr, 5:spearman_r, 6:spearman pvalue)
+            corr_stats=stats.linregress(x=list(test_df_clean['GeneA']), y=list(test_df_clean['GeneB']))
         else:
-            bxb_results_str='nan\tnan\tnan\tnan\tnan\tnan'
-            #bxb_results_str='NA\tNA\tNA\tNA\tNA\tNA'
-    
+            corr_stats=stats.spearmanr(test_df_clean['GeneA'], test_df_clean['GeneB'])
+        
+        #Create string
+        results_str= str(test_df_clean.shape[0]) +'\t'+ str(corr_stats[0]) +'\t'+ str(corr_stats[2]**2) +'\t'+ str(corr_stats[3]) +'\t'+ str(corr_stats[5]**2) +'\t'+ str(corr_stats[6])
+        #(note r is squared to get r2)
     else:
-        #Root to tip branch lengths
-        #subset dataframe to the rows of the two test HOGs
-        r2t_test_df_temp = r2t_BLs[(r2t_BLs["HOG_ID"] == geneA) | (r2t_BLs["HOG_ID"] == geneB)]
-    
-        #transpose the dataframe
-        r2t_test_df_t=r2t_test_df_temp.transpose()
-    
-        #Remove the HOG_ID row (first row) and remove rows with NaN
-        r2t_test_df_clean=r2t_test_df_t.iloc[1: , :].dropna()
-    
-    
-        #add names to columns
-        r2t_test_df_clean.columns=['GeneA', 'GeneB']
-    
-        #Perform correlation tests if there are at least 3 datapoints
-        if r2t_test_df_clean.shape[0]>2:
-    
-            if (corrMethod == 'pearson'):
-                #Stats order = (0:slope, 1:intercept, 2:pearson_r, 3:pearson_p, 4:stderr, 5:spearman_r, 6:spearman pvalue)
-                r2t_corr_stats=stats.linregress(x=list(r2t_test_df_clean['GeneA']), y=list(r2t_test_df_clean['GeneB']))
-            else:
-                r2t_corr_stats=stats.spearmanr(r2t_test_df_clean['GeneA'], r2t_test_df_clean['GeneB'])
-        
-            #Create string
-            r2t_results_str= str(r2t_test_df_clean.shape[0]) +'\t'+ str(r2t_corr_stats[0]) +'\t'+ str(r2t_corr_stats[2]**2) +'\t'+ str(r2t_corr_stats[3]) +'\t'+ str(r2t_corr_stats[5]**2) +'\t'+ str(r2t_corr_stats[6])
-        else:
-            r2t_results_str='nan\tnan\tnan\tnan\tnan\tnan'
-            #r2t_results_str='NA\tNA\tNA\tNA\tNA\tNA'
+        results_str='nan\tnan\tnan\tnan\tnan\tnan'
+        #bxb_results_str='NA\tNA\tNA\tNA\tNA\tNA'
     
     #Only write the results if there's some indication of correlation (this keeps the size of the file from inflating)
     if ((not bxb_results_str.split("\t")[0] == "nan") and (not r2t_results_str.split("\t")[0] == "nan")):
