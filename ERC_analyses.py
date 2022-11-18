@@ -162,10 +162,10 @@ def par_corr(i, j):
         #bxb_results_str='NA\tNA\tNA\tNA\tNA\tNA'
     
     #Only write the results if there's some indication of correlation (this keeps the size of the file from inflating)
-    if ((not bxb_results_str.split("\t")[0] == "nan") and (not r2t_results_str.split("\t")[0] == "nan")):
+    if ((not results_str.split("\t")[0] == "nan")
         #write (append) to results file
         with open(out_dir+'ERC_results/'+fileName, "a") as f:
-            f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ bxb_results_str +'\t'+ r2t_results_str)
+            f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ results_str
 
 #Run the correlation analysis (in paralell)
 Parallel(n_jobs = int(Mult_threads))(delayed(par_corr)(i,j) for i,j in iterate_corr(pairwise_combos))
