@@ -27,13 +27,13 @@ os.chdir(working_dir)
 parser = argparse.ArgumentParser(description='Network step')
 
 parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help='Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok)') 
-parser.add_argument('-m', '--BLmethod', type=str, metavar='', required=False, help='Branch length method ERC results to be used in the network. "bxb" for Branch-by-branch. "r2t" for root-to-tip. Default is r2t', default = 'r2t') 
+parser.add_argument('-m', '--BLmethod', type=str, metavar='', required=False, help='Branch length method ERC results to be used in the network. "BXB" for Branch-by-branch. "R2T" for root-to-tip. Default is R2T', default = 'r2t') 
 parser.add_argument('-p', '--PValue', type=float, metavar='', required=False, help='Cuttoff for P value by which to filter ERC hits in network. Float between 0 and 1. Default value is 0.05', default=0.05) 
 parser.add_argument('-r', '--RSquared', type=float, metavar='', required=False, help='Cuttoff R-squared value by which to filter ERC hits in network. Float between 0 and 1. Default value is 0.50', default=0.50) 
 parser.add_argument('-y', '--Clustmeth', type=str, metavar='', required=True, help='Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap.') 
 parser.add_argument('-t', '--Trim_Cutoff', type=int, metavar='', required=False, help='The user-selected cutoff will be the minimum number of genes necessary for a community to be displayed on the network plot.This is mainly for network visualization and is not recommended for data collection. Must be an integer. 0 (no trimming) is default.', default=0)
 parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help='The name of the focal species to represent each gene family (should exactly match the tip label of the species tree)') 
-parser.add_argument('-c', '--CorrStat', type=str, metavar='', required=False, help='The type of statistical correlation method to use. Enter "spearman" or "pearson". Both are generated, but the final ERC_results file will filter for the selected method.', default='spearman')
+parser.add_argument('-c', '--CorrStat', type=str, metavar='', required=False, help='The type of statistical correlation method used from ERC_analyses.py. Enter "spearman" or "pearson".', default='spearman')
 
 #Define the parser
 args = parser.parse_args()
@@ -49,22 +49,6 @@ FocalSP=args.FocalSP
 Corrmethod = args.CorrStat
 
 
-#Note: Swapping the methods selected is intended as the filtering functions DROP the methods stored in variables branchFilter and corrFilter.
-if (BLmethod == 'r2t'):
-    branchFilter = 'BXB'
-    print("Branch length method root-to-tip chosen")
-else:
-    branchFilter = 'R2T'
-    print("Branch length method branch-by-branch chosen")
-
-if (Corrmethod == 'pearson'):
-    corrFilter = 'Spearman'
-    print("Statistical correlation method Pearson chosen")
-else:
-    corrFilter = 'Pearson'
-    print("Statistical correlation method Spearman chosen")
-
-
 '''
 JOBname ="TEST"
 BLmethod="bxb"
@@ -76,7 +60,7 @@ FocalSP="Atha"
 '''
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
-fileName = 'ERC_results_' + branchFilter + '_' + Corrmethod + '.tsv'
+fileName = 'ERC_results_' + BLmethod + '_' + Corrmethod + '.tsv'
 
 #Make a directory for Network outputs
 if not os.path.isdir(out_dir+'Network_analyses/'):
@@ -94,7 +78,7 @@ else:
 
 #Check to verify the correct methods have been chosen have a relevant filetype
 print('Verifying chosen branch and statistical methods have a relevant filetype...')
-if s.path.isfile(out_dir+fileName):
+if os.path.isfile(out_dir+'ERC_results/'+fileName):
     print('File found. Proceeding on analysis using: ' + str(fileName))
 else:
     print('No file could be found at the location. Please check -m and -c flags match from ERC_analysis.py step.')
@@ -114,11 +98,16 @@ csvData = pd.read_table(tsvData, sep='\t')
 csvData = FilterSignificance(csvData, RSquared, PValue)
 
 #Output a filtered version of the ERC_results file
-csvData.to_csv(out_dir + "ERC_results/Filtered_ERC_Results.tsv", sep='\t', index=False, header=True) 
+csvData.to_csv(out_dir + "ERC_results/Filtered_" + fileName, sep='\t', index=False, header=True) 
+
+if sum(1 for line in open(out_dir+"ERC_results/Filtered_" + fileName)) < 2:
+    print("It appears that not enough ERC results were retained for further analysis. Consider changing filtering criteria or analysis methods.")
+    print("Quitting...")
+    sys.exit()
 
 #Run the Network analyses.
 #make command.
-Net_cmd= 'Rscript Networks_and_stats.R '+JOBname+" "+BLmethod+" "+str(RSquared)+" "+str(PValue)+" "+Clustmeth+" "+str(Trim_Cutoff)+" "+FocalSP
+Net_cmd= 'Rscript Networks_and_stats.R '+JOBname+" "+BLmethod+" "+str(RSquared)+" "+str(PValue)+" "+Clustmeth+" "+str(Trim_Cutoff)+" "+FocalSP+" "+'Filtered_' + fileName
     
 #Run the command (if it contains strings expected in the command, this is a precaution of using shell=True)
 if re.search('Networks_and_stats.R', Net_cmd) and re.search('Rscript', Net_cmd):

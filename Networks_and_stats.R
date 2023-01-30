@@ -34,6 +34,9 @@ trim_cutoff <- as.numeric(paste(args[6]))
 #Get the ID of the focal species
 foc_sp<-paste(args[7])
 
+#Get the filename from Network_analyses.py
+fileName<-paste(args[8])
+
 #####Testing
 #jobname<-"quick_test"
 #BL_type<-"r2t"
@@ -57,7 +60,7 @@ out_dir<-paste0("OUT_", jobname, "/")
 
 #Read in ERC correlation results
 #Read the table
-ERC_hits_df<-read.table(file = paste0(working_dir, out_dir, "ERC_results/Filtered_ERC_Results.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+ERC_hits_df<-read.table(file = paste0(working_dir, out_dir, "ERC_results/", fileName), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 #Print message
 #Use cat because paste+print doesn't recognize \n
@@ -94,7 +97,6 @@ if(clust_method == "fg"){
   algo_name <- "fast and greedy"
 }
 
-
 #TRIM OR NO TRIM (if statement)
 
 validCutoff = FALSE
@@ -127,7 +129,8 @@ if (trim_cutoff > 0){
 		print("Trim Cutoff would filter all communities. Retaining all communities instead.")
 	}
   
-} 
+}
+ 
 if (!validCutoff | trim_cutoff <= 0){
     network_graph_final <- network_graph
     comms_final <- comms
@@ -140,9 +143,8 @@ if (!validCutoff | trim_cutoff <= 0){
     trim_cutoff = 0
 }
 
-
 #save pdf
-pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=8, height = 8)
+pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",fileName, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=8, height = 8)
 
 #Plot the graph with all communities
 plot(comms_final, network_graph_final,
@@ -235,6 +237,6 @@ all_HOGs_and_focalsp_df <- merge(all_HOG_names_df,subset_focal_sp_df,by="HOG_ID"
 #merge
 final_network_stats_df <- merge(all_HOGs_and_focalsp_df,network_stats_df,by="HOG_ID",all=TRUE, sort = FALSE)
 
-write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"))
+write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"))
 
 

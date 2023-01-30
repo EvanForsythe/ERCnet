@@ -58,6 +58,30 @@ fileName = str('ERC_results_' + branchMethod + '_' + corrMethod + '.tsv')
 print(str(branchMethod) + ' chosen for branch method.')
 print(str(corrMethod) + ' chosen for statistical inference.')
 
+
+#Make a directory for ERC results
+if not os.path.isdir(out_dir+'ERC_results/'):
+    os.makedirs(out_dir+'ERC_results/')
+    print("created folder: ERC_results/\n\n")
+else:
+    print('ERC results will be stored to ERC_results/\n\n')
+
+#remove previous file (if it exists)
+if len(glob.glob(out_dir+'ERC_results/'+fileName)) > 0:
+    while True:
+        user_input = input("This filename already exists, would you like to overwrite? (y/n) \n")
+        if user_input == 'y':
+            print("Removing " + fileName + "...")    
+            os.remove(out_dir+'ERC_results/'+fileName)
+            break
+        if user_input == 'n':
+            print("Unique filename required. Exiting...")
+            sys.exit()
+            break
+        else:
+            print("Command not recognized \n")
+
+
 ### Run the BL_reconciliation
 print("beginning BL reconciliation in R...\n\n Calling R...\n\n")
 
@@ -74,17 +98,6 @@ if len(glob.glob(out_dir+'BL_results/*tsv')) > 0:
     print('Finished branch length reconciliation.\n\nResults files written to BL_results/\n\n')
 
 ### Run all-by-all correlations
-
-#Make a directory for ERC results
-if not os.path.isdir(out_dir+'ERC_results/'):
-    os.makedirs(out_dir+'ERC_results/')
-    print("created folder: ERC_results/\n\n")
-else: 
-    print('ERC results will be stored to ERC_results/\n\n')
-    
-#remove previous file (if it exists)
-if len(glob.glob(out_dir+'ERC_results/'+fileName)) > 0:
-    os.remove(out_dir+'ERC_results/'+fileName)
 
 #Make results file
 with open(out_dir+'ERC_results/'+str(fileName), "a") as f:
@@ -198,7 +211,7 @@ else:
 print('ERC correlation analyses finished. Exiting....\n\n'\
       'To perform network analyses, run Network_analyses.py. See associated help menu for required arguments.'\
           '\nExample command:\n\n' \
-          './Network_analyses.py -j '+JOBname+' -m r2t -c spearman -y fg -s '+FocalSP+'\n\n' 
+          './Network_analyses.py -j '+JOBname+' -m R2T -c spearman -y fg -s '+FocalSP+'\n\n' 
       )
 
 
