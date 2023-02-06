@@ -29,9 +29,11 @@ out_dir<-paste0("OUT_", jobname, "/")
 stats_file<-args[2]
 #stats_file<-"full"
 
+fileName<-args[3]
+
 #read in designated ERC results file
 if(stats_file=="full"){
-  ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results.tsv"), sep = "\t", header = TRUE)
+  ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/" + fileName), sep = "\t", header = TRUE)
 }else if(stats_file=="hits")
   ERC_results_df<-read.table(paste0(working_dir, out_dir, "ERC_results/ERC_results_potential_hits.tsv"), sep = "\t", header = TRUE)
 
