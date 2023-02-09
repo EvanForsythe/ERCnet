@@ -8,6 +8,7 @@ Script for performing BL reconcilation and ERC correlation analyses. This should
 import os
 import re
 import sys
+import time
 import math
 import glob
 import argparse
@@ -15,8 +16,10 @@ import itertools
 import subprocess
 import pandas as pd
 import scipy.stats as stats
+from datetime import datetime
 from joblib import Parallel, delayed
-
+from ERC_functions import benchmarkTime
+from ERC_functions import benchmarkProcess
 
 #During developent, set working directory:
 #working_dir = '/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/'
@@ -54,17 +57,10 @@ corrMethod=args.corrMethod
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
 fileName = str('ERC_results_' + branchMethod + '_' + corrMethod + '.tsv')
+bench_fileName = str(JOBname + '_ERC_analyses_benchmark_' + branchMethod + '_'+ corrMethod + '.tsv')
 
 print(str(branchMethod) + ' chosen for branch method.')
 print(str(corrMethod) + ' chosen for statistical inference.')
-
-
-#Make a directory for ERC results
-if not os.path.isdir(out_dir+'ERC_results/'):
-    os.makedirs(out_dir+'ERC_results/')
-    print("created folder: ERC_results/\n\n")
-else:
-    print('ERC results will be stored to ERC_results/\n\n')
 
 #remove previous file (if it exists)
 if len(glob.glob(out_dir+'ERC_results/'+fileName)) > 0:
@@ -80,6 +76,36 @@ if len(glob.glob(out_dir+'ERC_results/'+fileName)) > 0:
             break
         else:
             print("Command not recognized \n")
+
+#Define the time object and folder for optimization testing
+timer = time.localtime()
+current_time = time.strftime("%H:%M:%S", timer)
+
+if not os.path.isdir(out_dir + 'benchmark/'):
+    os.makedirs(out_dir + 'benchmark/')
+    print("Created benchmarking folder for optimization testing")
+else:
+    if len(glob.glob(out_dir + 'benchmark/' + str(bench_fileName))) > 0:
+        os.remove(out_dir + 'benchmark/' + str(bench_fileName))
+    print("ERC_analyses.py benchmark will be stored in ERC_benchmark/ Previous benchmark logs removed.\n\n")
+
+#Adds first timestamp for process start.
+with open(out_dir + 'benchmark/' + str(bench_fileName), "a") as bench:
+    bench.write("Job Name: " + JOBname + '\t' + "Cores: " + str(Mult_threads) + '\n')
+    bench.write("Stage" + '\t' + "Time" + '\n')
+    bench.write("Process Start" + '\t' + str(current_time) + '\n')
+
+
+#Make a directory for ERC results
+if not os.path.isdir(out_dir+'ERC_results/'):
+    os.makedirs(out_dir+'ERC_results/')
+    print("created folder: ERC_results/\n\n")
+else:
+    print('ERC results will be stored to ERC_results/\n\n')
+
+
+
+
 
 
 ### Run the BL_reconciliation
@@ -130,6 +156,17 @@ def iterate_corr(pairwise_combos):
 #Make function for performing actual correlations
 def par_corr(i, j):
     
+    #Currently this is not working. Come back for more refined benchmarking.
+    #Iterate global counter for job tracking
+    #global par_i
+    #par_i = par_i + 1
+
+    #Check progress and write every 1000 lines
+    #if (par_i % 1 == 0):
+    #    current_time = time.strftime("%H:%M:%S", timer)
+    #    with open(out_dir + 'ERC_benchmark/' + str(bench_fileName), "a") as bench:
+    #        bench.write(str(par_i) + ' lines written ' + '\t' + str(current_time) + '\n')
+
     #Get the test gene HOG IDs
     geneA=i
     geneB=j
@@ -178,8 +215,18 @@ def par_corr(i, j):
         with open(out_dir+'ERC_results/'+str(fileName), "a") as f:
             f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ results_str)
 
+#Timestamp just before Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'Correlation', timer)
+
 #Run the correlation analysis (in paralell)
 Parallel(n_jobs = int(Mult_threads))(delayed(par_corr)(i,j) for i,j in iterate_corr(pairwise_combos))
+
+#Timestamp just after Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'Correlation', timer) 
+
+#Calculate total time of parralel process & lines per minute
+num_lines = len(pd.read_csv(out_dir + 'ERC_results/' + str(fileName), sep='\t'))
+benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_lines)
 
 #Progress message
 print("Done with all-by-all comparisons...\n")

@@ -12,6 +12,7 @@ import os
 import re
 import sys
 import glob
+import time
 import math
 import shutil
 import argparse
@@ -21,7 +22,10 @@ import numpy as np
 import pandas as pd
 from Bio import SeqIO
 from Bio import AlignIO
+from datetime import datetime 
 from joblib import Parallel, delayed
+from ERC_functions import benchmarkTime
+from ERC_functions import benchmarkProcess
 
 #Homemade modules
 from filterHOGs import make_seq_counts_df, filter_gene_fams, check_alns_for_prune
@@ -134,6 +138,7 @@ else:
     print("Skipping TAPER trimming...")
 
 
+
 #Get path to some needed Orthofinder files 
 sp_tr_path = OFpath+'Species_Tree/SpeciesTree_rooted_node_labels.txt'
 HOG_file_path = OFpath+'Phylogenetic_Hierarchical_Orthogroups/N'+str(Node)+'.tsv'
@@ -197,6 +202,27 @@ else:
 
 if Mult_threads < 4:
     print("Parallel processing is not viable for tree building below 4 cores due to overhead. ERCnet will continue as a linear process for Raxml runs.")
+
+
+#Define the time object and folder for optimization testing
+bench_fileName = JOBname + 'Phylogenomics_benchmark.tsv'
+timer = time.localtime()
+current_time = time.strftime("%H:%M:%S", timer)
+
+if not os.path.isdir(out_dir + 'benchmark/'):
+    os.makedirs(out_dir + 'benchmark/')
+    print("Created benchmarking folder for optimization testing")
+else:
+    if len(glob.glob(out_dir + 'benchmark/' + str(bench_fileName))) > 0:
+        os.remove(out_dir + 'benchmark/' + str(bench_fileName))
+    print("ERC_analyses.py benchmark will be stored in ERC_benchmark/ Previous benchmark logs removed.\n\n")
+
+#Adds first timestamp for process start.
+with open(out_dir + 'benchmark/' + str(bench_fileName), "a") as bench:
+    bench.write("Job Name: " + JOBname + '\t' + "Cores: " + str(Mult_threads) + '\n') 
+    bench.write("Stage" + '\t' + "Time" + '\n')
+    bench.write("Process Start" + '\t' + str(current_time) + '\n')
+
 
 #Check HOG file exists 
 if os.path.isfile(HOG_file_path):
@@ -425,7 +451,18 @@ def par_maf_alns(file):
     #print('mafft-linsi --quiet '+file+' > Alns/ALN_'+file.replace("HOG_seqs/", ""))
 ##End paralellization of alignments
 
+#Timestamp just before Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'maf_alns', timer)
+
 Parallel(n_jobs = Mult_threads, verbose=100)(delayed(par_maf_alns)(file) for file in iterate_maf(seq_file_names))
+
+#Timestamp just after Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'maf_alns', timer)
+
+#Calculate total time of parralel process & lines per minute
+num_items = len(seq_file_names)
+benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
+
 
 #Check alignment status
 if len(glob.glob(out_dir+'Alns/ALN*')) == len(seq_file_names):
@@ -472,7 +509,6 @@ if not taper == "no":
     elif len(glob.glob(out_dir+'TAPER_Alns/ALN*')) < len(aln_file_names):
         print('\nWARNING: there are more TAPER trimmed alignments in the folder than expected. Proceeding (with caution)...\n')
 
-
 ###GBLOCKS cleaning alignments
 print('Beginning GBLOCKS\n')
 
@@ -489,7 +525,7 @@ else:
 if 'Min_len' in locals():
     print('Beginning gblocks trimming...\n')
 else:
-    print('Min_len parameter for gblocks filtering not specified. Quitting....\n')
+    print('Min_len parameter for gblocks filtering not specified. Quitting...\n')
 
 #Make folder for gblocks'd alignments
 #Make a directory for gblocks trimmed alignments
@@ -572,8 +608,18 @@ def par_gblocks(aln):
         sys.exit()
 
 
+#Timestamp just before Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
+
 #run the parallel command
 Parallel(n_jobs= Mult_threads, verbose=100)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names2))
+
+#Timestamp just before Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
+
+#Calculate total time of parralel process & items per minute
+num_items = len(aln_file_names2)
+benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
 
 ##End paralellization of gblocks trimming
 
@@ -747,7 +793,17 @@ def par_raxml(HOG_id, Rax_dir, file_path, cores):
 
 ##End paralellization of raxml bootstrap inference        
 
+#Timestamp just before Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'raxml', timer)
+
 Parallel(n_jobs = Rax_front_cores, verbose=100)(delayed(par_raxml)(HOG, Rax_dir, file_path, Rax_back_cores) for HOG in iterate_HOGS(HOGs2BS))
+
+#Timestamp just after Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'raxml', timer)
+
+#Calculate total time of parralel process & items per minute
+num_items = len(HOGs2BS)
+benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
 
 print("Bootstrap tree inference finished.\n")
 
@@ -802,7 +858,18 @@ def par_tree_arrange(bs_tree):
         subprocess.call(treerecs_cmd, shell=True)
 ##End paralellization of rearranement
 
+#Timestamp just before Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'tree_arrange', timer)
+
 Parallel(n_jobs = Mult_threads, verbose=100)(delayed(par_tree_arrange)(bs_tree) for bs_tree in iterate_trees(all_bs_trees))
+
+#Timestamp just before Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'tree_arrange', timer)
+
+#Calculate total time of parralel process & items per minute
+num_items = len(all_bs_trees)
+benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
+
 
 ### Infer branch-length optimized trees with Raxml (BL trees)
 #Get list of gblocks alns (after filters) and subtrees (after filters) and find the overlap
@@ -852,9 +919,18 @@ def par_BL_opt(k_ID, cores):
     if re.search('raxmlHPC', raxml_bl_cmd) and re.search('PROTGAMMALGF', raxml_bl_cmd) and re.search('12345', raxml_bl_cmd):
         subprocess.call(raxml_bl_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+#Timestamp just before Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'keeps', timer)
 
 #Call paralell
 Parallel(n_jobs = Rax_front_cores, verbose=100)(delayed(par_BL_opt)(k_ID, Rax_back_cores) for k_ID in iterate_keeps(keeperIDs))
+
+#Timestamp just before Parallel Call
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'keeps', timer)
+
+#Calculate total time of parralel process & items per minute
+num_items = len(keeperIDs)
+benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
 
 ##End paralellization of raxml branch length optimization
         
