@@ -225,7 +225,7 @@ Parallel(n_jobs = int(Mult_threads))(delayed(par_corr)(i,j) for i,j in iterate_c
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'Correlation', timer) 
 
 #Calculate total time of parralel process & lines per minute
-num_lines = len(pd.read_csv(out_dir + 'ERC_results/' + str(fileName)))
+num_lines = len(pd.read_csv(out_dir + 'ERC_results/' + str(fileName), sep='\t'))
 benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_lines)
 
 #Progress message
