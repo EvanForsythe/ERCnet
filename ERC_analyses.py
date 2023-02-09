@@ -57,7 +57,7 @@ corrMethod=args.corrMethod
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
 fileName = str('ERC_results_' + branchMethod + '_' + corrMethod + '.tsv')
-bench_fileName = str(JOBname + '_ERC_analyses_benchmark_' + branchMethod + '_'+ corrMethod + '.tsv.')
+bench_fileName = str(JOBname + '_ERC_analyses_benchmark_' + branchMethod + '_'+ corrMethod + '.tsv')
 
 print(str(branchMethod) + ' chosen for branch method.')
 print(str(corrMethod) + ' chosen for statistical inference.')
