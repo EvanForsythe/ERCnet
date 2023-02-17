@@ -86,7 +86,7 @@ To see a list of arguments for ERCnet use `./Phylogenomics.py --help`
         * Orthogroup_Sequences/
     * An optional species mapping file which will be used to tell ERCnet when tips on the species tree correspond to sequence identifiers in alignments/gene trees.
 
-Create a comma-seperated file that indicates a prefix text string found in the sequence IDs in alignments/gene trees and the corresponding tip on the species tree (found in the Species_Tree/ directory of Orthofinder output). Please be sure the formatting exactly matches the example provided below and text strings you provide exactly match the strings within your alignments/gene trees/species trees.  
+Create a comma-seperated file that indicates a prefix text string found in the sequence IDs in alignments/gene trees and the corresponding tip on the species tree (found in the Species_Tree/ directory of Orthofinder output). Please be sure the formatting exactly matches the example provided below and text strings you provide exactly match the strings within your alignments/gene trees/species trees. Use the -s flag to ensure ERCnet uses your user-provided species  mapping file. If -s is not provided, ERCnet will attempt to create one based on Orthofinder results.
 
 Name the species mapping file "Species_mapping.csv" and save in the main ERC net directory (where all the scripts live).
 
