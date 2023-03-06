@@ -11,6 +11,7 @@ import sys
 import time
 import math
 import glob
+import random
 import argparse
 import itertools
 import subprocess
@@ -38,6 +39,7 @@ parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help
 parser.add_argument('-M', '--Meta_stats',action='store_true', required=False, help='The type of report of metadata from ERC correlations you want (default = False)')
 parser.add_argument('-b', '--branchMethod', type=str, metavar='', required=False, default="R2T", help='This determins which branch reconcilliation method to use. Enter either "BXB" for branch by branch or "R2T" root to tip.')
 parser.add_argument('-c', '--corrMethod', type=str, metavar='', required=False, default='spearman', help='This determines which statistical correlation method that will be used. Enter either "spearman" or "pearson".')
+parser.add_argument('-t', '--test', type=int, metavar='', required=False, default=0, help='Tests ERC_analyses.py on a small, randomized subset of the data equalling the integer provied.') 
 
 #Define the parser
 args = parser.parse_args()
@@ -49,6 +51,7 @@ FocalSP=args.FocalSP
 Meta_stats=args.Meta_stats
 branchMethod=args.branchMethod
 corrMethod=args.corrMethod
+testNum = args.test
 #JOBname = "Clptest"
 #Mult_threads = 1
 #FocalSP="A_thaliana_prot"
@@ -79,7 +82,7 @@ if len(glob.glob(out_dir+'ERC_results/'+fileName)) > 0:
 
 #Define the time object and folder for optimization testing
 timer = time.localtime()
-current_time = time.strftime("%H:%M:%S", timer)
+current_time = time.strftime("%a, %d %b %Y %H:%M:%S", timer)
 
 if not os.path.isdir(out_dir + 'benchmark/'):
     os.makedirs(out_dir + 'benchmark/')
@@ -145,6 +148,11 @@ gene_fams['HOG']=gene_fams['HOG'].str.replace(str(gene_fams['HOG'][0].split(".",
 
 #Make list of pairwise combinations
 pairwise_combos=list(itertools.combinations(BLs['HOG_ID'], 2))
+
+
+if (testNum > 0):
+    print("Testing correlation with " + str(testNum) + " pairwise combinations.")
+    pairwise_combos=random.sample(pairwise_combos, testNum)
 
 
 #Make functions for parralellizing correlation analyses

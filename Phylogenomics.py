@@ -207,7 +207,7 @@ if Mult_threads < 4:
 #Define the time object and folder for optimization testing
 bench_fileName = JOBname + 'Phylogenomics_benchmark.tsv'
 timer = time.localtime()
-current_time = time.strftime("%H:%M:%S", timer)
+current_time = time.strftime("%a, %d %b %Y %H:%M:%S", timer)
 
 if not os.path.isdir(out_dir + 'benchmark/'):
     os.makedirs(out_dir + 'benchmark/')
