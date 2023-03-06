@@ -454,7 +454,7 @@ def par_maf_alns(file):
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'maf_alns', timer)
 
-Parallel(n_jobs = Mult_threads, verbose=100)(delayed(par_maf_alns)(file) for file in iterate_maf(seq_file_names))
+Parallel(n_jobs = 1, verbose=100)(delayed(par_maf_alns)(file) for file in iterate_maf(seq_file_names))
 
 #Timestamp just after Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'maf_alns', timer)
@@ -612,7 +612,7 @@ def par_gblocks(aln):
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
 
 #run the parallel command
-Parallel(n_jobs= Mult_threads, verbose=100)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names2))
+Parallel(n_jobs= 1, verbose=100)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names2))
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
@@ -861,7 +861,7 @@ def par_tree_arrange(bs_tree):
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'tree_arrange', timer)
 
-Parallel(n_jobs = Mult_threads, verbose=100)(delayed(par_tree_arrange)(bs_tree) for bs_tree in iterate_trees(all_bs_trees))
+Parallel(n_jobs = 1, verbose=100)(delayed(par_tree_arrange)(bs_tree) for bs_tree in iterate_trees(all_bs_trees))
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'tree_arrange', timer)
@@ -923,7 +923,7 @@ def par_BL_opt(k_ID, cores):
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'keeps', timer)
 
 #Call paralell
-Parallel(n_jobs = Rax_front_cores, verbose=100)(delayed(par_BL_opt)(k_ID, Rax_back_cores) for k_ID in iterate_keeps(keeperIDs))
+Parallel(n_jobs = 1, verbose=100)(delayed(par_BL_opt)(k_ID, 1) for k_ID in iterate_keeps(keeperIDs))
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'keeps', timer)
