@@ -16,11 +16,11 @@ import argparse
 import itertools
 import subprocess
 import pandas as pd
+import ERC_functions as erc
 import scipy.stats as stats
 from datetime import datetime
 from joblib import Parallel, delayed
-from ERC_functions import benchmarkTime
-from ERC_functions import benchmarkProcess
+
 
 #During developent, set working directory:
 #working_dir = '/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/'
@@ -62,35 +62,24 @@ out_dir= 'OUT_'+JOBname+'/'
 fileName = str('ERC_results_' + branchMethod + '_' + corrMethod + '.tsv')
 bench_fileName = str(JOBname + '_ERC_analyses_benchmark_' + branchMethod + '_'+ corrMethod + '.tsv')
 
-print(str(branchMethod) + ' chosen for branch method.')
-print(str(corrMethod) + ' chosen for statistical inference.')
+print('\n')
+print(str(branchMethod) + ' chosen for branch method.\n')
+print(str(corrMethod) + ' chosen for statistical inference.\n')
 
 #remove previous file (if it exists)
-if len(glob.glob(out_dir+'ERC_results/'+fileName)) > 0:
-    while True:
-        user_input = input("This filename already exists, would you like to overwrite? (y/n) \n")
-        if user_input == 'y':
-            print("Removing " + fileName + "...")    
-            os.remove(out_dir+'ERC_results/'+fileName)
-            break
-        if user_input == 'n':
-            print("Unique filename required. Exiting...")
-            sys.exit()
-            break
-        else:
-            print("Command not recognized \n")
+if (erc.CheckFileExists(out_dir+'ERC_results/'+fileName)):
+    fileName = erc.GetLatestFileName(out_dir+'ERC_results/', fileName[0:-4])
+    fileName = erc.AppendFileName(fileName)
+    print('Current ERC_analyses run will be saved to file: ' + str(fileName) + '\n')
+    bench_fileName = JOBname + '_ERC_analyses_benchmark_' + fileName[12:]
 
 #Define the time object and folder for optimization testing
 timer = time.localtime()
 current_time = time.strftime("%a, %d %b %Y %H:%M:%S", timer)
 
-if not os.path.isdir(out_dir + 'benchmark/'):
-    os.makedirs(out_dir + 'benchmark/')
-    print("Created benchmarking folder for optimization testing")
-else:
-    if len(glob.glob(out_dir + 'benchmark/' + str(bench_fileName))) > 0:
-        os.remove(out_dir + 'benchmark/' + str(bench_fileName))
-    print("ERC_analyses.py benchmark will be stored in ERC_benchmark/ Previous benchmark logs removed.\n\n")
+#Make a directory for Benchmark results
+print("Checking or creating folder for benchmark.\n")
+erc.CheckAndMakeDir(out_dir, 'benchmark/')
 
 #Adds first timestamp for process start.
 with open(out_dir + 'benchmark/' + str(bench_fileName), "a") as bench:
@@ -100,16 +89,8 @@ with open(out_dir + 'benchmark/' + str(bench_fileName), "a") as bench:
 
 
 #Make a directory for ERC results
-if not os.path.isdir(out_dir+'ERC_results/'):
-    os.makedirs(out_dir+'ERC_results/')
-    print("created folder: ERC_results/\n\n")
-else:
-    print('ERC results will be stored to ERC_results/\n\n')
-
-
-
-
-
+print("Checking or creating folder for ERC Results.\n")
+erc.CheckAndMakeDir(out_dir, 'ERC_results/')
 
 ### Run the BL_reconciliation
 print("beginning BL reconciliation in R...\n\n Calling R...\n\n")
@@ -123,7 +104,7 @@ if re.search('Branch_length_reconciliation.R', BL_rec_cmd) and re.search('Rscrip
     print(BL_rec_cmd)
     subprocess.call(BL_rec_cmd, shell=True)
 
-if len(glob.glob(out_dir+'BL_results/*tsv')) > 0:
+if (erc.CheckFileExists(out_dir+'BL_results/*tsv')):
     print('Finished branch length reconciliation.\n\nResults files written to BL_results/\n\n')
 
 ### Run all-by-all correlations
@@ -164,17 +145,6 @@ def iterate_corr(pairwise_combos):
 #Make function for performing actual correlations
 def par_corr(i, j):
     
-    #Currently this is not working. Come back for more refined benchmarking.
-    #Iterate global counter for job tracking
-    #global par_i
-    #par_i = par_i + 1
-
-    #Check progress and write every 1000 lines
-    #if (par_i % 1 == 0):
-    #    current_time = time.strftime("%H:%M:%S", timer)
-    #    with open(out_dir + 'ERC_benchmark/' + str(bench_fileName), "a") as bench:
-    #        bench.write(str(par_i) + ' lines written ' + '\t' + str(current_time) + '\n')
-
     #Get the test gene HOG IDs
     geneA=i
     geneB=j
@@ -224,40 +194,25 @@ def par_corr(i, j):
             f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ results_str)
 
 #Timestamp just before Parallel Call
-benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'Correlation', timer)
+erc.benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'Correlation', timer)
 
 #Run the correlation analysis (in paralell)
 Parallel(n_jobs = int(Mult_threads))(delayed(par_corr)(i,j) for i,j in iterate_corr(pairwise_combos))
 
 #Timestamp just after Parallel Call
-benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'Correlation', timer) 
+erc.benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'Correlation', timer) 
 
 #Calculate total time of parralel process & lines per minute
 num_lines = len(pd.read_csv(out_dir + 'ERC_results/' + str(fileName), sep='\t'))
-benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_lines)
+erc.benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_lines)
 
 #Progress message
 print("Done with all-by-all comparisons...\n")
 
-###Use R to create summary figures of the ERC results
-
-
-#Could be redundant now. Come back later!! 
-#if (Meta_stats):
-    
-#    print("Generating plots describing correlation statistic metadata")
-    
-    #Run the R script
-#    ERC_rec_cmd= 'Rscript Corr_meta_stats.R '+JOBname+' '+Meta_stats+' '+fileName
-        
-    #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
-#    if re.search('Corr_meta_stats.R', ERC_rec_cmd) and re.search('Rscript', ERC_rec_cmd):
-#        print("Creating summary figs in R with the following command:")
-#        print(ERC_rec_cmd)
-#        subprocess.call(ERC_rec_cmd, shell=True)
+###Use R to create summary figures of the ERC result
 
 #Report status
-if len(glob.glob(out_dir+'ERC_results/'+fileName)) > 0:
+if (erc.CheckFileExists(out_dir+'ERC_results/'+fileName)):
     print('Finished ERC.\n\nResults files written to ERC_results/\n\n')
 else:
     print('Something went wrong with ERC analyses...\n')
