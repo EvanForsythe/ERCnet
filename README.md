@@ -285,7 +285,9 @@ All options for Network_analyses.py:
 | -r | --RSquared | Cuttoff R-squared value by which to filter ERC hits in network. Float between 0 and 1. | no | 0.50 |
 | -y | --Clustmeth | Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap. | yes | fg |
 | -t | --Trim_Cutoff | Must be an integer. Indicates the minimum number of nodes necessary for a community to be displayed on the network plot. Communitiies smaller than this number will be trimmed from the graph (and associated output tables). This option is mainly for network aesthetics. | no | 0 |
-| -s | --FocalSP | The name of the focal species to represent each gene family (should exactly match the tip label of the species tree). See further description below | yes | NA |
+| -s | --FocalSP | The name of the focal species to represent each gene family (should exactly match the tip label of the species tree). See further description below |
+| -f | --FileName | The filename of ERC_results file you would like to analyze. DO NOT include dot file type (eg, .tsv, .csv) |
+yes | NA |
 
 Example command:
 ```
