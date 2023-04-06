@@ -58,7 +58,7 @@ testNum = args.test
 
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
-fileName = str('ERC_results_' + branchMethod + '_'  + '.tsv')
+fileName = str('ERC_results_' + branchMethod + '.tsv')
 bench_fileName = str(JOBname + '_ERC_analyses_benchmark_' + branchMethod + '_' + '.tsv')
 
 print('\n')

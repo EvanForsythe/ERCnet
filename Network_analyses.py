@@ -17,7 +17,7 @@ import glob
 import subprocess
 import argparse
 import pandas as pd
-from ERC_functions import *
+import ERC_functions as erc
 
 #At runtime set working directory to the place where the script lives
 working_dir = sys.path[0]+'/' 
@@ -33,7 +33,8 @@ parser.add_argument('-r', '--RSquared', type=float, metavar='', required=False, 
 parser.add_argument('-y', '--Clustmeth', type=str, metavar='', required=True, help='Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap.') 
 parser.add_argument('-t', '--Trim_Cutoff', type=int, metavar='', required=False, help='The user-selected cutoff will be the minimum number of genes necessary for a community to be displayed on the network plot.This is mainly for network visualization and is not recommended for data collection. Must be an integer. 0 (no trimming) is default.', default=0)
 parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help='The name of the focal species to represent each gene family (should exactly match the tip label of the species tree)') 
-parser.add_argument('-c', '--CorrStat', type=str, metavar='', required=False, help='The type of statistical correlation method used from ERC_analyses.py. Enter "spearman" or "pearson".', default='spearman')
+parser.add_argument('-c', '--CorrMethod', type=str, metavar='', required=False, help='The type of correlation method you would like to filter P Value and R value by. Default is both.', default='both')
+parser.add_argument('-f', '--FileName', type=str, metavar='', required=True, help='The filename of ERC_results file you would like to analyze. DO NOT include dot file type (eg, .tsv, .csv)')
 
 #Define the parser
 args = parser.parse_args()
@@ -46,7 +47,8 @@ RSquared=args.RSquared
 Clustmeth=args.Clustmeth
 Trim_Cutoff=args.Trim_Cutoff
 FocalSP=args.FocalSP
-Corrmethod = args.CorrStat
+Corrmethod = args.CorrMethod
+file=args.FileName
 
 
 '''
@@ -60,7 +62,7 @@ FocalSP="Atha"
 '''
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
-fileName = 'ERC_results_' + BLmethod + '_' + Corrmethod + '.tsv'
+fileName = file + '.tsv'
 
 #Make a directory for Network outputs
 if not os.path.isdir(out_dir+'Network_analyses/'):
@@ -68,6 +70,9 @@ if not os.path.isdir(out_dir+'Network_analyses/'):
     print("created folder: Network_analyses/\n\n")
 else: 
     print('ERC results will be stored to Network_analyses/\n\n')
+
+erc.CheckAndMakeDir(out_dir+'ERC_results/', 'Filtered_results')
+
     
 #Make a directory for TSV files from Networks
 if not os.path.isdir(out_dir+'Network_analyses/Communities/'):
@@ -95,12 +100,12 @@ csvData = pd.read_table(tsvData, sep='\t')
 #Calls functions from ERC_functions.py to filter the ERC_results file down based on user provided criteria
 #FilterBranchType(csvData, branchFilter)
 #FilterCorrelationType(csvData, corrFilter)
-csvData = FilterSignificance(csvData, RSquared, PValue)
+csvData = erc.FilterSignificance(csvData, RSquared, PValue, Corrmethod)
 
 #Output a filtered version of the ERC_results file
-csvData.to_csv(out_dir + "ERC_results/Filtered_" + fileName, sep='\t', index=False, header=True) 
+csvData.to_csv(out_dir + "ERC_results/Filtered_results/Filtered_" + fileName, sep='\t', index=False, header=True) 
 
-if sum(1 for line in open(out_dir+"ERC_results/Filtered_" + fileName)) < 2:
+if sum(1 for line in open(out_dir+"ERC_results/Filtered_results/Filtered_" + fileName)) < 2:
     print("It appears that not enough ERC results were retained for further analysis. Consider changing filtering criteria or analysis methods.")
     print("Quitting...")
     sys.exit()
