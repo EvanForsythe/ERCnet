@@ -60,7 +60,7 @@ out_dir<-paste0("OUT_", jobname, "/")
 
 #Read in ERC correlation results
 #Read the table
-ERC_hits_df<-read.table(file = paste0(working_dir, out_dir, "ERC_results/", fileName), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+ERC_hits_df<-read.table(file = paste0(working_dir, out_dir, "ERC_results/Filtered_results/", fileName), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 #Print message
 #Use cat because paste+print doesn't recognize \n
