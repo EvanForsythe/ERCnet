@@ -144,7 +144,7 @@ if (!validCutoff | trim_cutoff <= 0){
 }
 
 #save pdf
-pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",fileName, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=8, height = 8)
+pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=8, height = 8)
 
 #Plot the graph with all communities
 plot(comms_final, network_graph_final,
@@ -237,6 +237,6 @@ all_HOGs_and_focalsp_df <- merge(all_HOG_names_df,subset_focal_sp_df,by="HOG_ID"
 #merge
 final_network_stats_df <- merge(all_HOGs_and_focalsp_df,network_stats_df,by="HOG_ID",all=TRUE, sort = FALSE)
 
-write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"))
+write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"))
 
 
