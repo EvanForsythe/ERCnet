@@ -102,7 +102,7 @@ csvData = pd.read_table(tsvData, sep='\t')
 #FilterCorrelationType(csvData, corrFilter)
 csvData = erc.FilterSignificance(csvData, RSquared, PValue, Corrmethod)
 
-fileName = file + "_" + PValue + "_" + RSquared + ".tsv"
+fileName = file + "_" + str(PValue) + "_" + str(RSquared) + ".tsv"
 
 #Output a filtered version of the ERC_results file
 csvData.to_csv(out_dir + "ERC_results/Filtered_results/Filtered_" + fileName, sep='\t', index=False, header=True) 
