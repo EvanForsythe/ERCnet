@@ -15,6 +15,7 @@ import random
 import argparse
 import itertools
 import subprocess
+import numpy as np
 import pandas as pd
 import ERC_functions as erc
 import scipy.stats as stats
@@ -38,7 +39,6 @@ parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False
 parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help='The name of the focal species to represent each gene family (should exactly match the tip label of the species tree)') 
 parser.add_argument('-M', '--Meta_stats',action='store_true', required=False, help='The type of report of metadata from ERC correlations you want (default = False)')
 parser.add_argument('-b', '--branchMethod', type=str, metavar='', required=False, default="R2T", help='This determins which branch reconcilliation method to use. Enter either "BXB" for branch by branch or "R2T" root to tip.')
-parser.add_argument('-c', '--corrMethod', type=str, metavar='', required=False, default='spearman', help='This determines which statistical correlation method that will be used. Enter either "spearman" or "pearson".')
 parser.add_argument('-t', '--test', type=int, metavar='', required=False, default=0, help='Tests ERC_analyses.py on a small, randomized subset of the data equalling the integer provied.') 
 
 #Define the parser
@@ -50,7 +50,6 @@ Mult_threads=args.Mult_threads
 FocalSP=args.FocalSP
 Meta_stats=args.Meta_stats
 branchMethod=args.branchMethod
-corrMethod=args.corrMethod
 testNum = args.test
 #JOBname = "Clptest"
 #Mult_threads = 1
@@ -59,12 +58,11 @@ testNum = args.test
 
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
-fileName = str('ERC_results_' + branchMethod + '_' + corrMethod + '.tsv')
-bench_fileName = str(JOBname + '_ERC_analyses_benchmark_' + branchMethod + '_'+ corrMethod + '.tsv')
+fileName = str('ERC_results_' + branchMethod + '.tsv')
+bench_fileName = str(JOBname + '_ERC_analyses_benchmark_' + branchMethod + '_' + '.tsv')
 
 print('\n')
 print(str(branchMethod) + ' chosen for branch method.\n')
-print(str(corrMethod) + ' chosen for statistical inference.\n')
 
 #remove previous file (if it exists)
 if (erc.CheckFileExists(out_dir+'ERC_results/'+fileName)):
@@ -111,7 +109,7 @@ if (erc.CheckFileExists(out_dir+'BL_results/*tsv')):
 
 #Make results file
 with open(out_dir+'ERC_results/'+str(fileName), "a") as f:
-    f.write("GeneA_HOG" + "\t" + "GeneA_ID" + "\t" + "GeneB_HOG" + "\t" + "GeneB_ID" + "\t" + "Overlapping_branches" + "\t" + "Slope" + "\t" + "R2" + "\t" + "Pval") 
+    f.write("GeneA_HOG" + "\t" + "GeneA_ID" + "\t" + "GeneB_HOG" + "\t" + "GeneB_ID" + "\t" + "Overlapping_branches" + "\t" + "Slope" + "\t" + "P_R2" + "\t" + "P_Pval" + '\t' + 'S_R2' + '\t' + 'S_Pval' ) 
 
 #Read in BL results
 if (branchMethod == 'BXB'):
@@ -144,55 +142,64 @@ def iterate_corr(pairwise_combos):
 
 #Make function for performing actual correlations
 def par_corr(i, j):
-    
     #Get the test gene HOG IDs
     geneA=i
     geneB=j
-    
+
     #geneA="HOG0001953"
     #geneB="HOG0008729"
-    
+
     #Get the gene ids for the test genes
-    geneA_ID=gene_fams._get_value(list(gene_fams['HOG']).index(geneA), FocalSP)
-    geneB_ID=gene_fams._get_value(list(gene_fams['HOG']).index(geneB), FocalSP)
-    
+
+    # geneA_ID=gene_fams._get_value(list(gene_fams['HOG']).index(geneA), FocalSP)
+    # geneB_ID=gene_fams._get_value(list(gene_fams['HOG']).index(geneB), FocalSP)
+
+    ###Could sorting help with this? Should test total time it takes to find both genes as the program completes. 
+    rowA = int(np.where(gene_fams['HOG'] == geneA)[0])
+    rowB = int(np.where(gene_fams['HOG'] == geneB)[0])
+
+    geneA_ID=gene_fams[FocalSP][rowA]
+    geneB_ID=gene_fams[FocalSP][rowB]
 
     #Branch-by-branch branch lengths
     #subset dataframe to the rows of the two test HOGs
     test_df_temp = BLs[(BLs["HOG_ID"] == geneA) | (BLs["HOG_ID"] == geneB)]
-    
+
+
     #transpose the dataframev
     test_df_t=test_df_temp.transpose()
-    
+
     #Remove the HOG_ID row (first row) and remove rows with NaN
     test_df_clean=test_df_t.iloc[1: , :].dropna()
-    
+
+
     #add names to columns
     test_df_clean.columns=['GeneA', 'GeneB']
-    
+    xLin = test_df_clean['GeneA']
+    yLin = test_df_clean['GeneB']
+
     #Perform correlation tests if there are at least 3 datapoints
     if test_df_clean.shape[0]>2:
-            
-        if (corrMethod == 'pearson'):
-            #Stats order = (0:slope, 1:intercept, 2:pearson_r, 3:pearson_p, 4:stderr, 5:spearman_r, 6:spearman pvalue)
-            corr_stats=stats.linregress(x=list(test_df_clean['GeneA']), y=list(test_df_clean['GeneB']))
-            results_str= str(test_df_clean.shape[0]) +'\t'+ str(corr_stats[0]) +'\t'+ str(corr_stats[2]**2) +'\t'+ str(corr_stats[3])
-        else:
-            corr_stats=stats.spearmanr(test_df_clean['GeneA'], test_df_clean['GeneB'])
-            results_str= str(test_df_clean.shape[0]) + '\t' + "nan" + '\t' + str(corr_stats[0]**2) + '\t' + str(corr_stats[1])
+
+        #Stats order = (0:slope, 1:intercept, 2:pearson_r, 3:pearson_p, 4:stderr, 5:spearman_r, 6:spearman pvalue)
+        pear_stats=stats.linregress(x=list(test_df_clean['GeneA']), y=list(test_df_clean['GeneB']))
+       
+        spear_stats=stats.spearmanr(test_df_clean['GeneA'], test_df_clean['GeneB'])
+        results_str= str(test_df_clean.shape[0]) +'\t'+ str(pear_stats[0]) +'\t'+ str(pear_stats[2]**2) +'\t'+ str(pear_stats[3]) + '\t' + str(spear_stats[0]**2) + '\t' + str(spear_stats[1])
 
         #Create string
         #(note r is squared to get r2)
     else:
         results_str='nan\tnan\tnan\tnan\tnan\tnan'
         #bxb_results_str='NA\tNA\tNA\tNA\tNA\tNA'
-    
+
     #Only write the results if there's some indication of correlation (this keeps the size of the file from inflating)
     if (not results_str.split("\t")[0] == "nan"):
         #write (append) to results file
-        with open(out_dir+'ERC_results/'+str(fileName), "a") as f:
-            f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ results_str)
-
+            with open(out_dir+'ERC_results/'+str(fileName), "a") as f:
+                f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+ results_str)
+                #print("Appended: " + str(geneA_ID) + " by " + str(geneB_ID))
+    
 #Timestamp just before Parallel Call
 erc.benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'Correlation', timer)
 

@@ -19,10 +19,33 @@ def FilterCorrelationType(data,filterType):
     for i in range(len(corrFilter)):
         data.drop(corrFilter[i], axis='columns', inplace=True)
 
-def FilterSignificance(data, R, P):
+def FilterSignificance(data, R, P, filterBy):
 
-    data = data[:][data['R2'] > R]
-    data = data[:][data['Pval'] < P]
+    oRows = len(data)
+
+
+    if filterBy == 'spearman':
+        print('Filtering results by Spearman values...')
+        data = data[:][data['S_R2'] > R]
+        data = data[:][data['S_Pval'] < P]
+    elif filterBy == 'pearson':
+        print('Filtering results by Pearson values...')
+        data = data[:][data['P_R2'] > R]
+        data = data[:][data['P_Pval'] < P]
+    else:
+        print('Filtering results by both Spearman and Pearson values...')
+        data = data[:][data['P_R2'] > R]
+        data = data[:][data['P_Pval'] < P]
+
+        data = data[:][data['S_R2'] > R]
+        data = data[:][data['S_Pval'] < P]
+
+    eRows = len(data)
+
+    rowsRemoved = oRows - eRows
+
+    print(str(rowsRemoved) + ' data entries removed due to filtering.\n')
+
     return data
 
 def benchmarkTime(fileName, path, stamp, process, timer):
