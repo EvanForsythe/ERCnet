@@ -38,13 +38,14 @@ foc_sp<-paste(args[7])
 fileName<-paste(args[8])
 
 #####Testing
-#jobname<-"quick_test"
-#BL_type<-"r2t"
+#jobname<-"full_8000_run_3_more_cores"
+#BL_type<-"R2T"
 #RSquared<-0.5
-#PValue<-0.05
-#clust_method<-"fg"
-#trim_cutoff<-0
+#PValue<-5e-05
+#clust_method<-"eb"
+#trim_cutoff <- 0
 #foc_sp<-"A_thaliana_prot"
+#fileName<-"Filtered_ERC_results_R2T_5_5e-05_0.5.tsv"
 #working_dir<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/"
 ###
 
@@ -237,6 +238,17 @@ all_HOGs_and_focalsp_df <- merge(all_HOG_names_df,subset_focal_sp_df,by="HOG_ID"
 #merge
 final_network_stats_df <- merge(all_HOGs_and_focalsp_df,network_stats_df,by="HOG_ID",all=TRUE, sort = FALSE)
 
-write.csv(final_network_stats_df, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"))
+#Filter out duplicated rows
+final_network_stats_df_unique<-final_network_stats_df[!duplicated(final_network_stats_df$HOG_ID), ]
+
+#reorder by community number and then by Degree Centrality and then by Eigenvector_centrality
+final_network_stats_df_unique_reorder<-final_network_stats_df_unique[order(final_network_stats_df_unique$Community_num, -final_network_stats_df_unique$Degree_centrality, -final_network_stats_df_unique$Eigenvector_centrality), ]
+
+#Sort the columns
+final_network_stats_df_unique_reorder_rows<-final_network_stats_df_unique_reorder[, c("Community_num", names(final_network_stats_df_unique_reorder)[-length(names(final_network_stats_df_unique_reorder))])]
+
+
+#Write the file
+write.csv(final_network_stats_df_unique_reorder_rows, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"), row.names = FALSE)
 
 
