@@ -287,7 +287,8 @@ All options for Network_analyses.py:
 | -t | --Trim_Cutoff | Must be an integer. Indicates the minimum number of nodes necessary for a community to be displayed on the network plot. Communitiies smaller than this number will be trimmed from the graph (and associated output tables). This option is mainly for network aesthetics. | no | 0 |
 | -s | --FocalSP | The name of the focal species to represent each gene family (should exactly match the tip label of the species tree). See further description below |
 | -f | --FileName | The filename of ERC_results file you would like to analyze. Should be .tsv file | yes | NA |
-| -F | --Func_cat | Run a functional clustering analysis with user-provided functional information about genes in the focal species? If selected, provide the name of the tsv file. See documentation for formatting. | no | none |
+| -F | --Func_cat | Run a functional clustering analysis with user-provided functional information about genes in the focal species? If selected, provide the name of the tsv file. See documentation for formatting. | no | False |
+| -L | --Lab_nodes | Add node labels to the network? If selected, youll need to provide a tsv files of node labels. See documentation for formatting | no | False |
 
 Example command:
 ```
@@ -353,3 +354,26 @@ NA	gray
 
 Selecting the -F flag will automatically create a figure that calculates the [Nominal Assortativity](https://igraph.org/r/doc/assortativity.html) and compares the observed value against a randomized null distribution.
 
+#### Adding optional node labels to the network figures
+If the -L flag is selected the user must provide a Node_labels.tsv file (see example below). Be sure to use the exact filename and formatting as the example.
+
+Example Node_labels.tsv:
+
+```
+ID	Label
+A_thaliana__AT1G49970.1	CLPR1
+A_thaliana__AT1G12410.1	CLPR2
+A_thaliana__AT1G09130.1	CLPR3
+A_thaliana__AT4G17040.1	CLPR4
+A_thaliana__AT1G66670.1	CLPP3
+A_thaliana__AT5G45390.1	CLPP4
+A_thaliana__AT1G02560.1	CLPP5
+A_thaliana__AT1G11750.1	CLPP6
+A_thaliana__AT5G51070.1	CLPD
+A_thaliana__AT1G68660.1	CLPS
+A_thaliana__AT5G50920.1	CLPC1
+A_thaliana__AT3G48870.1	CLPC2
+A_thaliana__AT4G25370.1	CLPT1
+A_thaliana__AT4G12060.1	CLPT2
+A_thaliana__AT2G03390.1	CLPF
+```

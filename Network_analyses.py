@@ -36,6 +36,8 @@ parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help
 parser.add_argument('-c', '--CorrMethod', type=str, metavar='', required=False, help='The type of correlation method you would like to filter P Value and R value by. Default is both.', default='both')
 parser.add_argument('-f', '--FileName', type=str, metavar='', required=True, help='The filename of ERC_results file you would like to analyze. Should be .tsv file.')
 parser.add_argument('-F', '--Func_cat', action='store_true', required=False, help='Run a functional clustering analysis with user-provided functional information about genes in the focal species? If selected, youll need to provide two tsv files. See documentation for formatting. ') 
+parser.add_argument('-L', '--Lab_nodes', action='store_true', required=False, help='Add node labels to the network? If selected, youll need to provide a tsv files of node labels. See documentation for formatting. ') 
+
 
 #Define the parser
 args = parser.parse_args()
@@ -51,6 +53,7 @@ FocalSP=args.FocalSP
 Corrmethod = args.CorrMethod
 fileName=args.FileName
 func_bool=args.Func_cat
+lab_bool=args.Lab_nodes
 
 
 #Store output dir as a variable
@@ -86,7 +89,7 @@ else:
 
 #Check to see whether Func_cat was specified
 if func_bool:
-    print("Functional category file provided")
+    print("Functional category analysis selected")
     if os.path.isfile("Functional_categories.tsv"):
         print('Functional_categories.tsv file found.')
     else:
@@ -97,6 +100,17 @@ if func_bool:
     else:
         print('Cannot find Functional_categories_col_assign.tsv file. Quitting...\n')
         sys.exit()
+        
+if lab_bool:
+    if func_bool:
+        print("Node labels selected")
+        if os.path.isfile("Node_labels.tsv"):
+            print('Node_labels.tsv file found.')
+        else:
+            print('Cannot find Node_labels.tsv file. Quitting...\n')
+            sys.exit()
+
+    
 
 #load in the ERCresults file for filtering, prior to sending over to R Network analysis script.
 tsvData = out_dir + 'ERC_results/' + fileName
@@ -119,7 +133,7 @@ if sum(1 for line in open(out_dir+"ERC_results/Filtered_results/Filtered_" + out
 
 #Run the Network analyses.
 #make command.
-Net_cmd= 'Rscript Networks_and_stats.R '+JOBname+" "+BLmethod+" "+str(RSquared)+" "+str(PValue)+" "+Clustmeth+" "+str(Trim_Cutoff)+" "+FocalSP+" "+'Filtered_' + outFileName+" "+str(func_bool)
+Net_cmd= 'Rscript Networks_and_stats.R '+JOBname+" "+BLmethod+" "+str(RSquared)+" "+str(PValue)+" "+Clustmeth+" "+str(Trim_Cutoff)+" "+FocalSP+" "+'Filtered_' + outFileName+" "+str(func_bool)+" "+str(lab_bool)
     
 #Run the command (if it contains strings expected in the command, this is a precaution of using shell=True)
 if re.search('Networks_and_stats.R', Net_cmd) and re.search('Rscript', Net_cmd):

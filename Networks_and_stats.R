@@ -37,8 +37,12 @@ foc_sp<-paste(args[7])
 #Get the filename from Network_analyses.py
 fileName<-paste(args[8])
 
-#Get the file name of functional category data
+#Run functional category analysis
 func_cat_bool<-paste(args[9])
+
+#Label some nodes on the network?
+lab_bool<-paste(args[10])
+
 
 #####Testing
 #jobname<-"full_8000_run_3_more_cores"
@@ -49,7 +53,9 @@ func_cat_bool<-paste(args[9])
 #trim_cutoff <- 0
 #foc_sp<-"A_thaliana_prot"
 #fileName<-"Filtered_ERC_results_R2T_5_5e-05_0.5.tsv"
-#func_cat_file<-"Functional_categories.tsv"
+#func_cat_bool<-"True"
+#lab_bool<-"True"
+
 #working_dir<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/"
 ###
 
@@ -148,30 +154,6 @@ if (!validCutoff | trim_cutoff <= 0){
     trim_cutoff = 0
 }
 
-#save pdf
-pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=8, height = 8)
-
-#Plot the graph with all communities
-plot(comms_final, network_graph_final,
-            vertex.label=NA,
-            vertex.size=2,
-            edge.color=rgb(0,0,0,0.3),
-            adjustcolor(V(network_graph_final)$color<-"black", alpha = .5),
-            mark.col = comms_plot_col,
-            mark.border = comms_plot_border,
-            layout=LO_final,
-            main=paste0(length(comms_final), " communities clustered using ", algo_name, " algorithm"))
-
-mysubtitle<-paste0("BL method: ",BL_type, "  |  ", "Filter stats: ","R2 " ,RSquared ," P ", PValue , "  |  ")
-mtext(side = 3, line = 0, at = 1, adj = 1, mysubtitle)
-
-# legend("topleft",
-#        legend = as.factor(1:length(comms_final)),
-#        fill = legend_color
-
-dev.off()
-
-
 ## Get the genes in each community
 #Create df
 comms_df<-data.frame(HOG=comms_final$names, Community=comms_final$membership)
@@ -197,19 +179,19 @@ comms_w_IDs$ID<-sapply(strsplit(comms_w_IDs$ID, ","),`[`, 1)
 #Write txt files
 #All genes in the network (as a background for enrichment analyses)
 write.table(paste(na.omit(unique(comms_w_IDs$ID))),
-           file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_","BACKGROUND_", BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,".txt"),
-           sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+            file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_","BACKGROUND_", BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,".txt"),
+            sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
 
 #Loop through all communities
 for(n in min(comms_w_IDs$Community):max(comms_w_IDs$Community)){
-
+  
   #Write tsv files
   write.table(paste(na.omit(unique(subset(comms_w_IDs$ID, comms_w_IDs$Community==n)))), 
               file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_",sprintf("%04d", n), "_", BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,".txt"), 
               sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
-
-}
   
+}
+
 ###Create centrality metrics spreadsheet###
 
 #Get all HOG names pre-filter
@@ -226,12 +208,12 @@ degree_cen<-degree(network_graph_final, normalized=TRUE)
 
 #Make dataframe
 network_stats_df <- data.frame(HOG_ID=names(degree_cen),
-          Eigenvector_centrality=as.numeric(paste(evcent(network_graph_final)$vector)),
-          Degree_centrality=as.numeric(paste(degree_cen)),
-          Eccentricity_centrality=as.numeric(paste(eccentricity(network_graph_final))),
-          Betweenness_centrality=as.numeric(paste(betweenness(network_graph_final))),
-          Closeness_centrality=as.numeric(paste(closeness(network_graph_final))),
-          Community_num=as.numeric(paste(membership(comms_final)))
+                               Eigenvector_centrality=as.numeric(paste(evcent(network_graph_final)$vector)),
+                               Degree_centrality=as.numeric(paste(degree_cen)),
+                               Eccentricity_centrality=as.numeric(paste(eccentricity(network_graph_final))),
+                               Betweenness_centrality=as.numeric(paste(betweenness(network_graph_final))),
+                               Closeness_centrality=as.numeric(paste(closeness(network_graph_final))),
+                               Community_num=as.numeric(paste(membership(comms_final)))
 )
 
 #merge HOGS not present in graph
@@ -251,6 +233,60 @@ final_network_stats_df_unique_reorder_rows<-final_network_stats_df_unique_reorde
 
 #Write the file
 write.csv(final_network_stats_df_unique_reorder_rows, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"), row.names = FALSE, quote = FALSE)
+
+###END Create centrality metrics spreadsheet END###
+
+### Add node label information
+if(lab_bool=="True"){
+  #Read in node label tsv
+  node_labs_df<-read.table(file = paste0(working_dir, "Node_labels.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  
+  #Merge the HOG info
+  node_labs_HOGs<-merge(x = final_network_stats_df_unique_reorder_rows, y = node_labs_df, by = "ID", all.x = TRUE, all.y = FALSE)
+  
+  #Store as categorical data
+  lab_values <- node_labs_HOGs$Label
+  names(lab_values) <- node_labs_HOGs$HOG_ID
+  
+  #Add the attribute
+  V(network_graph_final)$Node_labels <- lab_values[V(network_graph_final)$name]
+  
+  #Setup the spacing of labels on the graph
+  stagger_directions<-sample(seq(1,360), size = length(V(network_graph_final)$Node_labels),replace = TRUE)
+  #stagger_directions<-seq(1,360, 360/length(which(!is.na(V(network_graph_final)$Node_labels))))
+  
+}else{
+  V(network_graph_final)$Node_labels<-NA
+  stagger_directions<-sample(seq(1,360), size = length(V(network_graph_final)$Node_labels),replace = TRUE)
+}
+
+#save pdf
+pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=8, height = 8)
+
+#Plot the graph with all communities
+plot(comms_final, network_graph_final,
+            vertex.label=V(network_graph_final)$Node_labels,
+            vertex.label.cex = 0.5,
+            vertex.label.dist=0.5,
+            vertex.label.degree = stagger_directions,
+            vertex.size=2,
+            edge.color=rgb(0,0,0,0.3),
+            adjustcolor(V(network_graph_final)$color<-"black", alpha = .5),
+            mark.col = comms_plot_col,
+            mark.border = comms_plot_border,
+            layout=LO_final,
+            main=paste0(length(comms_final), " communities clustered using ", algo_name, " algorithm"))
+
+mysubtitle<-paste0("BL method: ",BL_type, "  |  ", "Filter stats: ","R2 " ,RSquared ," P ", PValue , "  |  ")
+mtext(side = 3, line = 0, at = 1, adj = 1, mysubtitle)
+
+# legend("topleft",
+#        legend = as.factor(1:length(comms_final)),
+#        fill = legend_color
+
+dev.off()
+
+
 
 ### Perform functional categories analysis
 #Check to see whether this option was selected by user
@@ -302,7 +338,10 @@ V(network_graph_final)$color <- vertex_colors
 
 # Plot the network
 plot(network_graph_final, 
-     vertex.label = NA,
+     vertex.label=V(network_graph_final)$Node_labels,
+     vertex.label.cex = 0.5,
+     vertex.label.dist=0.5,
+     vertex.label.degree = stagger_directions,
      vertex.size = 2,
      edge.color = rgb(0, 0, 0, 0.3),
      vertex.color = adjustcolor(V(network_graph_final)$color, alpha = 0.7),  # Set the alpha value for transparency
@@ -327,8 +366,6 @@ cats<-levels(as.factor(V(network_graph_final)$Functional_cat_code))
 for(c in 1:length(cats)){
   V(network_graph_final)$Functional_cat_code[which(V(network_graph_final)$Functional_cat_code==cats[c])]<-c
   }
-
-which(V(network_graph_final)$Functional_cat_code==cats[c])
 
 V(network_graph_final)$Functional_cat_code[which(is.na(V(network_graph_final)$Functional_cat_code))]<-(length(cats)+1)
 
