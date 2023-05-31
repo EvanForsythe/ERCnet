@@ -286,12 +286,12 @@ All options for Network_analyses.py:
 | -y | --Clustmeth | Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap. | yes | fg |
 | -t | --Trim_Cutoff | Must be an integer. Indicates the minimum number of nodes necessary for a community to be displayed on the network plot. Communitiies smaller than this number will be trimmed from the graph (and associated output tables). This option is mainly for network aesthetics. | no | 0 |
 | -s | --FocalSP | The name of the focal species to represent each gene family (should exactly match the tip label of the species tree). See further description below |
-| -f | --FileName | The filename of ERC_results file you would like to analyze. DO NOT include dot file type (eg, .tsv, .csv) |
-yes | NA |
+| -f | --FileName | The filename of ERC_results file you would like to analyze. Should be .tsv file | yes | NA |
+| -F | --Func_cat | Run a functional clustering analysis with user-provided functional information about genes in the focal species? If selected, provide the name of the tsv file. See documentation for formatting. | no | none |
 
 Example command:
 ```
-./Network_analyses.py -j test_job -m r2t -y fg -s A_thaliana_prot
+./Network_analyses.py -j test_job -m r2t -y fg -s A_thaliana_prot -F Functional_categories.tsv
 ```
 
 What Network_analyses.py does:
@@ -309,6 +309,47 @@ What Network_analyses.py does:
 * Extract other global network statistics (TBD) 
 
 
+#### Running the optional functional categories analysis
+If you select the -F option, you'll need to provide two files named Functional_categories.tsv and Functional_categories_col_assign.tsv. Be sure that the file names and formatting are identical to the examples provided.
+
+Functional_categories.tsv provides a priori functional information (e.g. subcellular localization) about the genes in the network. The ID's should exactly match the sequence IDs from your focal species (see above). Functional_category can be anything you want. 
+
+Example Functional_categories.tsv
+
+```
+ID	Functional_category
+A_thaliana__AT1G01070.1	Unknown
+A_thaliana__AT1G01080.1	Plastid
+A_thaliana__AT1G01090.1	Plastid
+A_thaliana__AT1G01100.1	Other
+A_thaliana__AT1G01170.1	Mitochondria
+A_thaliana__AT1G01180.1	Unknown
+A_thaliana__AT1G01190.1	Unknown
+A_thaliana__AT1G01200.1	Other
+A_thaliana__AT1G01225.1	Unknown
+A_thaliana__AT1G01230.1	Other
+A_thaliana__AT1G01240.1	Unknown
+A_thaliana__AT1G01250.1	Other
+A_thaliana__AT1G01290.1	Mitochondria
+A_thaliana__AT1G01335.1	Unknown
+A_thaliana__AT1G01340.1	Other
+A_thaliana__AT1G01355.1	Unknown
+A_thaliana__AT1G01360.1	Other
+```
+
+Functional_categories_col_assign.tsv tells igraph the color assignments for the different categories when plotting the functional categories network.
+
+Example Functional_categories_col_assign.tsv
+
+```
+Category	Color
+Plastid	Green
+Mitochondria	red
+Unknown	gray
+Other	gray
+Dual	tan
+NA	gray
+```
 
 
 

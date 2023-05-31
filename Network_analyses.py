@@ -34,7 +34,8 @@ parser.add_argument('-y', '--Clustmeth', type=str, metavar='', required=True, he
 parser.add_argument('-t', '--Trim_Cutoff', type=int, metavar='', required=False, help='The user-selected cutoff will be the minimum number of genes necessary for a community to be displayed on the network plot.This is mainly for network visualization and is not recommended for data collection. Must be an integer. 0 (no trimming) is default.', default=0)
 parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help='The name of the focal species to represent each gene family (should exactly match the tip label of the species tree)') 
 parser.add_argument('-c', '--CorrMethod', type=str, metavar='', required=False, help='The type of correlation method you would like to filter P Value and R value by. Default is both.', default='both')
-parser.add_argument('-f', '--FileName', type=str, metavar='', required=True, help='The filename of ERC_results file you would like to analyze. DO NOT include dot file type (eg, .tsv, .csv)')
+parser.add_argument('-f', '--FileName', type=str, metavar='', required=True, help='The filename of ERC_results file you would like to analyze. Should be .tsv file.')
+parser.add_argument('-F', '--Func_cat', action='store_true', required=False, help='Run a functional clustering analysis with user-provided functional information about genes in the focal species? If selected, youll need to provide two tsv files. See documentation for formatting. ') 
 
 #Define the parser
 args = parser.parse_args()
@@ -48,21 +49,14 @@ Clustmeth=args.Clustmeth
 Trim_Cutoff=args.Trim_Cutoff
 FocalSP=args.FocalSP
 Corrmethod = args.CorrMethod
-file=args.FileName
+fileName=args.FileName
+func_bool=args.Func_cat
 
 
-'''
-JOBname ="TEST"
-BLmethod="bxb"
-Filterstat="pval"
-Cutoff=float(0.005)
-Clustmeth="fg"
-Trim_Cutoff=int(0)
-FocalSP="Atha"
-'''
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
-fileName = file + '.tsv'
+#fileName = file.replace('.tsv', '')
+
 
 #Make a directory for Network outputs
 if not os.path.isdir(out_dir+'Network_analyses/'):
@@ -84,14 +78,25 @@ else:
 #Check to verify the correct methods have been chosen have a relevant filetype
 print('Verifying chosen branch and statistical methods have a relevant filetype...')
 if os.path.isfile(out_dir+'ERC_results/'+fileName):
-    print('File found. Proceeding on analysis using: ' + str(fileName))
+    print('File found. Proceeding to analysis using: ' + str(fileName))
 else:
     print('No file could be found at the location. Please check -m and -c flags match from ERC_analysis.py step.')
     print('Analysis will now exit...')
     sys.exit()
 
-#Run the R script
-print("Beginning network analyses using the R package, igraph...\n\n Calling R...\n\n")
+#Check to see whether Func_cat was specified
+if func_bool:
+    print("Functional category file provided")
+    if os.path.isfile("Functional_categories.tsv"):
+        print('Functional_categories.tsv file found.')
+    else:
+        print('Cannot find Functional_categories.tsv file. Quitting...\n')
+        sys.exit()
+    if os.path.isfile("Functional_categories_col_assign.tsv"):
+        print('Functional_categories_col_assign.tsv file found.')
+    else:
+        print('Cannot find Functional_categories_col_assign.tsv file. Quitting...\n')
+        sys.exit()
 
 #load in the ERCresults file for filtering, prior to sending over to R Network analysis script.
 tsvData = out_dir + 'ERC_results/' + fileName
@@ -102,19 +107,19 @@ csvData = pd.read_table(tsvData, sep='\t')
 #FilterCorrelationType(csvData, corrFilter)
 csvData = erc.FilterSignificance(csvData, RSquared, PValue, Corrmethod)
 
-fileName = file + "_" + str(PValue) + "_" + str(RSquared) + ".tsv"
+outFileName = fileName.replace('.tsv', '') + "_" + str(PValue) + "_" + str(RSquared) + ".tsv"
 
 #Output a filtered version of the ERC_results file
-csvData.to_csv(out_dir + "ERC_results/Filtered_results/Filtered_" + fileName, sep='\t', index=False, header=True) 
+csvData.to_csv(out_dir + "ERC_results/Filtered_results/Filtered_" + outFileName, sep='\t', index=False, header=True) 
 
-if sum(1 for line in open(out_dir+"ERC_results/Filtered_results/Filtered_" + fileName)) < 2:
+if sum(1 for line in open(out_dir+"ERC_results/Filtered_results/Filtered_" + outFileName)) < 2:
     print("It appears that not enough ERC results were retained for further analysis. Consider changing filtering criteria or analysis methods.")
     print("Quitting...")
     sys.exit()
 
 #Run the Network analyses.
 #make command.
-Net_cmd= 'Rscript Networks_and_stats.R '+JOBname+" "+BLmethod+" "+str(RSquared)+" "+str(PValue)+" "+Clustmeth+" "+str(Trim_Cutoff)+" "+FocalSP+" "+'Filtered_' + fileName
+Net_cmd= 'Rscript Networks_and_stats.R '+JOBname+" "+BLmethod+" "+str(RSquared)+" "+str(PValue)+" "+Clustmeth+" "+str(Trim_Cutoff)+" "+FocalSP+" "+'Filtered_' + outFileName+" "+str(func_bool)
     
 #Run the command (if it contains strings expected in the command, this is a precaution of using shell=True)
 if re.search('Networks_and_stats.R', Net_cmd) and re.search('Rscript', Net_cmd):

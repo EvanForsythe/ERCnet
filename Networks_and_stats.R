@@ -37,6 +37,9 @@ foc_sp<-paste(args[7])
 #Get the filename from Network_analyses.py
 fileName<-paste(args[8])
 
+#Get the file name of functional category data
+func_cat_bool<-paste(args[9])
+
 #####Testing
 #jobname<-"full_8000_run_3_more_cores"
 #BL_type<-"R2T"
@@ -46,6 +49,7 @@ fileName<-paste(args[8])
 #trim_cutoff <- 0
 #foc_sp<-"A_thaliana_prot"
 #fileName<-"Filtered_ERC_results_R2T_5_5e-05_0.5.tsv"
+#func_cat_file<-"Functional_categories.tsv"
 #working_dir<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/"
 ###
 
@@ -161,11 +165,9 @@ plot(comms_final, network_graph_final,
 mysubtitle<-paste0("BL method: ",BL_type, "  |  ", "Filter stats: ","R2 " ,RSquared ," P ", PValue , "  |  ")
 mtext(side = 3, line = 0, at = 1, adj = 1, mysubtitle)
 
-legend("topleft",
-       legend = as.factor(1:length(comms_final)),
-       fill = legend_color
-)
-
+# legend("topleft",
+#        legend = as.factor(1:length(comms_final)),
+#        fill = legend_color
 
 dev.off()
 
@@ -247,8 +249,75 @@ final_network_stats_df_unique_reorder<-final_network_stats_df_unique[order(final
 #Sort the columns
 final_network_stats_df_unique_reorder_rows<-final_network_stats_df_unique_reorder[, c("Community_num", names(final_network_stats_df_unique_reorder)[-length(names(final_network_stats_df_unique_reorder))])]
 
-
 #Write the file
-write.csv(final_network_stats_df_unique_reorder_rows, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"), row.names = FALSE)
+write.csv(final_network_stats_df_unique_reorder_rows, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"), row.names = FALSE, quote = FALSE)
+
+### Perform functional categories analysis
+#Check to see whether this option was selected by user
+if(func_cat_bool == "True"){
+  
+#Read in func cat files
+func_cat_df<-read.table(file = paste0(working_dir, "Functional_categories.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+func_cat_col_df<-read.table(file = paste0(working_dir, "Functional_categories_col_assign.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+if(nrow(func_cat_df)>1){
+  print("Functional category file successfully loaded in R")
+}else{
+  print("Something seems to be wrong with the functional category file")
+}
+
+#Merge the HOG info
+Func_cats_HOGs<-merge(x = final_network_stats_df_unique_reorder_rows, y = func_cat_df, by = "ID", all.x = TRUE, all.y = FALSE)
+
+#Reorder
+Func_cats_HOGs_reorder<-Func_cats_HOGs[order(Func_cats_HOGs$Community_num, -Func_cats_HOGs$Degree_centrality, -Func_cats_HOGs$Eigenvector_centrality), ]
+
+#Write a version of the csv file that includes func data
+write.csv(Func_cats_HOGs_reorder, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,"_FUNC_CAT.csv"), row.names = FALSE, quote = FALSE)
+
+# #Assign functional category as a node attribute
+#Store as categorical data
+category_values <- Func_cats_HOGs_reorder$Functional_category
+names(category_values) <- Func_cats_HOGs_reorder$HOG_ID
+
+#Add the attribute
+V(network_graph_final)$Functional_category <- category_values[V(network_graph_final)$name]
+
+# Define color mapping **WORKING: Need to soft-code this**
+#color_mapping <- c("Plastid" = "green", "Mitochondria" = "red", "Unknown" = "gray", "Other" = "gray", "Dual" = "tan", "NA" = "gray")
+
+#Remove NAs
+func_cat_col_df <- func_cat_col_df[complete.cases(func_cat_col_df), ]
+
+#Generate color_mapping object
+color_mapping <- setNames(func_cat_col_df$Color, func_cat_col_df$Category)
+
+#Plot the network graph
+#save pdf
+pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,"_FUNC_CAT.pdf"), width=8, height = 8)
+
+# Create a color vector based on Functional_category
+vertex_colors <- color_mapping[V(network_graph_final)$Functional_category]
+
+# Assign vertex colors
+V(network_graph_final)$color <- vertex_colors
+
+# Plot the network
+plot(network_graph_final, 
+     vertex.label = NA,
+     vertex.size = 2,
+     edge.color = rgb(0, 0, 0, 0.3),
+     vertex.color = adjustcolor(V(network_graph_final)$color, alpha = 0.7),  # Set the alpha value for transparency
+     layout = LO_final,
+     main = paste0(length(comms_final), " communities clustered using ", algo_name, " algorithm"))
+
+     mysubtitle<-paste0("BL method: ",BL_type, "  |  ", "Filter stats: ","R2 " ,RSquared ," P ", PValue , "  |  ")
+     mtext(side = 3, line = 0, at = 1, adj = 1, mysubtitle)
+
+dev.off()
+
+}#End if statement
+
 
 
