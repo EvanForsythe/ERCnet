@@ -351,5 +351,5 @@ Dual	tan
 NA	gray
 ```
 
-
+Selecting the -F flag will automatically create a figure that calculates the [Nominal Assortativity](https://igraph.org/r/doc/assortativity.html) and compares the observed value against a randomized null distribution.
 

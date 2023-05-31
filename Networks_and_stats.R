@@ -284,9 +284,6 @@ names(category_values) <- Func_cats_HOGs_reorder$HOG_ID
 #Add the attribute
 V(network_graph_final)$Functional_category <- category_values[V(network_graph_final)$name]
 
-# Define color mapping **WORKING: Need to soft-code this**
-#color_mapping <- c("Plastid" = "green", "Mitochondria" = "red", "Unknown" = "gray", "Other" = "gray", "Dual" = "tan", "NA" = "gray")
-
 #Remove NAs
 func_cat_col_df <- func_cat_col_df[complete.cases(func_cat_col_df), ]
 
@@ -314,6 +311,60 @@ plot(network_graph_final,
 
      mysubtitle<-paste0("BL method: ",BL_type, "  |  ", "Filter stats: ","R2 " ,RSquared ," P ", PValue , "  |  ")
      mtext(side = 3, line = 0, at = 1, adj = 1, mysubtitle)
+
+dev.off()
+
+
+#### ASSORTATIVITY ######
+#Assign number code for the functional categories
+#These codes are needed to run assortativity 
+V(network_graph_final)$Functional_cat_code=V(network_graph_final)$Functional_category
+
+#Get list of the different categories
+cats<-levels(as.factor(V(network_graph_final)$Functional_cat_code))
+
+#Assign all the codes
+for(c in 1:length(cats)){
+  V(network_graph_final)$Functional_cat_code[which(V(network_graph_final)$Functional_cat_code==cats[c])]<-c
+  }
+
+which(V(network_graph_final)$Functional_cat_code==cats[c])
+
+V(network_graph_final)$Functional_cat_code[which(is.na(V(network_graph_final)$Functional_cat_code))]<-(length(cats)+1)
+
+#assortativity coefficient calculation (observed)
+obs_assort<-assortativity.nominal(network_graph_final, types = V(network_graph_final)$Functional_cat_code, directed = FALSE)
+
+#Get a random null distribution
+#make function
+rando_assort<-function(){
+  #Make a copy
+  network_graph_rep<-network_graph_final
+
+  #coefficient calculation (randomized)
+  assortativity.nominal(network_graph_rep, types = sample(V(network_graph_rep)$Functional_cat_code, replace = FALSE), directed = FALSE)
+}
+
+#run the function
+assort_reps<-replicate(1000, rando_assort())
+
+#Calculate a quick (and dirty?) p-value
+#length(which(assort_reps>obs_assort))
+
+#save pdf
+pdf(file = paste0(working_dir, out_dir, "Network_analyses/Network_assortativity_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=6, height = 6)
+
+#plot the curve of the null distribution
+plot(density(assort_reps), 
+     main = "Random distribution and \nobserved assortativity", 
+     xlab = paste0("Observed Assort coefficient: ", 
+                   obs_assort, 
+                   "\nquick P-value: ",
+                   length(which(assort_reps>obs_assort))/length(assort_reps)
+                   )
+     )
+#plot a line where the observed Assortativity is
+abline(v=obs_assort)
 
 dev.off()
 
