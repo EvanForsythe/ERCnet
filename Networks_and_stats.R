@@ -385,8 +385,12 @@ rando_assort<-function(){
 #run the function
 assort_reps<-replicate(1000, rando_assort())
 
-#Calculate a quick (and dirty?) p-value
-#length(which(assort_reps>obs_assort))
+#Perform z-test to get p-value
+#z-score
+z_score<-(obs_assort-mean(assort_reps))/sd(assort_reps)
+
+p_val<-2*pnorm(q = z_score, lower.tail = FALSE)
+
 
 #save pdf
 pdf(file = paste0(working_dir, out_dir, "Network_analyses/Network_assortativity_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=6, height = 6)
@@ -396,8 +400,8 @@ plot(density(assort_reps),
      main = "Random distribution and \nobserved assortativity", 
      xlab = paste0("Observed Assort coefficient: ", 
                    obs_assort, 
-                   "\nquick P-value: ",
-                   length(which(assort_reps>obs_assort))/length(assort_reps)
+                   "\nTwo-tailed P-value: ",
+                   p_val
                    )
      )
 #plot a line where the observed Assortativity is
@@ -405,7 +409,16 @@ abline(v=obs_assort)
 
 dev.off()
 
+#Write results to the metadata file
+cat(paste0("\n", BL_type,"\t", PValue, "\t", 
+           RSquared,"\t",length(unique(c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG))), "\t",
+           nrow(ERC_hits_df),"\t",clust_method, "\t", 
+           obs_assort,"\t",z_score,"\t",p_val), 
+    file = paste0(working_dir, out_dir, "Network_analyses/Func_categories_rundata.tsv"), append = TRUE)
+
 }#End if statement
 
 
+cat("\nNumber of significant correlations (according to filter parameters): ", nrow(ERC_hits_df), 
+    "\nNumber of genes in network: ", length(unique(c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG))),
 
