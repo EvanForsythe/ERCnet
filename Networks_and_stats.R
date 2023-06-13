@@ -129,6 +129,7 @@ if (trim_cutoff > 0){
   	comms_final$modularity <- modularity(network_graph_final, comms_final$membership, E(network_graph_final)$weight)
 
   	#Network layout and colors
+  	#LO <- layout_on_grid(network_graph)
   	LO <- layout_nicely(network_graph)
   	LO_final <- LO[comms_keep_v_idxs, ]
   	comms_plot_col <- rainbow(length(communities(comms_final)), alpha = 0.3)[comms_keep_ids]
@@ -148,6 +149,7 @@ if (!validCutoff | trim_cutoff <= 0){
     comms_plot_col <- rainbow(length(comms_final), alpha = 0.3)
     comms_plot_border <- rainbow(length(comms_final), alpha = 1)
     #Network layout
+    #LO_final <- layout_on_grid(network_graph_final)
     LO_final <- layout_nicely(network_graph_final)
     #legend colors
     legend_color <- rainbow(length(comms_final), alpha = 0.3)
