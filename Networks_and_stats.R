@@ -52,9 +52,9 @@ lab_bool<-paste(args[10])
 #clust_method<-"eb"
 #trim_cutoff <- 0
 #foc_sp<-"A_thaliana_prot"
-#fileName<-"Filtered_ERC_results_R2T_5_5e-05_0.5.tsv"
-#func_cat_bool<-"True"
-#lab_bool<-"True"
+#fileName<-"Filtered_ERC_results_R2T_5_1e-05_0.5.tsv"
+#func_cat_bool<-"False"
+#lab_bool<-"False"
 
 #working_dir<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/"
 ###
@@ -419,8 +419,4 @@ cat(paste0("\n", BL_type,"\t", PValue, "\t",
     file = paste0(working_dir, out_dir, "Network_analyses/Func_categories_rundata.tsv"), append = TRUE)
 
 }#End if statement
-
-
-cat("\nNumber of significant correlations (according to filter parameters): ", nrow(ERC_hits_df), 
-    "\nNumber of genes in network: ", length(unique(c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG))),
 
