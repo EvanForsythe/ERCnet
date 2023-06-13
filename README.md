@@ -309,16 +309,8 @@ What Network_analyses.py does:
    * A common downstream analysis would be to ask if the genes within a community are enriched for a particular function. To do this, you'll need a gene ID to represnt each gene in the network (technically the nodes represnt gene families/trees). The user can set which species is the best model organism to represent the gene family using the -s argument. We recommend using the species that has the best functional annotations. 
 * Extract other global network statistics (TBD) 
 
-
-<<<<<<< HEAD
-## Benchmarking
-ERCnet automatically creates a folder called 'Benchmarking' in the OUT directory of each job. This folder houses information regarding how fast ERCnet is accomplishing tasks given the resources it has. Every major computational step in the ERCnet pipeline has a benchmarking call to it, cataloguing the time the process began and the time it ended as well as a log of the resources allocated for that script. The benchmark then also calculates the total time it took to complete any given step and the number of 'items' (lines written/files processed/etc) completed per minute of run time. These files can be used to gauge general performance of ERCnet and monitor how resource allocation impacts performance. 
-
-**Note:** The benchmarking file is designed for long running analysis' and therefore does not correctly calculate processes which take less than a minute of runtime to complete. 
-=======
 #### Running the optional functional categories analysis
 If you select the -F option, you'll need to provide two files named Functional_categories.tsv and Functional_categories_col_assign.tsv. Be sure that the file names and formatting are identical to the examples provided.
->>>>>>> b61f1abbf691b982d56e9cce53da98fe11aa90c7
 
 Functional_categories.tsv provides a priori functional information (e.g. subcellular localization) about the genes in the network. The ID's should exactly match the sequence IDs from your focal species (see above). Functional_category can be anything you want. 
 
