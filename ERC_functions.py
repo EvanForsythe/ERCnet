@@ -23,6 +23,7 @@ def FilterSignificance(data, R, P, filterBy):
 
     oRows = len(data)
 
+    data = data[:][data['Slope'] > 0]
 
     if filterBy == 'spearman':
         print('Filtering results by Spearman values...')

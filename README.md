@@ -309,7 +309,6 @@ What Network_analyses.py does:
    * A common downstream analysis would be to ask if the genes within a community are enriched for a particular function. To do this, you'll need a gene ID to represnt each gene in the network (technically the nodes represnt gene families/trees). The user can set which species is the best model organism to represent the gene family using the -s argument. We recommend using the species that has the best functional annotations. 
 * Extract other global network statistics (TBD) 
 
-
 #### Running the optional functional categories analysis
 If you select the -F option, you'll need to provide two files named Functional_categories.tsv and Functional_categories_col_assign.tsv. Be sure that the file names and formatting are identical to the examples provided.
 

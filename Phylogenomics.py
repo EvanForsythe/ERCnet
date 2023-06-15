@@ -205,9 +205,9 @@ if Mult_threads < 4:
 
 
 #Define the time object and folder for optimization testing
-bench_fileName = JOBname + 'Phylogenomics_benchmark.tsv'
+bench_fileName = JOBname + '_Phylogenomics_benchmark.tsv'
 timer = time.localtime()
-current_time = time.strftime("%a, %d %b %Y %H:%M:%S", timer)
+current_time = time.strftime("%H:%M:%S", timer)
 
 if not os.path.isdir(out_dir + 'benchmark/'):
     os.makedirs(out_dir + 'benchmark/')
@@ -499,7 +499,7 @@ if not taper == "no":
             subprocess.call(taper_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-    Parallel(n_jobs = Mult_threads, verbose=100)(delayed(par_taper_trim)(file) for file in iterate_taper(aln_file_names))
+    Parallel(n_jobs = 1, verbose=100)(delayed(par_taper_trim)(file) for file in iterate_taper(aln_file_names))
     
     #Check alignment status
     if len(glob.glob(out_dir+'TAPER_Alns/ALN*')) == len(aln_file_names):
@@ -612,7 +612,7 @@ def par_gblocks(aln):
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
 
 #run the parallel command
-Parallel(n_jobs= 1, verbose=100)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names2))
+Parallel(n_jobs= Mult_threads, verbose=100)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names2))
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
@@ -923,7 +923,7 @@ def par_BL_opt(k_ID, cores):
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'keeps', timer)
 
 #Call paralell
-Parallel(n_jobs = 1, verbose=100)(delayed(par_BL_opt)(k_ID, 1) for k_ID in iterate_keeps(keeperIDs))
+Parallel(n_jobs = Rax_front_cores, verbose=100)(delayed(par_BL_opt)(k_ID, Rax_back_cores) for k_ID in iterate_keeps(keeperIDs))
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'keeps', timer)
