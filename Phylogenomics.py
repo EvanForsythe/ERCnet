@@ -40,7 +40,7 @@ parser = argparse.ArgumentParser(description='Script for running the first step 
 parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help='Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok)') 
 parser.add_argument('-o', '--OFpath', type=str, metavar='', required=True, help='Full path to the Orthofinder results dir (should contain Species_Tree/, Phylogenetic_Hierarchical_Orthogroups/ etc...)\n Include "/" at the end of the string') 
 parser.add_argument('-p', '--MaxP', type=int, metavar='', required=False, default=3, help='Integer: maximum number of paralogs per species allowed in each gene family (default = 3)' )
-parser.add_argument('-r', '--MinR', type=int, metavar='', required=False, default=0, help='Integer: minimum number of species represented required in each gene family (default = 10)' )
+parser.add_argument('-r', '--MinR', type=int, metavar='', required=False, default=0, help='Integer: minimum number of species represented required in each gene family (default = half of species)' )
 parser.add_argument('-t', '--Test_num', type=int, metavar='', required=False, help='Integer: number of gene families to analyze (for testing only)' )
 parser.add_argument('-e','--explore_filters', action='store_true', required=False, help='Add this flag to explore filtering options (if selected, program will quit without running downstream steps)')
 parser.add_argument('-l', '--Min_len', type=int, metavar='', required=False, default=100, help='Integer: minimum length (amino acid sites) of alignment (after trimming with Gblocks) required to retain gene (default = 100)' )
