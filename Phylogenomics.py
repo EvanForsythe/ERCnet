@@ -40,7 +40,7 @@ parser = argparse.ArgumentParser(description='Script for running the first step 
 parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help='Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok)') 
 parser.add_argument('-o', '--OFpath', type=str, metavar='', required=True, help='Full path to the Orthofinder results dir (should contain Species_Tree/, Phylogenetic_Hierarchical_Orthogroups/ etc...)\n Include "/" at the end of the string') 
 parser.add_argument('-p', '--MaxP', type=int, metavar='', required=False, default=3, help='Integer: maximum number of paralogs per species allowed in each gene family (default = 3)' )
-parser.add_argument('-r', '--MinR', type=int, metavar='', required=False, default=10, help='Integer: minimum number of species represented required in each gene family (default = 10)' )
+parser.add_argument('-r', '--MinR', type=int, metavar='', required=False, default=0, help='Integer: minimum number of species represented required in each gene family (default = 10)' )
 parser.add_argument('-t', '--Test_num', type=int, metavar='', required=False, help='Integer: number of gene families to analyze (for testing only)' )
 parser.add_argument('-e','--explore_filters', action='store_true', required=False, help='Add this flag to explore filtering options (if selected, program will quit without running downstream steps)')
 parser.add_argument('-l', '--Min_len', type=int, metavar='', required=False, default=100, help='Integer: minimum length (amino acid sites) of alignment (after trimming with Gblocks) required to retain gene (default = 100)' )
@@ -327,7 +327,7 @@ if explore_filters:
     
     #assign new row names
     retained_trees_df.set_axis(min_rep_vals, axis=1, inplace=True)
-    
+
     #Print the table
     print('\n\nOutputting table of the total retained trees under different filtering parameter combinations to "Retained_genes_counts.csv"\n')
     retained_trees_df.to_csv(out_dir+'Retained_genes_counts.csv', sep=',' , index=False)
@@ -340,11 +340,10 @@ if explore_filters:
     sys.exit()
     
 #Report the filters chosen by user
-if 'MaxP_val' in globals() and isinstance(MaxP_val, int) and'MinR_val' in globals() and isinstance(MinR_val, int):
-    print('--MaxP_val set to {} and --MinR_val set to {}\nFiltering data....'.format(MaxP_val,MinR_val))
-else:
-    print('ERROR: --MaxP_val and --MinR_val required (unless you use the --explore_filters flag)\nexiting...')
-    sys.exit()
+if (MinR_val == 0):
+    print('A value for --MinR was not provided. ERCnet defaults to half the number of species provided in mapping table.')
+    MinR_val = math.floor(len(sp_names)/2)
+print('--MaxP_val set to {} and --MinR_val set to {}\nFiltering data....'.format(MaxP_val,MinR_val))
 
 ##Filter results according to filter criteria
 #Use the module from Filter_stats.py to filter the list
