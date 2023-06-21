@@ -342,7 +342,7 @@ if explore_filters:
 #Report the filters chosen by user
 if (MinR_val == 0):
     print('A value for --MinR was not provided. ERCnet defaults to half the number of species provided in mapping table.')
-    MinR_val = math.floor(len(sp_names)/2)
+    MinR_val = max(math.floor(len(sp_names)/2),1)
 print('--MaxP_val set to {} and --MinR_val set to {}\nFiltering data....'.format(MaxP_val,MinR_val))
 
 ##Filter results according to filter criteria
