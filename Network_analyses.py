@@ -151,6 +151,7 @@ if re.search('Networks_and_stats.R', Net_cmd) and re.search('Rscript', Net_cmd):
 
 if len(glob.glob(out_dir+'Network_analyses/*pdf')) > 0:
     print('Finished network analyses.\n\nResults files written to Network_analyses/\n\n')
+    print('ERCnet finished! :)') 
 else:
     print('Something went wrong with network analyses...\n\n')
 
