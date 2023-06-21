@@ -36,7 +36,9 @@ foc_sp<-paste(args[7])
 
 #Get the filename from Network_analyses.py
 fileName<-paste(args[8])
-fileName = fileName[:-4]
+#Removes '.tsv' from fileName
+fileName = substr(fileName, 1, nchar(fileName) - 4)
+ 
 
 #Run functional category analysis
 func_cat_bool<-paste(args[9])
