@@ -177,7 +177,6 @@ core_distribution groups for Phylogenomics.py.
 
 *'Back End' parallelization specifically refers to the number of cores that are passed to RAXML's native multi-threading support. 
 
-
 *Values for these parameters can have a large impact on analyses so make sure the values make biological sense for your analysis before opting for default values.
 
 Use the table output by running the --explore_filters option (above) to choose reasonable values for -p and -r. 
@@ -377,3 +376,7 @@ A_thaliana__AT4G25370.1	CLPT1
 A_thaliana__AT4G12060.1	CLPT2
 A_thaliana__AT2G03390.1	CLPF
 ```
+## Benchmarking
+ERCnet automatically creates a folder called 'Benchmarking' in the OUT directory of each job. This folder houses information regarding how fast ERCnet is accomplishing tasks given the resources it has. Every major computational step in the ERCnet pipeline has a benchmarking call to it, cataloguing the time the process began and the time it ended as well as a log of the resources allocated for that script. The benchmark then also calculates the total time it took to complete any given step and the number of 'items' (lines written/files processed/etc) completed per minute of run time. These files can be used to gauge general performance of ERCnet and monitor how resource allocation impacts performance. 
+
+**Note:** The benchmarking file is designed for long running analysis' and therefore does not correctly calculate processes which take less than a minute of runtime to complete. 
