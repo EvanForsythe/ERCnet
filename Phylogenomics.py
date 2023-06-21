@@ -982,9 +982,13 @@ if len(glob.glob('DLCpar/*_NODES_BL.txt')) > 0:
 print('\nIMPORTANT NOTE: the next step makes use of DLCpar, which requires python 2 (whereas the previous steps are written in python 3).\n' \
       'To run the next step you will need to enter a python 2 anaconda environment and install DLCpar.\n' \
           '\nExample commands:\n' \
+            '\nIf this is your first time running, follow these three commands.\n' \
               'conda create --name dlcpar_py27 python=2.7\n' \
                   'conda activate dlcpar_py27\n' \
                       'conda install -c bioconda dlcpar\n')
+
+print("If you've run this step previously, you only need to activate your dlcpar environment.\n" \
+        "(eg: conda activate dlcpar_py27\n") 
 
 print('After successfully completing the above steps, run the next step with the following command:\n' \
       './GTST_reconciliation.py -j '+JOBname+'\n\n')
