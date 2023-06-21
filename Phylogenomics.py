@@ -267,6 +267,24 @@ print("These should be present in the sequence IDs in alignments etc...\n")
 #Generate a dataframe of the counts data using the my outside module from filterHOGs.py
 seq_counts_df=make_seq_counts_df(HOG_file_path, out_dir+'Species_mapping.csv')
 
+#Verify species mapping has been done correctly. 
+numSpecies = seq_counts_df.columns[3:]
+runningSum = 0
+
+print('Species Mapping Table:')
+
+for spec in numSpecies:
+    speciesSum = sum(seq_counts_df[spec])
+    runningSum += speciesSum
+    print(str(speciesSum) + ' \ttotal genes mapped to \t' + str(spec) + ' genome.')
+print('\n')
+
+if (runningSum < 1):
+    print('An error has occured in the species mapping table. Please verify species names are consistent. ERCnet will now exit.')
+    sys.exit()
+
+
+
 #Check if the dataframe was assinged properly
 if 'HOG' in list(seq_counts_df.columns):
     print('Sequence counts per species dataframe successfully generated\n')
