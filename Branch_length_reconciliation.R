@@ -147,7 +147,7 @@ for(m in 1:length(rec_files_list)){
   bxb_vals_temp<-as.numeric(paste(na.omit(as.numeric(BL_measure_df[m,-1]))))
   #Ask if the longest branch is more than 10x the second longest branch
   
-  if(length(bxb_vals_temp)>0){
+  if(length(bxb_vals_temp)>1){
     if(bxb_vals_temp[order(bxb_vals_temp,decreasing = TRUE)][1]>(10*bxb_vals_temp[order(bxb_vals_temp,decreasing = TRUE)][2])){
       #If there is an outlier branch, set all values to NA for this tree
       BL_measure_df[m,-1]<-NA

@@ -90,6 +90,11 @@ with open(out_dir + 'benchmark/' + str(bench_fileName), "a") as bench:
 print("Checking or creating folder for ERC Results.\n")
 erc.CheckAndMakeDir(out_dir, 'ERC_results/')
 
+#Verify files exist in DLCpar/ for BL reconciliation in R. 
+if not (erc.CheckFileExists(out_dir + 'DLCpar/*_NODES_BL.txt.dlcpar.locus.recon')):
+    print('It appears that something has gone wrong when running GTST_reconciliation.py. Please verify input and output files. ERCnet will now exit.')
+    sys.exit()
+
 ### Run the BL_reconciliation
 print("beginning BL reconciliation in R...\n\n Calling R...\n\n")
 
@@ -123,6 +128,12 @@ gene_fams=pd.read_csv(out_dir+'Filtered_genefam_dataset.csv')
 #Clean up the gene IDs dataframe
 #Find out what string needs to be removed from HOGs and use replace() to remove it
 gene_fams['HOG']=gene_fams['HOG'].str.replace(str(gene_fams['HOG'][0].split(".", 1)[0]+"."), "")
+
+#Verify list of BLs['HOG_ID'] is at least 2. 
+if len(BLs['HOG_ID']) < 2:
+    print('It appears something has gone wrong and there are no pairs of trees to compare.')
+    print('Please verify that the number of gene families from ./Phylogenomics.py is greater than 1 (-t > 1). ERCnet will now exit.')
+    sys.exit() 
 
 
 #Make list of pairwise combinations
@@ -228,7 +239,7 @@ else:
 print('ERC correlation analyses finished. Exiting....\n\n'\
       'To perform network analyses, run Network_analyses.py. See associated help menu for required arguments.'\
           '\nExample command:\n\n' \
-          './Network_analyses.py -j '+JOBname+' -m R2T -c spearman -y fg -s '+FocalSP+'\n\n' 
+          './Network_analyses.py -j '+JOBname+' -m R2T -c spearman -y fg -s ' +FocalSP+ ' -f <name of .tsv file located in ERC_results/> \n\n' 
       )
 
 

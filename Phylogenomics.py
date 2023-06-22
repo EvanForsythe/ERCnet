@@ -40,7 +40,7 @@ parser = argparse.ArgumentParser(description='Script for running the first step 
 parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help='Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok)') 
 parser.add_argument('-o', '--OFpath', type=str, metavar='', required=True, help='Full path to the Orthofinder results dir (should contain Species_Tree/, Phylogenetic_Hierarchical_Orthogroups/ etc...)\n Include "/" at the end of the string') 
 parser.add_argument('-p', '--MaxP', type=int, metavar='', required=False, default=3, help='Integer: maximum number of paralogs per species allowed in each gene family (default = 3)' )
-parser.add_argument('-r', '--MinR', type=int, metavar='', required=False, default=10, help='Integer: minimum number of species represented required in each gene family (default = 10)' )
+parser.add_argument('-r', '--MinR', type=int, metavar='', required=False, default=0, help='Integer: minimum number of species represented required in each gene family (default = half of species)' )
 parser.add_argument('-t', '--Test_num', type=int, metavar='', required=False, help='Integer: number of gene families to analyze (for testing only)' )
 parser.add_argument('-e','--explore_filters', action='store_true', required=False, help='Add this flag to explore filtering options (if selected, program will quit without running downstream steps)')
 parser.add_argument('-l', '--Min_len', type=int, metavar='', required=False, default=100, help='Integer: minimum length (amino acid sites) of alignment (after trimming with Gblocks) required to retain gene (default = 100)' )
@@ -73,6 +73,7 @@ Apriori=args.Apriori
 core_dist=args.core_distribution
 prune_cutoff=args.Prune_cutoff
 taper=args.Taper
+
 '''
 #DEV: hardcode arguments
 JOBname = "small2"
@@ -266,6 +267,24 @@ print("These should be present in the sequence IDs in alignments etc...\n")
 #Generate a dataframe of the counts data using the my outside module from filterHOGs.py
 seq_counts_df=make_seq_counts_df(HOG_file_path, out_dir+'Species_mapping.csv')
 
+#Verify species mapping has been done correctly. 
+numSpecies = seq_counts_df.columns[3:]
+runningSum = 0
+
+print('Species Mapping Table:')
+
+for spec in numSpecies:
+    speciesSum = sum(seq_counts_df[spec])
+    runningSum += speciesSum
+    print(str(speciesSum) + ' \ttotal genes mapped to \t' + str(spec) + ' genome.')
+print('\n')
+
+if (runningSum < 1):
+    print('An error has occured in the species mapping table. Please verify species names are consistent. ERCnet will now exit.')
+    sys.exit()
+
+
+
 #Check if the dataframe was assinged properly
 if 'HOG' in list(seq_counts_df.columns):
     print('Sequence counts per species dataframe successfully generated\n')
@@ -281,7 +300,7 @@ if explore_filters:
     
     #Set filter ranges
     max_paralogs_vals=list(range(1, 5, 1))
-    min_rep_vals=list(range(5, (len(sp_names)+1), 1))
+    min_rep_vals=list(range(math.floor(len(sp_names)/2), (len(sp_names)+1), 1))
     
     #Make blank array for parameter scan
     retained_trees=np.zeros((len(max_paralogs_vals), len(min_rep_vals)))
@@ -308,7 +327,7 @@ if explore_filters:
     
     #assign new row names
     retained_trees_df.set_axis(min_rep_vals, axis=1, inplace=True)
-    
+
     #Print the table
     print('\n\nOutputting table of the total retained trees under different filtering parameter combinations to "Retained_genes_counts.csv"\n')
     retained_trees_df.to_csv(out_dir+'Retained_genes_counts.csv', sep=',' , index=False)
@@ -321,11 +340,10 @@ if explore_filters:
     sys.exit()
     
 #Report the filters chosen by user
-if 'MaxP_val' in globals() and isinstance(MaxP_val, int) and'MinR_val' in globals() and isinstance(MinR_val, int):
-    print('--MaxP_val set to {} and --MinR_val set to {}\nFiltering data....'.format(MaxP_val,MinR_val))
-else:
-    print('ERROR: --MaxP_val and --MinR_val required (unless you use the --explore_filters flag)\nexiting...')
-    sys.exit()
+if (MinR_val == 0):
+    print('A value for --MinR was not provided. ERCnet defaults to half the number of species provided in mapping table.')
+    MinR_val = max(math.floor(len(sp_names)/2),1)
+print('--MaxP_val set to {} and --MinR_val set to {}\nFiltering data....'.format(MaxP_val,MinR_val))
 
 ##Filter results according to filter criteria
 #Use the module from Filter_stats.py to filter the list
@@ -982,9 +1000,13 @@ if len(glob.glob('DLCpar/*_NODES_BL.txt')) > 0:
 print('\nIMPORTANT NOTE: the next step makes use of DLCpar, which requires python 2 (whereas the previous steps are written in python 3).\n' \
       'To run the next step you will need to enter a python 2 anaconda environment and install DLCpar.\n' \
           '\nExample commands:\n' \
+            '\nIf this is your first time running, follow these three commands.\n' \
               'conda create --name dlcpar_py27 python=2.7\n' \
                   'conda activate dlcpar_py27\n' \
                       'conda install -c bioconda dlcpar\n')
+
+print("If you've run this step previously, you only need to activate your dlcpar environment.\n" \
+        "(eg: conda activate dlcpar_py27\n") 
 
 print('After successfully completing the above steps, run the next step with the following command:\n' \
       './GTST_reconciliation.py -j '+JOBname+'\n\n')

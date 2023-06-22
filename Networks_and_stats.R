@@ -36,6 +36,9 @@ foc_sp<-paste(args[7])
 
 #Get the filename from Network_analyses.py
 fileName<-paste(args[8])
+#Removes '.tsv' from fileName
+fileName = substr(fileName, 1, nchar(fileName) - 4)
+ 
 
 #Run functional category analysis
 func_cat_bool<-paste(args[9])
@@ -71,7 +74,7 @@ out_dir<-paste0("OUT_", jobname, "/")
 
 #Read in ERC correlation results
 #Read the table
-ERC_hits_df<-read.table(file = paste0(working_dir, out_dir, "ERC_results/Filtered_results/", fileName), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+ERC_hits_df<-read.table(file = paste0(working_dir, out_dir, "ERC_results/Filtered_results/", fileName,".tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 #Print message
 #Use cat because paste+print doesn't recognize \n

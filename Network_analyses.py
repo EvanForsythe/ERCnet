@@ -149,8 +149,9 @@ if re.search('Networks_and_stats.R', Net_cmd) and re.search('Rscript', Net_cmd):
     print(Net_cmd)
     subprocess.call(Net_cmd, shell=True)
 
-if len(glob.glob(out_dir+'Network_analyses/*pdf')) > 0:
+if (erc.CheckFileExists(out_dir+'Network_analyses/*pdf') and erc.CheckFileExists(out_dir+'Network_analyses/*csv')):
     print('Finished network analyses.\n\nResults files written to Network_analyses/\n\n')
+    print('ERCnet finished! :)') 
 else:
     print('Something went wrong with network analyses...\n\n')
 
