@@ -45,6 +45,9 @@ Different ERCnet steps require different dependencies. Most notably, the *Gene-t
 
 Below we provide detailed instructions for configuring environments for each step of ERCnet.
 
+We have provided sample input data for a very small ERCnet run in to test whether ERCnet and dependencies are configured properly. These data are located in the SampleData directory and are formatted similar to Orthofinder output. Note that you will need to copy Species_mapping.csv into the main ERCnet directory in order to run a test run on the sample data. 
+
+
 ### 1. Phylogenomic analyses
 #### Installing dependencies
 
