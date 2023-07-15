@@ -48,16 +48,16 @@ lab_bool<-paste(args[10])
 
 
 #####Testing
-#jobname<-"full_8000_run_3_more_cores"
+#jobname<-"ERC_Final"
 #BL_type<-"R2T"
 #RSquared<-0.5
-#PValue<-5e-05
-#clust_method<-"eb"
+#PValue<-0.0001
+#clust_method<-"fg"
 #trim_cutoff <- 0
-#foc_sp<-"A_thaliana_prot"
-#fileName<-"Filtered_ERC_results_R2T_5_1e-05_0.5.tsv"
-#func_cat_bool<-"False"
-#lab_bool<-"False"
+#foc_sp<-"Atha"
+#fileName<-"Filtered_ERC_results_R2T_3_0.0001_0.5"
+#func_cat_bool<-"True"
+#lab_bool<-"True"
 
 #working_dir<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/"
 ###
@@ -423,3 +423,32 @@ cat(paste0("\n", BL_type,"\t", PValue, "\t",
 
 }#End if statement
 
+### Create files for external use in Cytoscape
+#Make a weird c-bound version of ERC results
+all_df<-data.frame(HOG=c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG), ID=c(ERC_hits_df$GeneA_ID, ERC_hits_df$GeneB_ID))
+
+#Get a table that contains gene annotation info.
+cyto_df<-data.frame(HOG=unique(c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG)), ID_comprehensive=NA)
+
+#add gene annotations to HOGs
+for(i in 1:nrow(cyto_df)){
+  #Find the first row that matches the HOG
+  row_num_temp<-which(all_df$HOG == cyto_df$HOG[i])[1]
+  #Check if the focal species string is present in ID
+  if(length(grep(foc_sp, all_df$ID[row_num_temp]))>0){
+    cyto_df$ID_comprehensive[i]<-all_df$ID[row_num_temp]
+  }else{
+    cyto_df$ID_comprehensive[i]<-all_df$HOG[row_num_temp]
+  }
+}
+
+#Add the comprehensive ID as an attribute
+#Store as categorical data
+comp_values <- cyto_df$ID_comprehensive
+names(comp_values) <- cyto_df$HOG
+
+#Add the attribute
+V(network_graph_final)$Comprehensive_ID <- comp_values[V(network_graph_final)$name]
+
+#Write this graph as a graphML format file
+write.graph(network_graph_final, file = paste0(working_dir, out_dir, "Network_analyses/Cytoscape_network_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".graphml"), format = "graphml")
