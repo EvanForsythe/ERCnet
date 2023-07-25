@@ -114,7 +114,9 @@ if (erc.CheckFileExists(out_dir+'BL_results/*tsv')):
 
 #Make results file
 with open(out_dir+'ERC_results/'+str(fileName), "a") as f:
-    f.write("GeneA_HOG" + "\t" + "GeneA_ID" + "\t" + "GeneB_HOG" + "\t" + "GeneB_ID" + "\t" + "Overlapping_branches" + "\t" + "Slope" + "\t" + "P_R2" + "\t" + "P_Pval" + '\t' + 'S_R2' + '\t' + 'S_Pval' ) 
+    f.write("GeneA_HOG" + "\t" + "GeneA_ID" + "\t" + "GeneB_HOG" + "\t" + "GeneB_ID" + "\t" + 
+            "Overlapping_branches" + "\t" + "Slope" + "\t" + "P_R2" + "\t" + "P_Pval" + '\t' + 
+            'S_R2' + '\t' + 'S_Pval' + '\t' + 'P_FDR_Corrected_Pval' + '\t' + 'S_FDR_Corrected_Pval') 
 
 #Read in BL results
 if (branchMethod == 'BXB'):

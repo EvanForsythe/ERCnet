@@ -37,6 +37,7 @@ parser.add_argument('-c', '--CorrMethod', type=str, metavar='', required=False, 
 parser.add_argument('-f', '--FileName', type=str, metavar='', required=True, help='The filename of ERC_results file you would like to analyze. Should be .tsv file.')
 parser.add_argument('-F', '--Func_cat', action='store_true', required=False, help='Run a functional clustering analysis with user-provided functional information about genes in the focal species? If selected, youll need to provide two tsv files. See documentation for formatting.') 
 parser.add_argument('-L', '--Lab_nodes', action='store_true', required=False, help='Add node labels to the network? If selected, youll need to provide a tsv files of node labels. See documentation for formatting.') 
+parser.add_argument('-S', '--Strict', action='store_true', required=False, help='Further filters ERC results based on Benjamini-Hochberg False Discovery Rate')
 
 
 #Define the parser
@@ -54,7 +55,7 @@ Corrmethod = args.CorrMethod
 fileName=args.FileName
 func_bool=args.Func_cat
 lab_bool=args.Lab_nodes
-
+strict = args.Strict
 
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
@@ -125,9 +126,21 @@ tsvData = out_dir + 'ERC_results/' + fileName
 csvData = pd.read_table(tsvData, sep='\t')
 
 #Calls functions from ERC_functions.py to filter the ERC_results file down based on user provided criteria
-#FilterBranchType(csvData, branchFilter)
-#FilterCorrelationType(csvData, corrFilter)
 csvData = erc.FilterSignificance(csvData, RSquared, PValue, Corrmethod)
+
+#Adds FDR data from filtered values
+SPs = csvData['S_Pval']
+PPs = csvData['P_Pval']
+
+newSPs = erc.false_discovery_control(SPs, axis=0, method='bh')
+newPPs = erc.false_discovery_control(PPs, axis=0, method='bh')
+
+csvData['S_FDR_Corrected_Pval'] = newSPs
+csvData['P_FDR_Corrected_Pval'] = newPPs
+
+#Now filter based on FDR
+if (strict):
+    csvData = erc.FilterFDR(csvData, PValue, Corrmethod)
 
 outFileName = fileName.replace('.tsv', '') + "_" + str(PValue) + "_" + str(RSquared) + ".tsv"
 
