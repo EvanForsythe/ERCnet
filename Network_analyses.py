@@ -125,8 +125,8 @@ if lab_bool:
 tsvData = out_dir + 'ERC_results/' + fileName
 csvData = pd.read_table(tsvData, sep='\t')
 
-#Calls functions from ERC_functions.py to filter the ERC_results file down based on user provided criteria
-csvData = erc.FilterSignificance(csvData, RSquared, PValue, Corrmethod)
+#Remove negative Slopes
+csvData = csvData[:][csvData['Slope'] > 0]
 
 #Adds FDR data from filtered values
 SPs = csvData['S_Pval']
@@ -138,11 +138,17 @@ newPPs = erc.false_discovery_control(PPs, axis=0, method='bh')
 csvData['S_FDR_Corrected_Pval'] = newSPs
 csvData['P_FDR_Corrected_Pval'] = newPPs
 
-#Now filter based on FDR
+#Filters based on user selected strictess. 
 if (strict):
-    csvData = erc.FilterFDR(csvData, PValue, Corrmethod)
+    csvData = erc.FilterFDR(csvData, RSquared, PValue, Corrmethod)
+else:
+    csvData = erc.FilterSignificance(csvData, RSquared, PValue, Corrmethod)
 
-outFileName = fileName.replace('.tsv', '') + "_" + str(PValue) + "_" + str(RSquared) + ".tsv"
+#Changes file output name based on strictness. Allowing for a saved filtered results file in both FDR and regular filtering. 
+if (strict):
+    outFileName = fileName.replace('.tsv', '') + "_" + str(PValue) + "_" + str(RSquared) + "_FDR.tsv"
+else:
+    outFileName = fileName.replace('.tsv', '') + "_" + str(PValue) + "_" + str(RSquared) + ".tsv"
 
 #Output a filtered version of the ERC_results file
 csvData.to_csv(out_dir + "ERC_results/Filtered_results/Filtered_" + outFileName, sep='\t', index=False, header=True) 

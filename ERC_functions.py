@@ -23,8 +23,6 @@ def FilterSignificance(data, R, P, filterBy):
 
     oRows = len(data)
 
-    data = data[:][data['Slope'] > 0]
-
     if filterBy == 'spearman':
         print('Filtering results by Spearman values...')
         data = data[:][data['S_R2'] > R]
@@ -49,20 +47,24 @@ def FilterSignificance(data, R, P, filterBy):
 
     return data
 
-def FilterFDR(data, P, filterBy):
+def FilterFDR(data, R, P, filterBy):
 
     oRows = len(data)
     
     if filterBy == 'spearman':
-        print('Further filtering results by FDR Spearman values...')
+        print('Filtering results by FDR Spearman values...')
         data = data[:][data['S_FDR_Corrected_Pval'] < P]
+        data = data[:][data['S_R2'] > R]
     elif filterBy == 'pearson':
-        print('Further filtering results by FDR Pearson values...')
+        print('Filtering results by FDR Pearson values...')
         data = data[:][data['P_FDR_Corrected_Pval'] < P]
+        data = data[:][data['P_R2'] > R]
     else:
-        print('Further filtering results by both FDR Spearman and FDR Pearson values...')
+        print('Filtering results by both FDR Spearman and FDR Pearson values...')
         data = data[:][data['S_FDR_Corrected_Pval'] < P]
         data = data[:][data['P_FDR_Corrected_Pval'] < P]
+        data = data[:][data['S_R2'] > R]
+        data = data[:][data['P_R2'] > R]
 
     eRows = len(data)
     rowsRemoved = oRows - eRows
