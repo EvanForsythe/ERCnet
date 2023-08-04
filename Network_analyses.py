@@ -14,10 +14,20 @@ import os
 import re
 import sys
 import glob
+import time
 import subprocess
 import argparse
 import pandas as pd
 import ERC_functions as erc
+
+def benchmarkTime(fileName, path, stamp, process, timer):
+    timer = time.localtime()
+    current_time = time.strftime("%a, %d %b %Y %H:%M:%S", timer)
+    with open(path + fileName, "a") as bench:
+        bench.write(process + " Call " + stamp  + '\t' + str(current_time) + '\n')
+    return 0
+
+
 
 #At runtime set working directory to the place where the script lives
 working_dir = sys.path[0]+'/' 
@@ -60,6 +70,14 @@ strict = args.Strict
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
 #fileName = file.replace('.tsv', '')
+
+#Define the time object and folder for optimization testing
+bench_fileName = JOBname + '_Network_analysis_benchmark.tsv'
+timer = time.localtime()
+current_time = time.strftime("%H:%M:%S", timer)
+
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'Network_analysis', timer)
+
 
 
 #Make a directory for Network outputs
@@ -167,6 +185,10 @@ if re.search('Networks_and_stats.R', Net_cmd) and re.search('Rscript', Net_cmd):
     print("Calling R with the following command:")
     print(Net_cmd)
     subprocess.call(Net_cmd, shell=True)
+
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'Network_analysis', timer)
+
+
 
 if (erc.CheckFileExists(out_dir+'Network_analyses/*pdf') and erc.CheckFileExists(out_dir+'Network_analyses/*csv')):
     print('Finished network analyses.\n\nResults files written to Network_analyses/\n\n')
