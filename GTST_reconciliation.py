@@ -21,6 +21,16 @@ import sys
 import glob
 import argparse
 import subprocess
+import time
+from datetime import datetime 
+
+def benchmarkTime(fileName, path, stamp, process, timer):
+    timer = time.localtime()
+    current_time = time.strftime("%a, %d %b %Y %H:%M:%S", timer)
+    with open(path + fileName, "a") as bench:
+        bench.write(process + " Call " + stamp  + '\t' + str(current_time) + '\n')
+    return 0
+
 
 
 #At runtime set working directory to the place where the script lives
@@ -45,6 +55,13 @@ out_dir= 'OUT_'+JOBname+'/'
 #Check if dlcpar_search is avialable
 proc = subprocess.Popen(['which', 'dlcpar_search'], stdout=subprocess.PIPE)
 output = str(proc.stdout.read())
+
+#Define the time object and folder for optimization testing
+bench_fileName = JOBname + '_GTST_rec_benchmark.tsv'
+timer = time.localtime()
+current_time = time.strftime("%H:%M:%S", timer)
+
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'GTST_reconciliation', timer)
 
 if output != 0:
     print('dlcpar appears to be installed.')
@@ -76,6 +93,9 @@ for file_i, file in enumerate(input_GTs):
 
 #Change back to original directory
 os.chdir(working_dir)
+
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'GTST_reconciliation', timer)
+
 
 
 print('IMPORTANT NOTE: for the next step, switch back to the python 3 environement you used in the Phylogenomics steps of the workflow.\n' \
