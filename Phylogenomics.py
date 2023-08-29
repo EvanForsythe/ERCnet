@@ -49,7 +49,7 @@ parser.add_argument('-s','--SPmap', action='store_true', required=False, help='A
 parser.add_argument('-n', '--Node', type=int, metavar='', required=False, help='Integer: node number on orthofinder species tree to be used to obtain HOGs (default = 1)' )
 parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=1, help='Integer: number of threads avilable for parallel computing (default = 1)' )
 parser.add_argument('-a','--Apriori', action='store_true', required=False, help='Add this flag to provide an apriori set of genes to analyze. The input file listing those genes must be formatted in certian way. See instuctions')
-parser.add_argument('-c', '--core_distribution', type=int, metavar='', required=False, default=1, help='Integer: Sets the core distribution group which affects number of cores split between front end and back end paralellization of raxml bootstrapping')
+parser.add_argument('-c', '--core_distribution', type=int, metavar='', required=False, default=4, help='Integer: Sets the core distribution group which affects number of cores split between front end and back end paralellization of raxml bootstrapping')
 parser.add_argument('-P', '--Prune_cutoff', type=float, metavar='', required=False, default=0.9, help='Float: prune seqs from alignments if the proportion of gap sites exceeds this number (default: 0.9)')
 parser.add_argument('-T', '--Taper', type=str, metavar='', required=False, default="no", help='Run TAPER trimming of alignments? If selected, the user must include full path to installation of julia (should end in "bin/" (default=no)')
 
@@ -726,6 +726,7 @@ print("Beginning bootstrapping with raxml.\n")
 
 if Mult_threads == 1:
     print("Number of threads set to 1. Consider adding threads to parallelize if possible.\n")
+    print("RAxML requires a minimum of 2 threads to run. ERCnet will not cancel, however this may overtax system resources and cause performance issues. Consider using a minimum of 2 threads.")
 elif Mult_threads > 1:
     print("Will attempt to parallelize with "+str(Mult_threads)+" threads. Note that choosing more threads than are avilable can slow raxml performance.\n")
 else:
@@ -766,7 +767,9 @@ else:
 	Rax_front_cores = 1
 	Rax_back_cores = int(Mult_threads)
 
-
+if (Rax_back_cores <= 1 and Rax_front_cores >1):
+    Rax_front_cores = int(Mult_threads/2)
+    
 print('Number of trees finished: ') 
 
 #define rax filepath
