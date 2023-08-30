@@ -19,6 +19,7 @@ import subprocess
 import argparse
 import pandas as pd
 import ERC_functions as erc
+from scipy import stats
 
 def benchmarkTime(fileName, path, stamp, process, timer):
     timer = time.localtime()

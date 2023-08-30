@@ -60,6 +60,8 @@ testNum = args.test
 out_dir= 'OUT_'+JOBname+'/'
 fileName = str('ERC_results_' + branchMethod + '.tsv')
 bench_fileName = str(JOBname + '_ERC_analyses_benchmark_' + branchMethod + '.tsv')
+log_fileName = str(JOBname + '_ERC_analysis_log.tsv')
+ERC_command = str('Job: ' + JOBname + ', Threads: ' + str(Mult_threads) + ', FocalSP: ' + str(FocalSP) + ', BranchMethod: ' + str(branchMethod)) 
 
 print('\n')
 print(str(branchMethod) + ' chosen for branch method.\n')
@@ -85,6 +87,8 @@ with open(out_dir + 'benchmark/' + str(bench_fileName), "a") as bench:
     bench.write("Stage" + '\t' + "Time" + '\n')
     bench.write("Process Start" + '\t' + str(current_time) + '\n')
 
+with open(out_dir + 'ERC_results/' + str(log_fileName), "a") as log:
+    log.write(ERC_command + '\t' + fileName + '\n')
 
 #Make a directory for ERC results
 print("Checking or creating folder for ERC Results.\n")

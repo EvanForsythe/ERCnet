@@ -49,7 +49,7 @@ parser.add_argument('-s','--SPmap', action='store_true', required=False, help='A
 parser.add_argument('-n', '--Node', type=int, metavar='', required=False, help='Integer: node number on orthofinder species tree to be used to obtain HOGs (default = 1)' )
 parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=1, help='Integer: number of threads avilable for parallel computing (default = 1)' )
 parser.add_argument('-a','--Apriori', action='store_true', required=False, help='Add this flag to provide an apriori set of genes to analyze. The input file listing those genes must be formatted in certian way. See instuctions')
-parser.add_argument('-c', '--core_distribution', type=int, metavar='', required=False, default=4, help='Integer: Sets the core distribution group which affects number of cores split between front end and back end paralellization of raxml bootstrapping')
+parser.add_argument('-c', '--core_distribution', type=int, metavar='', required=False, default=3, help='Integer: Sets the core distribution group which affects number of cores split between front end and back end paralellization of raxml bootstrapping')
 parser.add_argument('-P', '--Prune_cutoff', type=float, metavar='', required=False, default=0.9, help='Float: prune seqs from alignments if the proportion of gap sites exceeds this number (default: 0.9)')
 parser.add_argument('-T', '--Taper', type=str, metavar='', required=False, default="no", help='Run TAPER trimming of alignments? If selected, the user must include full path to installation of julia (should end in "bin/" (default=no)')
 
@@ -153,7 +153,7 @@ print("Checking if expected input files exist (output file from Orthofinder)...\
 if os.path.isfile(sp_tr_path):
     print("Found species tree!")
 else:
-    print("ERROR: species tree not fond! Quitting....\n")
+    print("ERROR: species tree not found! Quitting....\n")
     sys.exit()
 
 #HOG file
@@ -472,7 +472,7 @@ def par_maf_alns(file):
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'maf_alns', timer)
 
-Parallel(n_jobs = 1, verbose=100)(delayed(par_maf_alns)(file) for file in iterate_maf(seq_file_names))
+Parallel(n_jobs = Mult_threads, verbose=100, max_nbytes=None)(delayed(par_maf_alns)(file) for file in iterate_maf(seq_file_names))
 
 #Timestamp just after Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'maf_alns', timer)
@@ -517,7 +517,7 @@ if not taper == "no":
             subprocess.call(taper_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-    Parallel(n_jobs = 1, verbose=100)(delayed(par_taper_trim)(file) for file in iterate_taper(aln_file_names))
+    Parallel(n_jobs = Mult_threads, verbose=100, max_nbytes=None)(delayed(par_taper_trim)(file) for file in iterate_taper(aln_file_names))
     
     #Check alignment status
     if len(glob.glob(out_dir+'TAPER_Alns/ALN*')) == len(aln_file_names):
@@ -630,7 +630,7 @@ def par_gblocks(aln):
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
 
 #run the parallel command
-Parallel(n_jobs= Mult_threads, verbose=100)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names2))
+Parallel(n_jobs= Mult_threads, verbose=100, max_nbytes=None)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names2))
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
@@ -752,12 +752,9 @@ print("Raxml Parallel Group Chosen: " + str(core_dist) + "\n")
  
 if (Mult_threads >= 4):
 	if(core_dist == 1):
-		Rax_front_cores = int(Mult_threads)
-		Rax_back_cores = 1
-	elif(core_dist == 2):
 		Rax_front_cores = 2
 		Rax_back_cores = int(Mult_threads/2)
-	elif(core_dist == 3):
+	elif(core_dist == 2):
 		Rax_front_cores = int(Mult_threads/4)
 		Rax_back_cores = 4
 	else:
@@ -817,7 +814,7 @@ def par_raxml(HOG_id, Rax_dir, file_path, cores):
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'raxml', timer)
 
-Parallel(n_jobs = Rax_front_cores, verbose=100)(delayed(par_raxml)(HOG, Rax_dir, file_path, Rax_back_cores) for HOG in iterate_HOGS(HOGs2BS))
+Parallel(n_jobs = Rax_front_cores, verbose=100, max_nbytes=None)(delayed(par_raxml)(HOG, Rax_dir, file_path, Rax_back_cores) for HOG in iterate_HOGS(HOGs2BS))
 
 #Timestamp just after Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'raxml', timer)
@@ -882,7 +879,7 @@ def par_tree_arrange(bs_tree):
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'tree_arrange', timer)
 
-Parallel(n_jobs = 1, verbose=100)(delayed(par_tree_arrange)(bs_tree) for bs_tree in iterate_trees(all_bs_trees))
+Parallel(n_jobs = Mult_threads, verbose=100, max_nbytes=None)(delayed(par_tree_arrange)(bs_tree) for bs_tree in iterate_trees(all_bs_trees))
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'tree_arrange', timer)
@@ -944,7 +941,7 @@ def par_BL_opt(k_ID, cores):
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'keeps', timer)
 
 #Call paralell
-Parallel(n_jobs = Rax_front_cores, verbose=100)(delayed(par_BL_opt)(k_ID, Rax_back_cores) for k_ID in iterate_keeps(keeperIDs))
+Parallel(n_jobs = Rax_front_cores, verbose=100, max_nbytes=None)(delayed(par_BL_opt)(k_ID, Rax_back_cores) for k_ID in iterate_keeps(keeperIDs))
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'keeps', timer)
