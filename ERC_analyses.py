@@ -60,6 +60,8 @@ testNum = args.test
 out_dir= 'OUT_'+JOBname+'/'
 fileName = str('ERC_results_' + branchMethod + '.tsv')
 bench_fileName = str(JOBname + '_ERC_analyses_benchmark_' + branchMethod + '.tsv')
+log_fileName = str(JOBname + '_ERC_analysis_log.tsv')
+ERC_command = str('Job: ' + JOBname + ', Threads: ' + str(Mult_threads) + ', FocalSP: ' + str(FocalSP) + ', BranchMethod: ' + str(branchMethod)) 
 
 print('\n')
 print(str(branchMethod) + ' chosen for branch method.\n')
@@ -75,6 +77,8 @@ if (erc.CheckFileExists(out_dir+'ERC_results/'+fileName)):
 timer = time.localtime()
 current_time = time.strftime("%a, %d %b %Y %H:%M:%S", timer)
 
+ERC_command = str('Job: ' + JOBname + ', Threads: ' + str(Mult_threads) + ', FocalSP: ' + str(FocalSP) + ', BranchMethod: ' + str(branchMethod) + ', Date: ' + str(current_time))
+
 #Make a directory for Benchmark results
 print("Checking or creating folder for benchmark.\n")
 erc.CheckAndMakeDir(out_dir, 'benchmark/')
@@ -89,6 +93,9 @@ with open(out_dir + 'benchmark/' + str(bench_fileName), "a") as bench:
 #Make a directory for ERC results
 print("Checking or creating folder for ERC Results.\n")
 erc.CheckAndMakeDir(out_dir, 'ERC_results/')
+
+with open(out_dir + 'ERC_results/' + str(log_fileName), "a") as log:
+    log.write(ERC_command + '\t' + fileName + '\n')
 
 #Verify files exist in DLCpar/ for BL reconciliation in R. 
 if not (erc.CheckFileExists(out_dir + 'DLCpar/*_NODES_BL.txt.dlcpar.locus.recon')):
