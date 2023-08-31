@@ -77,6 +77,8 @@ if (erc.CheckFileExists(out_dir+'ERC_results/'+fileName)):
 timer = time.localtime()
 current_time = time.strftime("%a, %d %b %Y %H:%M:%S", timer)
 
+ERC_command = str('Job: ' + JOBname + ', Threads: ' + str(Mult_threads) + ', FocalSP: ' + str(FocalSP) + ', BranchMethod: ' + str(branchMethod) + ', Date: ' + str(current_time))
+
 #Make a directory for Benchmark results
 print("Checking or creating folder for benchmark.\n")
 erc.CheckAndMakeDir(out_dir, 'benchmark/')
