@@ -224,7 +224,7 @@ def par_corr(i, j):
 erc.benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'Correlation', timer)
 
 #Run the correlation analysis (in paralell)
-Parallel(n_jobs = int(Mult_threads))(delayed(par_corr)(i,j) for i,j in iterate_corr(pairwise_combos))
+Parallel(n_jobs = int(Mult_threads, max_nbytes=None))(delayed(par_corr)(i,j) for i,j in iterate_corr(pairwise_combos))
 
 #Timestamp just after Parallel Call
 erc.benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'Correlation', timer) 
