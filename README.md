@@ -171,10 +171,9 @@ core_distribution groups for Phylogenomics.py.
 
 | Group | Front End Cores | Back End Cores | 
 | ------------- |:-------------:|:-------------:|
-| 1 | num_cores | 1 |
-| 2 | 2 | num_cores / 2 |
-| 3 | num_cores / 4 | 4 |
-| 4 | num_cores / 2 | 2 |
+| 1 | 2 | num_cores / 2 |
+| 2 | num_cores / 4 | 4 |
+| 3 | num_cores / 2 | 2 |
 
 *'Front End' parallelization refers to the paralellization support from Joblib, indicating the number of processes inside any given Phylogenetics computational step are being spawned.
 
@@ -251,6 +250,7 @@ All options for ERC_analyses.py:
 | -h | --help | Print help menu | no | NA |
 | -j | --JOBname | Unique job name for this run of ERCnet. This should be the exact same as the jobname used in the previous steps | yes | NA |
 | -m | --Mult_threads |Integer: number of threads avilable for parallel computing (default = 1). Performing all-by-all analyses means the number of correlations calculated increases exponentially so this step is rate-limiting | no | 1 |
+| -b | --branchMethod | This determins which branch reconcilliation method to use. Enter either "BXB" for branch by branch or "R2T" root to tip. | yes | NA |
 | -s | --FocalSP | The name of the focal species to represent each gene family (should exactly match the tip label of the species tree). See further description below | yes | NA |
 | -M | --Meta_stats | The type of report of metadata from ERC correlations you want. "none" for no reports, "full" for report including all pairwise-stats (very slow/memory-intensive for large dataset), "hits" for trimmed down report of potential hits | no | none |
 
