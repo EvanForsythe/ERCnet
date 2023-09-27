@@ -164,6 +164,8 @@ All options for Phylogenomics.py:
 | -P | --Prune_cutoff | Float: prune seqs from alignments if the proportion of gap sites exceeds this number | no | 0.9 |
 | -T | --Taper | Run TAPER trimming of alignments? If selected, the user must include full path to installation of julia (should end in "bin/)" | no | "no" |
 
+*Values for these parameters can have a large impact on analyses so make sure the values make biological sense for your analysis before opting for default values.
+
 A note about (optionally) running the TAPER trimming step:
 [TAPER](https://github.com/chaoszhang/TAPER) is written in julia. We're including the TAPER script (correction_multi.jl) in ERCnet but you'll need to install julia and indicate the full path to the julia executable in order to run TAPER. Follow instructions on the TAPER github page for how to 'install' julia (simply unzip precompiled folder).
 
@@ -178,8 +180,6 @@ core_distribution groups for Phylogenomics.py.
 *'Front End' parallelization refers to the paralellization support from Joblib, indicating the number of processes inside any given Phylogenetics computational step are being spawned.
 
 *'Back End' parallelization specifically refers to the number of cores that are passed to RAXML's native multi-threading support. 
-
-*Values for these parameters can have a large impact on analyses so make sure the values make biological sense for your analysis before opting for default values.
 
 Use the table output by running the --explore_filters option (above) to choose reasonable values for -p and -r. 
 
