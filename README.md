@@ -37,6 +37,7 @@ Orthofinder provides [guidelines](https://davidemms.github.io/orthofinder_tutori
             * File name: Atha.fa
             * Sequence IDs: >Atha__AT1G035221
             * *Note that orthofinder uses the 'Atha' from the file name as a text string to search for 'Atha' in the sequence IDs. It really does help to make sure your file names include a unique text string (e.g. 'Atha') that is present in the sequence IDs for that species.*
+            * *Also, note that the double-underscore in the seq ID is not required, but it can be helpful as a unique search pattern later on.*
     * We suggest removing 'weird' characters (e.g. spaces, commas, quotes, |, etc...) from your sequence IDs if possible.
     
 ## Running Orthofinder (specific instructions for ERCnet analyses):
