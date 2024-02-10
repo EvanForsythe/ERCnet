@@ -1,6 +1,6 @@
 #! /usr/local/bin/Rscript --vanilla --default-packages=utils
 
-#Note: this file is being depreciated
+###Note: this file is being depreciated
 
 getScriptPath <- function(){
   cmd.args <- commandArgs()
