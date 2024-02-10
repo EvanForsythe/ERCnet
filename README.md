@@ -13,6 +13,34 @@ ERCnet directly uses the output from [Orthofinder gene family clustering](https:
 
 Orthofinder provides [guidelines](https://davidemms.github.io/orthofinder_tutorials/orthofinder-best-practices.html) to selecting taxa and obtaining and preparing proteome files. In addition, please adhere to the following ERCnet-specific guidelines/recommendations to running Orthofinder upstream of ERCnet:
 
+## Best practices for preparing data for Orthofinder/ERCnet:
+*Note that not all of these guidelines are required, but following them minimized the probablity of errors/issues/annoying-quirks when running ERCnet.*
+* Taxon sampling considerations:
+    * Number of species to include:
+        * We recommend between 6-20 ingroup taxa, although this range is somewhat arbitrary. 
+        * Stay tuned for our upcoming paper (currently in prep) that weighs the tradeoffs in adding more species to an analysis. This paper will provide a more empirical basis for choosing the nubmer of taxa to include. 
+    * Which species to include:
+        * There isn't a lot of empirical data on how ERCnet works at different levels of divergence, so the choice of which species to include is driven by trying to accomplish the following:
+            * Include an outgroup
+            * Include a ‘model organism’ in the ingroup if possible, so that ERCnet can use this model as a reference for functionally annotating gene families.
+            * Sample multiple independent evolutionary transition events across the tree.
+                * This is only relevant if you're using ERCnet in a targetted way to study a specific biological process involving a priori known evoluionary transitions (see the independent 'plastid proteostasis perturbation events' described in [Forsythe et al., 2021](https://academic.oup.com/plcell/article/33/4/980/6122720) as an example).
+          
+* For each species, you'll need:
+    * A proteome fasta file:
+        * Protein sequences for all genes in the genome
+        * These should not include multiple alternative splice isoforms per locus because Orthofinder will confuse these for paralogs
+          
+* Formatting considerations:
+    * It can be helpful to adopt consistent naming conventions early on:
+        * E.g. for Arabidopsis thaliana:
+            * File name: Atha.fa
+            * Sequence IDs: >Atha__AT1G035221
+            * *Note that orthofinder uses the 'Atha' from the file name as a text string to search for 'Atha' in the sequence IDs. It really does help to make sure your file names include a unique text string (e.g. 'Atha') that is present in the sequence IDs for that species.*
+    * We suggest removing 'weird' characters (e.g. spaces, commas, quotes, |, etc...) from your sequence IDs if possible.
+    
+## Running Orthofinder (specific instructions for ERCnet analyses):
+
 * For easy installation  of Orthofinder, we recommend creating an [anaconda environment](https://www.anaconda.com/) and then using conda to install orthofinder within that environment with the following command `conda install -c bioconda orthofinder=2.5.4`(here we specify the version we used for testing ERCnet data)
     * Even if you haven't used anaconda before, it's worth becoming familiar with anaconda environments because ERCnet relies of conda installations for several dependencies.
     * See below for detailed instructions on setting up conda environments to run ERCnet.
@@ -31,6 +59,7 @@ Example Orthofinder run:
 ```
 orthofinder -f <path/to/dir/containing/proteomes/> -y -X -M msa -t <number of threads available on computing system>
 ```
+
 
 ## Running ERCnet
 
