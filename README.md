@@ -39,6 +39,7 @@ Orthofinder provides [guidelines](https://davidemms.github.io/orthofinder_tutori
             * *Note that orthofinder uses the 'Atha' from the file name as a text string to search for 'Atha' in the sequence IDs. It really does help to make sure your file names include a unique text string (e.g. 'Atha') that is present in the sequence IDs for that species.*
             * *Also, note that the double-underscore in the seq ID is not required, but it can be helpful as a unique search pattern later on.*
     * We suggest removing 'weird' characters (e.g. spaces, commas, quotes, |, etc...) from your sequence IDs if possible.
+    * IMPORTANT: We discovered that the Gblocks step of ERCnet is not able to handle sequence IDs that are >74 characters long. We are working to find a solution for this requirement, but in the meantime, it's best to keep sequence ID's <75 characters in length.
     
 ## Running Orthofinder (specific instructions for ERCnet analyses):
 
