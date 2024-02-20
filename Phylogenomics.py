@@ -397,6 +397,56 @@ else:
     print('Error: sequence counts per sepecies dataframe not properly generated. Quitting...\n')
     sys.exit()
 
+
+### Test sequence files to look for seq IDs that would cause problems later on.
+
+drop_list=list()
+
+#Loop through all rows
+for row_i, row in Keeper_HOGs_df.iterrows():
+
+    #Get the relevant OG and HOG string 
+    OGtemp = row['OG']
+    HOGtemp = row['HOG']
+    
+    #Get a list of seqs to retain
+    seq_list_temp=[item for item in list(row[sp_names]) if not(pd.isnull(item)) == True]
+    
+    #Clean up the list by converting to str, removing all the extra stuff then split the str back into a list
+    seq_list = str(seq_list_temp).replace(" ", "").replace("'", "").replace("[", "").replace("]", "").split(',')
+    
+    #open and read fasta file into a dictionary
+    OG_handle = open(str(OGseqdir + OGtemp +'.fa'), "r")
+
+    #Loop through the line in the file
+    seqID_list_temp=list()
+    
+    for line in OG_handle:
+        if line.startswith(">"):
+            id_temp = line.strip() #Removes "\n"
+            id_clean = id_temp.replace(">", "") #Removes ">" by replacing with nothing.
+            seqID_list_temp.append(id_clean)
+
+    if len(seqID_list_temp) > len(set(seqID_list_temp)):
+        print(f"WARNING: found duplicate identical seq IDs in an OG file. The offending OG was {OGtemp} and HOG was {HOGtemp}\n Removing this file from the analysis")
+        drop_list.append(OGtemp)
+    
+    long_seq_counter = 0 
+    for i in seqID_list_temp:
+        if len(i) > 73:
+            long_seq_counter += 1
+    
+    if long_seq_counter > 0:
+        print(f"WARNING: found seq ID(s) in an OG file that are longer than 73 characters. These would create errors in Gblocks later on. The offending OG was {OGtemp} and HOG was {HOGtemp}\n Removing this file from the analysis")
+        drop_list.append(OGtemp)
+
+
+for ind in Keeper_HOGs_df.index:
+    if Keeper_HOGs_df['OG'][ind] in drop_list:
+        Keeper_HOGs_df.drop(ind, inplace=True)
+
+print(f"Number of HOGs remaining after seq ID formatting problem check: {Keeper_HOGs_df.shape[0]}")
+
 ### Extract the subtree sequences to be aligned
 #make a dir to store the new fasta files
 if not os.path.isdir(out_dir+'HOG_seqs'):
@@ -419,14 +469,14 @@ for row_i, row in Keeper_HOGs_df.iterrows():
     
     #open and read fasta file into a dictionary
     OG_dict = SeqIO.to_dict(SeqIO.parse(str(OGseqdir + OGtemp +'.fa'), 'fasta'))
-    
+
     #Subset the dictionary (Turns out this is easy with a one liner)
     HOG_dict= {k: OG_dict[k] for k in OG_dict.keys() & seq_list}
     
     #Write file
     with open(str(out_dir+'HOG_seqs/'+HOGtemp.replace("N"+str(Node)+".", "")+'.fa'), 'w') as handle:
         SeqIO.write(HOG_dict.values(), handle, 'fasta')
-
+    
 #Get list of files that were written
 seq_file_names = glob.glob(out_dir+'HOG_seqs/HOG*')
 
@@ -596,10 +646,12 @@ def par_gblocks(aln):
             if match != '':
                trm_aln_ln = int(match)
             else:
-                print("ERROR: Problem parsing the Gblocks output for alignment: "+aln+" Something must of gone wrong with Gblocks.")
+                print("ERROR: Problem parsing the Gblocks output for alignment: "+aln+" Something must have gone wrong with Gblocks.")
                 print("To trouble shoot Gblocks, try running Gblocks from the command line with:")
                 print(gblocks_cmd)
                 print("\nQuitting...\n")
+                print("Here is the message from Gblocks...")
+                print(output)
                 sys.exit()
            
             #Move the gblocks files to the appropriate folder
@@ -618,11 +670,15 @@ def par_gblocks(aln):
             
         else:
             print('ERROR: something wrong with Gblocks stdout. Quitting...\n')
+            print("Here is the message from Gblocks...")
+            print(output)
             sys.exit()
 
             
     else:
         print('WARNING: Something wrong with Gblocks command...\n')
+        print("Here is the Gblocks command that was being attempted\n")
+        print(output)
         sys.exit()
 
 
