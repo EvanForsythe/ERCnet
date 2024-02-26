@@ -561,10 +561,47 @@ if not taper == "no":
         
     def par_taper_trim(file):
         #Build the command used to call taper
-        taper_cmd= taper+'julia correction_multi.jl -m "-" '+file+' > '+file.replace("Alns/", "TAPER_Alns/")
+        #taper_cmd= taper+'julia correction_multi.jl -m "-" '+file+' > '+file.replace("Alns/", "TAPER_Alns/")
+        
+        # Build the command without output redirection
+        taper_cmd = [taper + 'julia', 'correction_multi.jl', '-m"-"', file]
+        
+        result = subprocess.run(taper_cmd, input="", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, text=True)
+        
+        taper_stdout=result.stdout
+        taper_stderr=result.stderr
+        
+        if not re.search("Version 1.0.0", taper_stderr):
+            print(f"Something went wrong with taper on this file: {file}")
+            print(f"The following command was responsible: {taper_cmd}")
+            print(f"the following error message was generated: {taper_stderr}")
+            print("Quitting....\n")
+            sys.exit()
+        
+        else:
+            # Open the output file
+            with open(file.replace("Alns/", "TAPER_Alns/"), 'w') as output_file:
+                # Call the subprocess, redirecting stdout to the output file
+                output_file.write(taper_stdout)
+        
+        '''
         #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
         if re.search('correction_multi.jl', taper_cmd): #Check if cmd contains expected string and run if so
-            subprocess.call(taper_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            ## WORKING HERE: the ">" at the end is screwing up Popen.
+            subprocess.call(taper_cmd, shell=True)
+            
+            #subprocess.call(taper_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            #proc_taper = subprocess.Popen(taper_cmd, stdout=subprocess.PIPE, shell=True) #apparently shell=True can create 'security issues' (so I put it under an if statement to make sure the cmd is what it should be)
+            #output_taper = str(proc_taper.stdout.read())
+            #print(output_taper)
+        '''
+            
+        if os.stat(file.replace("Alns/", "TAPER_Alns/")).st_size == 0:
+            print("ERROR: something went wrong with the TAPER command. Produced empty file. The following command caused the issue:")
+            print(taper_cmd)
+            print("Quitting....\n")
+            sys.exit()
 
 
     Parallel(n_jobs = Mult_threads, verbose=100, max_nbytes=None)(delayed(par_taper_trim)(file) for file in iterate_taper(aln_file_names))
