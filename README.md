@@ -198,8 +198,12 @@ All options for Phylogenomics.py:
 *Values for these parameters can have a large impact on analyses so make sure the values make biological sense for your analysis before opting for default values.
 
 A note about (optionally) running the TAPER trimming step:
-[TAPER](https://github.com/chaoszhang/TAPER) is written in julia. We're including the TAPER script (correction_multi.jl) in ERCnet but you'll need to install julia and indicate the full path to the julia executable in order to run TAPER. Follow instructions on the TAPER github page for how to 'install' julia (simply unzip precompiled folder).
+[TAPER](https://github.com/chaoszhang/TAPER) is written in julia. We're including the TAPER script (correction_multi.jl) in ERCnet but you'll need to download the julia program and indicate the full path to the julia executable in order to run TAPER. Follow instructions on the TAPER github page for how to 'install' julia (simply unzip precompiled folder). We have had the best luck with Julia version 1.8.2. Follow these steps to obtain the pre-compiled executable for (for linux):
+```
+curl https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.2-linux-x86_64.tar.gz > julia-1.8.2-linux-x86_64.tar.gz
 
+tar -xvzf julia-1.8.2-linux-x86_64.tar.gz
+```
 core_distribution groups for Phylogenomics.py. 
 
 | Group | Front End Cores | Back End Cores | 
