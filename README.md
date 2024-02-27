@@ -82,8 +82,16 @@ We have provided sample input data for a very small ERCnet run in to test whethe
 ### 1. Phylogenomic analyses
 #### Installing dependencies
 
-Before running the *Phylogenomic analyses* of ERCnet, we recommend installing all dependencies in an anaconda environment by running the following lines of code:
+Before running the *Phylogenomic analyses* of ERCnet, we recommend installing all dependencies in an anaconda environment. Users can set up their environment in two ways.
+First, we have provided a preconfigured yml file that can be used to automatically set up a python 3 environment for steps 1, 3 and 4 of ERCnet.
+To create your environment using the yml file, use the following command (this can take 10-20 minutes):
 
+```
+conda env create -f ERCnet_py3_environment.yml
+```
+*Note: A PREFIX line can be added to the yml file to specify the location of the conda environment in the file system.*
+
+Alternatively, users can manually create their environment and install dependenices individually using the following commands:
 ```
 #Create a conda environment with python 3
 conda create -n test3 python=3.9.7
