@@ -440,10 +440,16 @@ for row_i, row in Keeper_HOGs_df.iterrows():
         print(f"WARNING: found seq ID(s) in an OG file that are longer than 73 characters. These would create errors in Gblocks later on. The offending OG was {OGtemp} and HOG was {HOGtemp}\n Removing this file from the analysis")
         drop_list.append(OGtemp)
 
+#Remove the any sequences on the drop list
+if len(drop_list)>0:
+    Keeper_HOGs_df = Keeper_HOGs_df.loc[~Keeper_HOGs_df['OG'].isin(drop_list)]
 
+
+'''
 for ind in Keeper_HOGs_df.index:
     if Keeper_HOGs_df['OG'][ind] in drop_list:
         Keeper_HOGs_df.drop(ind, inplace=True)
+'''
 
 print(f"Number of HOGs remaining after seq ID formatting problem check: {Keeper_HOGs_df.shape[0]}")
 
@@ -566,6 +572,7 @@ if not taper == "no":
         # Build the command without output redirection
         taper_cmd = [taper + 'julia', 'correction_multi.jl', '-m"-"', file]
         
+        #Run the command
         result = subprocess.run(taper_cmd, input="", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, text=True)
         
         taper_stdout=result.stdout
