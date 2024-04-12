@@ -107,6 +107,9 @@ def CheckFileExists(filePath):
     else:
         return False
 
+def CheckFileNonEmpty(filePath):
+    return os.path.getsize(filePath) > 0
+
 def GetLatestFileName(filePath, fileName):
 
     fileNames = os.listdir(filePath)
