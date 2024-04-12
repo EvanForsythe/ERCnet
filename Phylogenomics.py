@@ -24,11 +24,12 @@ from Bio import SeqIO
 from Bio import AlignIO
 from datetime import datetime 
 from joblib import Parallel, delayed
-from ERC_functions import benchmarkTime
-from ERC_functions import benchmarkProcess
+
 
 #Homemade modules
 from filterHOGs import make_seq_counts_df, filter_gene_fams, check_alns_for_prune
+from ERC_functions import benchmarkTime, benchmarkProcess, CheckFileExists, CheckFileNonEmpty
+
 
 #At runtime set working directory to the place where the script lives
 working_dir = sys.path[0]+'/' 
@@ -520,10 +521,22 @@ def iterate_maf(seq_file_names):
         return file
 
 def par_maf_alns(file):
-    os.system('mafft-linsi --quiet '+file+' > '+out_dir+'Alns/ALN_'+file.replace(out_dir+"HOG_seqs/", ""))
+
+    temp_out_file_path = str(out_dir+'Alns/ALN_'+file.replace(out_dir+"HOG_seqs/", ""))
+
+    os.system('mafft-linsi --quiet '+file+' > '+temp_out_file_path)
     #os.system('mafft-linsi '+file+' >Alns/ALN_'+file.replace("HOG_seqs/", "")+' 2>&1') #' 2>&1' suppressed stderr from mafft
     #print('mafft-linsi --quiet '+file+' > Alns/ALN_'+file.replace("HOG_seqs/", ""))
-##End paralellization of alignments
+
+    if not CheckFileExists(temp_out_file_path):
+        print(f"WARNING: mafft alignment wasn't able to create the file, {temp_out_file_path}. This gene family will be removed from further analysis")
+        os.remove(temp_out_file_path)
+    
+    if not CheckFileNonEmpty(temp_out_file_path):
+        print(f"WARNING: mafft alignment yielded an empty file, {temp_out_file_path}. This gene family will be removed from further analysis")
+        os.remove(temp_out_file_path)
+
+    ##End paralellization of alignments
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'maf_alns', timer)
