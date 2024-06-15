@@ -394,7 +394,9 @@ assort_reps<-replicate(1000, rando_assort())
 #z-score
 z_score<-(obs_assort-mean(assort_reps))/sd(assort_reps)
 
-p_val<-2*pnorm(q = z_score, lower.tail = FALSE)
+
+# One-sided p-value
+p_val<-pnorm(q = z_score, lower.tail = FALSE)
 
 
 #save pdf
@@ -405,7 +407,7 @@ plot(density(assort_reps),
      main = "Random distribution and \nobserved assortativity", 
      xlab = paste0("Observed Assort coefficient: ", 
                    obs_assort, 
-                   "\nTwo-tailed P-value: ",
+                   "\nOne-tailed P-value: ",
                    p_val
                    )
      )

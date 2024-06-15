@@ -66,8 +66,8 @@ names(BL_measure_df)<-c("HOG_ID", paste0(sp_branches_df$ancestor, "_to_", sp_bra
 #Make a table to store root-2-tip (r2t) BL results
 r2t_measure_df<-as.data.frame(matrix(,ncol=length(sp_tr$tip.label), nrow = length(rec_files_list)))
 names(r2t_measure_df)<-sp_tr$tip.label
-#Change the name of the outgroup (it should be the first) to be a column for storing HOG ID
-names(r2t_measure_df)[1]<-"HOG_ID"
+#Add a column to store HOG_ID. Note that outgroup will remain in table (but should be all NAs)
+r2t_measure_df<-cbind(data.frame(HOG_ID=NA), r2t_measure_df)
 
 #Start loop
 for(m in 1:length(rec_files_list)){
