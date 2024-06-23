@@ -158,7 +158,7 @@ S_polyrhiza,S_polyrhiza_prot
 V_vinifera,V_vinifera_prot
 ```
 
-You may also optionally provide a list of genes you'd like to study. To do so, use the --A_priori/a flag (see below). To use this option you must create a file named "A_priori_genes.csv", which should have one column containing text strings unique to the sequence ID of your genes of interest. The first line of the file should be the species idenifier (see SpeciesID in the table above) of the species that contains the a priori genes. 
+You may also optionally provide a list of genes you'd like to study. To do so, use the `--A_priori/-a` flag (see below). To use this option you must create a file named "A_priori_genes.csv", which should have one column containing text strings unique to the sequence ID of your genes of interest. The first line of the file should be the species idenifier (see SpeciesID in the table above) of the species that contains the a priori genes. 
 
 Name the a priori genes file "A_priori_genes.csv" and save in the main ERC net directory (where all the scripts live).
 
