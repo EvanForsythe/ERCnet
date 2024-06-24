@@ -425,3 +425,31 @@ A_thaliana__AT2G03390.1	CLPF
 ERCnet automatically creates a folder called 'Benchmarking' in the OUT directory of each job. This folder houses information regarding how fast ERCnet is accomplishing tasks given the resources it has. Every major computational step in the ERCnet pipeline has a benchmarking call to it, cataloguing the time the process began and the time it ended as well as a log of the resources allocated for that script. The benchmark then also calculates the total time it took to complete any given step and the number of 'items' (lines written/files processed/etc) completed per minute of run time. These files can be used to gauge general performance of ERCnet and monitor how resource allocation impacts performance. 
 
 **Note:** The benchmarking file is designed for long running analysis' and therefore does not correctly calculate processes which take less than a minute of runtime to complete. 
+
+
+## Output files:
+
+Below is a brief description of each of the files and subdirectories that are output during a run of ERCnet. Many of the files created are intermediate files, which you likely will not need to inspect. Directories are shown in the order in which they're created during the ERCnet workflow.
+
+- `Species_mapping.csv`: shows how ERCnet recognizes species IDs
+- `Seq_counts_per_species.csv`: shows how many homologs from each species were found in each gene family
+- `SpeciesTree_rooted_node_labels.txt`: a copy of the species tree from Orthofinder
+- `Filtered_genefam_dataset.csv`: each row represents a gene family (hierarchical orthogroup [HOG] from orthofinder) and the seq IDs of all the sequences in the gene family
+- `HOG_seqs/`: contains a seperate file for each gene family (hierarchical orthogroup [HOG] from orthofinder).
+- `Alns/`: contains a seperate file with a multiple sequences alignment for each HOG
+- `TAPER_Alns/`: an (optional) version of the alignments that have been cleaned using TAPER
+- `Gb_alns`: a version of the alignments that have been cleaned using GBLOCKS
+- `Aln_pruning/`: stores information about sequences that were pruned from alignments because GBLOCKS yielded only gaps
+- `HOG_subtrees`: orthfinder produces gene trees for each orthogroup (OG); however, ERCnet works with HOGs (which are subtrees of the larger OG tree). This folder contains the subtrees that are extracted from the larger OG tree.
+- `Non-binary_subtrees.txt`: documents any gene families that were dropped from analysis because gene trees (from orthofinder) were non-bifurcating, which causes errors in R.
+- `BS_reps/`: subtrees (see HOG_subtrees) are used as a constraint tree and raxml bootstrapping is performed to get confidence values for each branch on the constraint tree. This directory stores the replicate files.
+- `BS_trees/`: subtrees with BS confidence scores (from BS_reps)
+- `SpeciesTree_mapped_names.txt`: Version of the species tree with the mapped species IDs from Species_mapping.csv.
+- `Rearranged_trees`: the treerecs prpgram is used to rearrange any poorly supported branches (<80% bootstrap support) so that the branches best match the species tree.
+- `BL_trees/`: branch length optimization is performed on the rearranged version of the tree. **These trees are the final gene trees used to perform ERC**.
+- `DLC_par/`: The last step in Phylogenomics.py creates the inputs needed to run DLCpar, which helps map gene trees to the species tree. GTST_reconciliation.py writes additional files to this directory. 
+- `BL_results/`: contains the branch lengths that were measured from the BL_trees/ trees. ERCnet measures branches by both branch-by-branch (BXB) and root-to-tip (R2T) methods. This directory also contains the normalized branch lengths, in which each branch length is normalized by the genome-wide average branch legth for that particular branch. 
+- `ERC_results/`: This directory contains the results of the all-by-all ERC analysis. This folder will contain seperate ERC results for BXB vs R2T (depending on user selection). See below for the description of the column headers in the ERC_results tsv file. This directory will also contain a subdirectory, `Filtered_results/`, with a tsv file of 'ERC hits' (generated during Network_analyses.py).
+- `Network_analyses/`: This directory contains networks displaying the 'ERC hits'. ERC hits are defined by the user according the p-value and r-squared cutoffs during Network_analyses.py. If the user tries several different filtering cutoffs, seperate versions of the network files will be stored here (the file names indicate the cutoffs chosen). To begin inspecting these results, we recommend first looking at the ERC_network*.pdf file. This will give a quick (and sometimes ugly) view of the network. For more detailed inspection, we recommend using the cytoscape GUI program and importing the Cytoscape_network*.graphml file. This creates a much more human-readable and interative version or the network.
+
+
