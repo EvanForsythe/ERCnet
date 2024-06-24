@@ -1,3 +1,19 @@
+---
+layout: default
+---
+
+<a name="top"></a>
+
+
+# ERCnet documentation:
+1. [Overview](#overview)
+2. [Preparing input data](#input)
+3. [Running ERCnet](#run)
+4. [Output files](#output)
+    
+
+## <ins>**Overview**</ins> <a name="overview"></a>
+
 # ERCnet: a program for running genome-wide ERC analyses in the presence of gene duplication and performing ERC-based network analyses.
 
 ## Overview
@@ -7,7 +23,7 @@ The full ERCnet workflow consistst of the following steps:
 1. *ERC analyses (including branch-length reconciliation)*
 1. *Network analyses (including community classification)*
 
-## Preparing input data for ERCnet
+## <ins>**Preparing input data**</ins> <a name="input"></a>
 
 ERCnet directly uses the output from [Orthofinder gene family clustering](https://github.com/davidemms/OrthoFinder)
 
@@ -63,7 +79,7 @@ orthofinder -f <path/to/dir/containing/proteomes/> -y -X -M msa -t <number of th
 ```
 
 
-## Running ERCnet
+## <ins>**Running ERCnet**</ins> <a name="run"></a>
 
 Different ERCnet steps require different dependencies. Most notably, the *Gene-tree/Species-tree reconciliation* step requires python2 (because DLCpar only supports python2) while the other steps require python3. The need to switch between python 2 and 3 environments is a big part of our recommendation to use anaconda environments.
 
@@ -427,7 +443,7 @@ ERCnet automatically creates a folder called 'Benchmarking' in the OUT directory
 **Note:** The benchmarking file is designed for long running analysis' and therefore does not correctly calculate processes which take less than a minute of runtime to complete. 
 
 
-## Output files:
+## <ins>**Output files**</ins> <a name="output"></a>
 
 Below is a brief description of each of the files and subdirectories that are output during a run of ERCnet. Many of the files created are intermediate files, which you likely will not need to inspect. Directories are shown in the order in which they're created during the ERCnet workflow.
 
@@ -466,5 +482,5 @@ Below is a brief description of each of the files and subdirectories that are ou
 - `Network_analyses/`: This directory contains networks displaying the 'ERC hits'. ERC hits are defined by the user according the p-value and r-squared cutoffs during Network_analyses.py. If the user tries several different filtering cutoffs, seperate versions of the network files will be stored here (the file names indicate the cutoffs chosen). To begin inspecting these results, we recommend first looking at the ERC_network*.pdf file. This will give a quick (and sometimes ugly) view of the network. For more detailed inspection, we recommend using the cytoscape GUI program and importing the Cytoscape_network*.graphml file. This creates a much more human-readable and interative version or the network.
 
 
-
+[Back to Top](#top)
 
