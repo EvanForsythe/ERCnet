@@ -198,20 +198,52 @@ def par_corr(i, j):
     xLin = test_df_clean['GeneA']
     yLin = test_df_clean['GeneB']
 
-    #Perform correlation tests if there are at least 3 datapoints
-    if test_df_clean.shape[0]>2:
+    #Perform correlation tests if there are at least 5 datapoints
+    if test_df_clean.shape[0]>4:
 
         #Stats order = (0:slope, 1:intercept, 2:pearson_r, 3:pearson_p, 4:stderr, 5:spearman_r, 6:spearman pvalue)
+        #This is the old pearon command (used on plastid and methods paper)
         pear_stats=stats.linregress(x=list(test_df_clean['GeneA']), y=list(test_df_clean['GeneB']))
-       
-        spear_stats=stats.spearmanr(test_df_clean['GeneA'], test_df_clean['GeneB'])
-        results_str= str(test_df_clean.shape[0]) +'\t'+ str(pear_stats[0]) +'\t'+ str(pear_stats[2]**2) +'\t'+ str(pear_stats[3]) + '\t' + str(spear_stats[0]**2) + '\t' + str(spear_stats[1])
 
-        #Create string
-        #(note r is squared to get r2)
+        #This is a new pearson command (used on parastic plant paper)
+        pear_stats2=stats.pearsonr(x=test_df_clean['GeneA'], y=test_df_clean['GeneB'])
+
+        #Get spearman stats
+        spear_stats=stats.spearmanr(test_df_clean['GeneA'], test_df_clean['GeneB'])
+        
+        #Full file: "GeneA_HOG", "GeneA_ID",  "GeneB_HOG", "GeneB_ID", "Overlapping_branches", "Slope", "P_R2", "P_Pval", 'S_R2', 'S_Pval', 'P_FDR_Corrected_Pval', 'S_FDR_Corrected_Pval'
+        #To be added here: "Overlapping_branches", "Slope", "P_R2", "P_Pval", 'S_R2', 'S_Pval'
+
+        #pear_stats2=stats.pearsonr(x=test_df_clean['GeneA'], y=test_df_clean['GeneB'])
+        
+        ## TESTING
+        '''
+        with open(out_dir+'ERC_results/'+str(fileName.replace("ERC_results_", "PEARSON_TEST_")), "a") as f:
+                f.write('\n'+ str(geneA) +'\t'+ str(geneA_ID) +'\t'+ str(geneB) +'\t'+ str(geneB_ID) +'\t'+str(pear_stats[2]**2)+'\t'+str(pear_stats2[0]**2)+'\t'+str(abs(pear_stats[2]**2-pear_stats2[0]**2)))
+                #print("Appended: " + str(geneA_ID) + " by " + str(geneB_ID))
+        '''
+        
+        #print(f"{pear_stats[2]**2}__{pear_stats2[0]**2}__{abs(pear_stats[2]**2-pear_stats2[0]**2)}")
+
+        #spear_stats2=stats.spearmanr(test_df_clean['GeneA'], test_df_clean['GeneB'])
+        
+        #print(f"Spearman Pvalue: OG is {spear_stats[1]} and new is {spear_stats2[1]}")
+
+
+        #For testing
+        #results_str= str(test_df_clean.shape[0]) +'\t'+ "NA" +'\t'+ str(pear_stats[0]**2) +'\t'+ str(pear_stats[1]) + '\t' + str(spear_stats[0]**2) + '\t' + str(spear_stats[1])
+
+        #Combine results into a long sting (with tabs seperating values)
+        #Old pearson stats indexing
+        #results_str= str(test_df_clean.shape[0]) +'\t'+ str(pear_stats[0]) +'\t'+ str(pear_stats[2]**2) +'\t'+ str(pear_stats[3]) + '\t' + str(spear_stats[0]**2) + '\t' + str(spear_stats[1])
+        
+        #new pearson stats indexing
+        results_str= str(test_df_clean.shape[0]) +'\t'+ str(pear_stats[0]) +'\t'+ str(pear_stats2[0]**2) +'\t'+ str(pear_stats2[1]) + '\t' + str(spear_stats[0]**2) + '\t' + str(spear_stats[1])
+
     else:
         results_str='nan\tnan\tnan\tnan\tnan\tnan'
         #bxb_results_str='NA\tNA\tNA\tNA\tNA\tNA'
+    
 
     #Only write the results if there's some indication of correlation (this keeps the size of the file from inflating)
     if (not results_str.split("\t")[0] == "nan"):
@@ -250,5 +282,4 @@ print('ERC correlation analyses finished. Exiting....\n\n'\
           '\nExample command:\n\n' \
           './Network_analyses.py -j '+JOBname+' -m R2T -c spearman -y fg -s ' +FocalSP+ ' -f <name of .tsv file located in ERC_results/> \n\n' 
       )
-
 
