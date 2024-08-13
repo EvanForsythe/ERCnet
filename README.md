@@ -16,12 +16,14 @@ layout: default
 
 # ERCnet: a program for running genome-wide ERC analyses in the presence of gene duplication and performing ERC-based network analyses.
 
-## Overview
 The full ERCnet workflow consistst of the following steps:
 1. *Phylogenomic analyses*
 1. *Gene-tree/Species-tree reconciliation*
 1. *ERC analyses (including branch-length reconciliation)*
 1. *Network analyses (including community classification)*
+
+## Citation
+Please cite [this paper](https://www.biorxiv.org/content/10.1101/2024.08.06.606904v1.abstract) if you use ERCnet.
 
 ## <ins>**Preparing input data**</ins> <a name="input"></a>
 
