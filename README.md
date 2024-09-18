@@ -10,6 +10,7 @@ layout: default
 2. [Preparing input data](#input)
 3. [Running ERCnet](#run)
 4. [Output files](#output)
+5. [Supplementary scripts](#supp)
     
 
 ## <ins>**Overview**</ins> <a name="overview"></a>
@@ -486,5 +487,11 @@ Below is a brief description of each of the files and subdirectories that are ou
 - `Network_analyses/`: This directory contains networks displaying the 'ERC hits'. ERC hits are defined by the user according the p-value and r-squared cutoffs during Network_analyses.py. If the user tries several different filtering cutoffs, seperate versions of the network files will be stored here (the file names indicate the cutoffs chosen). To begin inspecting these results, we recommend first looking at the ERC_network*.pdf file. This will give a quick (and sometimes ugly) view of the network. For more detailed inspection, we recommend using the cytoscape GUI program and importing the Cytoscape_network*.graphml file. This creates a much more human-readable and interactive version or the network.
 
 
+## <ins>**Supplementary scripts**</ins> <a name="supp"></a>
+Simulations.py is used to simulate proteomes with subsets of genes that exhibit correlated evolution. A conda environment with pyevolve is needed to run this script. Note that we needed to manually edit the evolver.py file that comes packaged with pyevolve to remove reference to an outdate "Alphabet" data type in biopython.
+
+
 [Back to Top](#top)
+
+
 
