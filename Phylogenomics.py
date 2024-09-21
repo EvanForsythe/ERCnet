@@ -2,11 +2,6 @@
 
 ### Main script for running the phylogenomics steps of the ERC workflow###
 
-#During developent, set working directory:
-#import os
-#working_dir = '/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/'
-#os.chdir('/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/')
-
 #Storebought modules
 import os
 import re
@@ -75,25 +70,6 @@ core_dist=args.core_distribution
 prune_cutoff=args.Prune_cutoff
 taper=args.Taper
 
-'''
-#DEV: hardcode arguments
-JOBname = "small2"
-OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/"
-MaxP_val=3
-MinR_val=17
-explore_filters=False
-Min_len=100
-Test_num=8
-Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
-SPmap=True
-Node=1
-Mult_threads=1
-Apriori=False
-prune_cutoff=0.9
-taper="/Applications/Bioinformatics/julia-1.8.2/bin/"
-#END DEV
-'''
-
 
 #Check to see if the path arguments end with "/"
 if not OFpath.endswith('/'):
@@ -108,7 +84,7 @@ print("Finding the Orthofinder HOG file to be used to designate ingroup subtrees
 
 #Get the status of the variable from the --Node argument
 if Node is None:
-    print("--Node (-n) not defined. Choosing N1.tsv HOF file by default\nNote that N1.tsv is only appropriate if your species tree contains a single outgroup species.\n")
+    print("WARNDING: --Node (-n) not defined. Choosing N1.tsv HOF file by default\nNote that N1.tsv is only appropriate if your species tree contains a single outgroup species.\n")
     Node=1
 else:
     if isinstance(Node, int):
@@ -141,7 +117,7 @@ else:
 
 
 
-#Get path to some needed Orthofinder files 
+#Get path to needed Orthofinder files 
 sp_tr_path = OFpath+'Species_Tree/SpeciesTree_rooted_node_labels.txt'
 HOG_file_path = OFpath+'Phylogenetic_Hierarchical_Orthogroups/N'+str(Node)+'.tsv'
 OG_trees_dir = OFpath+'Resolved_Gene_Trees/'
@@ -161,28 +137,28 @@ else:
 if os.path.isfile(HOG_file_path):
     print("Found HOG file!")
 else:
-    print("ERROR: expected HOG file (N"+str(Node)+".tsv) not fond! Quitting....\n")
+    print("ERROR: expected HOG file (N"+str(Node)+".tsv) not found! Quitting....\n")
     sys.exit()
 
 #Resolved gene trees
 if os.path.isdir(OG_trees_dir):
     print("Found Resolved_Gene_Trees/ directory!")
 else:
-    print("ERROR: Resolved_Gene_Trees/ directory not fond! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
+    print("ERROR: Resolved_Gene_Trees/ directory not found! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
     sys.exit()
 
 #Orthogroup seuquences
 if os.path.isdir(OGseqdir):
     print("Found Orthogroup_Sequences/ directory!\n")
 else:
-    print("ERROR: Orthogroup_Sequences/ directory not fond! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
+    print("ERROR: Orthogroup_Sequences/ directory not found! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
     sys.exit()
     
-#Store output dir as a variable
+#Create a variable for the output dir
 out_dir= 'OUT_'+JOBname+'/'
 
 #Create the output folder
-#Make a directory for storing stats
+#Make a directory for storing results
 if os.path.isdir(out_dir):
     while True:
         user_input = input("This jobname already exists. Would you like to overwrite? (y/n) \n")
@@ -284,8 +260,6 @@ if (runningSum < 1):
     print('An error has occured in the species mapping table. Please verify species names are consistent. ERCnet will now exit.')
     sys.exit()
 
-
-
 #Check if the dataframe was assinged properly
 if 'HOG' in list(seq_counts_df.columns):
     print('Sequence counts per species dataframe successfully generated\n')
@@ -346,9 +320,8 @@ if (MinR_val == 0):
     MinR_val = max(math.floor(len(sp_names)/2),1)
 print('--MaxP_val set to {} and --MinR_val set to {}\nFiltering data....'.format(MaxP_val,MinR_val))
 
-##Filter results according to filter criteria
 #Use the module from Filter_stats.py to filter the list
-Keeper_HOGs_df= filter_gene_fams(HOG_file, seq_counts_df, sp_names, MaxP_val, MinR_val)
+Keeper_HOGs_df= filter_gene_fams(out_dir, HOG_file, seq_counts_df, sp_names, MaxP_val, MinR_val)
 
 #Check if any HOGs were retained
 if Keeper_HOGs_df.shape[0] > 0:

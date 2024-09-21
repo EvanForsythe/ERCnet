@@ -4,12 +4,6 @@ import pandas as pd
 import numpy as np
 from Bio import AlignIO, SeqIO
 
-
-#Hardcoded for development
-#HOG_file_path='/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/Phylogenetic_Hierarchical_Orthogroups/N1.tsv'
-#HOG_file_path='/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/Phylogenetic_Hierarchical_Orthogroups/N1.tsv'
-#mapping_table_path='/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/OUT_TPC/Species_mapping.csv'
-
 #Function for creating a dataframe with the species counts
 def make_seq_counts_df(HOG_file_path, mapping_table_path):
 
@@ -57,7 +51,7 @@ if __name__ == "__main__":
     
 
 #Make function for filtering dataset by criteria
-def filter_gene_fams(HOG_file, counts_df_rearrange, sp_names, para_value, rep_value):
+def filter_gene_fams(out_dir, HOG_file, counts_df_rearrange, sp_names, para_value, rep_value):
     #Max number of paralogs
     def max_paralog_bool(row):
         return row.max() <= para_value
@@ -66,8 +60,6 @@ def filter_gene_fams(HOG_file, counts_df_rearrange, sp_names, para_value, rep_va
     paralog_bool=list(counts_df_rearrange[sp_names].apply(max_paralog_bool, axis=1))
     
     #Minimum number of species represeented
-    #rep_value=3
-    #row=list(counts_df.loc[50,])
     def min_sp_rep_bool(row):
         def condition(x): 
             return x > 0
@@ -85,9 +77,21 @@ def filter_gene_fams(HOG_file, counts_df_rearrange, sp_names, para_value, rep_va
     conditions_met_df['Paralogs_OK']=paralog_bool
     conditions_met_df['SPrep_OK']=rep_bool
     
+    #Create a csv file for tracking filtering results
+    dropped_log_handle = open(out_dir+"Dropped_gene_log.csv", "a")
+    dropped_log_handle.write("HOG,Step,Reason\n")
+
+    for row_i, row in conditions_met_df.iterrows():
+        if row['Paralogs_OK'] and not row['SPrep_OK']:
+            dropped_log_handle.write(f"{row['HOG']},initial HOG filtering, dropped due R filter\n")
+        elif not row['Paralogs_OK'] and row['SPrep_OK']:
+            dropped_log_handle.write(f"{row['HOG']},initial HOG filtering, dropped due P filter\n")
+        elif not row['Paralogs_OK'] and not row['SPrep_OK']:
+            dropped_log_handle.write(f"{row['HOG']},initial HOG filtering, dropped due both R and P filters\n")
+
     #Get the rows that pass both criteria
-    passed_only_df=conditions_met_df[(conditions_met_df['Paralogs_OK']==True) & (conditions_met_df['SPrep_OK']==True)]
-    
+    passed_only_df=conditions_met_df[(conditions_met_df['Paralogs_OK']==True) & (conditions_met_df['SPrep_OK']==True)] 
+
     #make new df that retains only the keepers 
     Keeper_HOGs_df= HOG_file[HOG_file['HOG'].isin(list(passed_only_df['HOG']))]
     
