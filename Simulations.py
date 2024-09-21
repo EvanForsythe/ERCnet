@@ -30,35 +30,48 @@ def create_random_tree(species):
         # Add the new clade back to the list
         clades.append(new_clade)
 
-    # The final remaining clade is the root, set its branch length explicitly
+    # The final remaining clade is the root
     root_clade = clades[0]
     root_clade.branch_length = random.uniform(0.001, 0.005)
-    return Tree(root=root_clade)
-
+    
+    # Create the tree
+    tree = Tree(root=root_clade)
+    
+    return tree
+'''
 # Function to ensure every branch has a branch length (set to 0.0 if missing)
 def ensure_branch_lengths(tree):
     for clade in tree.find_clades():
         if clade.branch_length is None or clade.branch_length == 0.0:
             clade.branch_length = random.uniform(0.001, 0.005)  # Add a small default branch length
+'''
+
+# Function to set a long branch length for the outgroup (Spec21)
+def set_long_branch_for_outgroup(tree, outgroup_name, branch_length):
+    # Find Spec21 (the outgroup) and set its own branch length
+    for clade in tree.find_clades():
+        if clade.name == outgroup_name:
+            clade.branch_length = branch_length  # Set long branch length for Spec21 itself
+            print(f"Branch length for {outgroup_name} set to {branch_length}")
+            return
 
 # Function to save trees with explicit branch lengths, no names
 def write_tree_with_explicit_branch_lengths(tree, output_file):
     with open(output_file, 'w') as f:
         for clade in tree.find_clades():
             if clade.branch_length is None:
-                clade.branch_length = 0.0
-        
+                clade.branch_length = 0.0  # Ensure every clade has a branch length
         Phylo.write(tree, f, 'newick', branch_length_only=True)
-
-# Function to print branch lengths for debugging
-def print_branch_lengths(tree):
-    for clade in tree.find_clades():
-        print(f"Branch {clade.name}: {clade.branch_length}")
 
 # Function to simulate protein evolution using pyvolve
 def simulate_evolution(tree_file, model, seq_length, seqfile):
+    # Read the tree in pyvolve format
     pyvolve_tree = pyvolve.read_tree(file=tree_file)
+    
+    # Define a partition for sequence evolution
     partition = pyvolve.Partition(models=model, size=seq_length)
+    
+    # Simulate sequence evolution and write to seqfile
     evolver = pyvolve.Evolver(partitions=partition, tree=pyvolve_tree)
     evolver(ratefile=None, seqfile=seqfile)
 
@@ -109,7 +122,6 @@ def create_randomized_trees(original_tree, rand_dir):
 
     return randomized_trees
 
-
 # Main function to perform the simulations
 def main():
     # Parse the user-defined jobname and optional rand argument
@@ -127,8 +139,8 @@ def main():
     os.makedirs(full_proteomes_dir, exist_ok=True)
 
     if rand_mode:
-    	print("Running gene tree accelerations in random mode (evolution across genes not coorelated).\n")
-    	os.makedirs(rand_dir, exist_ok=True)
+        print("Running gene tree accelerations in random mode (evolution across genes not correlated).\n")
+        os.makedirs(rand_dir, exist_ok=True)
 
     # Define the number of species (21)
     species = ["Spec{:02d}".format(i) for i in range(1, 22)]
@@ -136,15 +148,20 @@ def main():
     # Generate a random tree
     original_tree = create_random_tree(species)
 
-    # Ensure all branches have branch lengths
-    ensure_branch_lengths(original_tree)
-
     # Root the tree by Spec21
     original_tree.root_with_outgroup("Spec21")
 
+    # Set the branch leading to the outgroup to a long branch length
+    set_long_branch_for_outgroup(original_tree, "Spec21", 0.1)
+    
+    '''
+    # Ensure all branches have branch lengths
+    ensure_branch_lengths(original_tree)
+    '''
+	
     # Save the unmodified tree
     original_tree_file = os.path.join(output_dir, "random_tree_with_branch_lengths.nwk")
-    print("Simluated tree with random topology:\n")
+    print("Simulated tree with random topology:\n")
     Phylo.draw_ascii(original_tree)
     write_tree_with_explicit_branch_lengths(original_tree, original_tree_file)
 
@@ -166,18 +183,18 @@ def main():
 
         # Save the modified tree
         modified_tree_file = os.path.join(output_dir, "modified_tree_with_branch_lengths.nwk")
-        print("Simluated tree with random topology and modified branch lengths (rate accelerations):\n")
+        print("Simulated tree with random topology and modified branch lengths (rate accelerations):\n")
         Phylo.draw_ascii(original_tree)
         write_tree_with_explicit_branch_lengths(original_tree, modified_tree_file)
         modified_tree_files.append(modified_tree_file)
 
     # Define model and sequence length for pyvolve
     model = pyvolve.Model("jtt")
-    seq_length = 500
 
     # Simulate protein evolution 1000 times
     for i in range(1, 1001):
         seqfile = os.path.join(gene_fam_dir, f"Gene_fam_{i:04d}.fasta")
+        seq_length = random.randint(200, 1000)
 
         # First 100 simulations from the modified/randomized trees
         if i <= 100:
@@ -195,7 +212,7 @@ def main():
         #Progress report
         if i % 100 == 0:
         	print(f"Finished simulating {i} genes.\n")
-	
+
     # Split sequences into full proteomes by species
     print("Creating proteome files from gene families.\n")
     split_gene_fam_to_proteomes(gene_fam_dir, full_proteomes_dir, species)
