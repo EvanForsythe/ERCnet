@@ -5,6 +5,42 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
+# Function to search for files by prefix and suffix, and log results to a file
+def file_counts_log(jobname, out_dir, directory, prefix, suffix, result_file):
+    # Search for files in the directory with the given prefix and suffix
+    matching_files = [f for f in os.listdir(out_dir+directory) if f.startswith(prefix) and f.endswith(suffix)]
+    
+    # Count the number of matching files
+    num_matching_files = len(matching_files)
+    
+    #strip the / from the directory string
+    directory = directory.rstrip('/')
+
+    # Write the results to the specified result file in append mode
+    with open(result_file, "a") as file_handle:
+        file_handle.write(f"{jobname}, {directory}, {num_matching_files}\n")
+
+#Function to count the number of lines in output files and log that info
+# Function to count lines in a file and log the result
+def file_line_count_log(jobname, file_path, result_file):
+    try:
+        # Open the file and count the number of lines
+        with open(file_path, 'r') as f:
+            line_count = sum(1 for _ in f)
+        
+        #Get only the file name (no path or extension)
+        file_name = os.path.splitext(os.path.basename(file_path))[0]
+        
+        # Write the results to the specified result file in append mode
+        with open(result_file, "a") as file_handle:
+            file_handle.write(f"{jobname}, {file_name}, {line_count-1}\n")
+        
+        print(f"Logged {line_count} lines for file '{file_path}'.")
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.")
+        with open(result_file, "a") as file_handle:
+            file_handle.write(f"{file_name}, File not found\n")
+
 
 def FilterBranchType(data, filterType):
     branchFilter = data.filter(like=filterType).columns
