@@ -1,9 +1,48 @@
+import random
 import os
+import re
+from Bio import Phylo
 import time
 import glob
 import numpy as np
 import pandas as pd
 from datetime import datetime
+
+# Function to search for files by prefix and suffix, and log results to a file
+def file_counts_log(jobname, out_dir, directory, prefix, suffix, result_file):
+    # Search for files in the directory with the given prefix and suffix
+    matching_files = [f for f in os.listdir(out_dir+directory) if f.startswith(prefix) and f.endswith(suffix)]
+    
+    # Count the number of matching files
+    num_matching_files = len(matching_files)
+    
+    #strip the / from the directory string
+    directory = directory.rstrip('/')
+
+    # Write the results to the specified result file in append mode
+    with open(result_file, "a") as file_handle:
+        file_handle.write(f"{jobname}, {directory}, {num_matching_files}\n")
+
+#Function to count the number of lines in output files and log that info
+# Function to count lines in a file and log the result
+def file_line_count_log(jobname, file_path, result_file):
+    try:
+        # Open the file and count the number of lines
+        with open(file_path, 'r') as f:
+            line_count = sum(1 for _ in f)
+        
+        #Get only the file name (no path or extension)
+        file_name = os.path.splitext(os.path.basename(file_path))[0]
+        
+        # Write the results to the specified result file in append mode
+        with open(result_file, "a") as file_handle:
+            file_handle.write(f"{jobname}, {file_name}, {line_count-1}\n")
+        
+        print(f"Logged {line_count} lines for file '{file_path}'.")
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.")
+        with open(result_file, "a") as file_handle:
+            file_handle.write(f"{file_name}, File not found\n")
 
 
 def FilterBranchType(data, filterType):
@@ -153,6 +192,52 @@ def CheckAndMakeDir(out_dir, dir_name):
     print("Results will be stored in " + dir_name + '\n\n')
 
     return
+
+
+# Function for resolving non-bifurcating trees
+def resolve_polytomies(tree, min_branch_length=0.001, max_branch_length=0.01):
+    """
+    Recursively resolves polytomies (non-bifurcating nodes) by randomly adding internal nodes.
+    
+    Parameters:
+    tree (Phylo.BaseTree.Tree): The input phylogenetic tree.
+    min_branch_length (float): Minimum branch length for newly added branches.
+    max_branch_length (float): Maximum branch length for newly added branches.
+    
+    Returns:
+    Phylo.BaseTree.Tree: A bifurcating version of the input tree.
+    """
+    
+    def is_polytomy(clade):
+        """Check if a clade is a polytomy (has more than two children)."""
+        return len(clade.clades) > 2
+    
+    def resolve_clade(clade):
+        """Recursively resolve polytomies in a clade."""
+        # If the clade is a polytomy, resolve it
+        if is_polytomy(clade):
+            while len(clade.clades) > 2:
+                # Randomly pick two children to group into a new internal node
+                child1, child2 = random.sample(clade.clades, 2)
+                clade.clades.remove(child1)
+                clade.clades.remove(child2)
+                
+                # Create a new internal node with the two children
+                new_internal = Phylo.BaseTree.Clade(branch_length=random.uniform(min_branch_length, max_branch_length))
+                new_internal.clades.append(child1)
+                new_internal.clades.append(child2)
+                
+                # Add the new internal node back to the clade
+                clade.clades.append(new_internal)
+        
+        # Recursively resolve polytomies in each child clade
+        for child in clade.clades:
+            resolve_clade(child)
+    
+    # Resolve polytomies starting from the root of the tree
+    resolve_clade(tree.root)
+    
+    return tree
 
 #Due to importing errors, this function has been pulled from scipy.stats base code.
 #All credit for development and use of this function goes to the scipy creators. 

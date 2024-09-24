@@ -2,14 +2,118 @@
 
 import pandas as pd
 import numpy as np
+import os
+import re
 from Bio import AlignIO, SeqIO
+import sys
 
+# Function for checking and logging missing files
+def file_loss_log(full_out_dir, start_dir, end_dir, start_pattern, end_pattern, step, error_message):
+    
+    log_file_path = os.path.join(full_out_dir, "Dropped_gene_log.csv")
+    
+    # Open the log file in append mode
+    with open(log_file_path, "a+") as dropped_log_handle:
+        # Move to the beginning of the file and read its contents to check for existing HOG strings
+        dropped_log_handle.seek(0)
+        logged_hogs = dropped_log_handle.read()
 
-#Hardcoded for development
-#HOG_file_path='/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/Phylogenetic_Hierarchical_Orthogroups/N1.tsv'
-#HOG_file_path='/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/Phylogenetic_Hierarchical_Orthogroups/N1.tsv'
-#mapping_table_path='/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/OUT_TPC/Species_mapping.csv'
+        # Get a list of files in the start dir that contain the start pattern
+        start_files = [f for f in os.listdir(start_dir) if start_pattern in f]
 
+        # Get a list of files in the end dir that contain the end pattern
+        end_files = [f for f in os.listdir(end_dir) if end_pattern in f]
+
+        # Function to extract HOG string from a filename using regex
+        def extract_hog_string(file_name):
+            match = re.search(r"HOG\d{7}", file_name)
+            if match:
+                return match.group(0)
+            return None
+
+        # Extract HOG strings from the start and end files
+        start_hog_strings = {extract_hog_string(f) for f in start_files if extract_hog_string(f)}
+        end_hog_strings = {extract_hog_string(f) for f in end_files if extract_hog_string(f)}
+
+        # Initialize counters to track total and lost files
+        total_files = len(start_hog_strings)
+        lost_files = 0
+
+        # Log missing HOG strings from the end directory
+        missing_hogs = start_hog_strings - end_hog_strings
+        if missing_hogs:
+            
+            for hog in missing_hogs:
+                # Only write to the log if the HOG string is not already present in the log file
+                if hog not in logged_hogs:
+                    dropped_log_handle.write(f"{hog}, {step}, {error_message}\n")
+                lost_files += 1
+
+        # Check if more than 25% of files have been lost
+        if total_files > 0:  # Ensure no division by zero
+            lost_percentage = (lost_files / total_files) * 100
+            if lost_percentage > 25:
+                sys.exit(f"ERROR: More than 25% of files ({lost_percentage:.2f}%) were lost at {step} step. Exiting...")
+
+# Function for checking that BS reps have 100 lines and deleting files with fewer lines
+def bs_reps_check_log(full_out_dir, start_dir, end_dir, start_pattern, end_pattern, step, error_message, warning_message):
+    
+    log_file_path = os.path.join(full_out_dir, "Dropped_gene_log.csv")
+    
+    # Open the log file in append mode
+    with open(log_file_path, "a+") as log_handle:
+        # Move to the beginning of the file and read its contents to check for existing entries
+        log_handle.seek(0)
+        logged_hogs = log_handle.read()
+
+        # Get a list of files in the start dir that contain the start pattern
+        start_files = [f for f in os.listdir(start_dir) if start_pattern in f]
+
+        # Get a list of files in the end dir that contain the end pattern
+        end_files = [f for f in os.listdir(end_dir) if end_pattern in f]
+
+        # Function to extract HOG string from a filename using regex
+        def extract_hog_string(file_name):
+            match = re.search(r"HOG\d{7}", file_name)
+            if match:
+                return match.group(0)
+            return None
+
+        # Extract HOG strings from the start and end files
+        start_hog_strings = {extract_hog_string(f) for f in start_files if extract_hog_string(f)}
+        end_hog_strings = {extract_hog_string(f) for f in end_files if extract_hog_string(f)}
+
+        # Initialize counters to track total and lost files
+        total_files = len(start_hog_strings)
+        lost_files = 0
+
+        # Log missing or short files
+        for hog in start_hog_strings:
+            if hog not in end_hog_strings:
+                # Log missing file and increment lost files counter
+                if hog not in logged_hogs:
+                    log_handle.write(f"{hog}, {step}, {error_message}\n")
+                lost_files += 1
+            else:
+                # Check file length
+                matching_files = [f for f in end_files if hog in f]
+                for file_name in matching_files:
+                    file_path = os.path.join(end_dir, file_name)
+                    with open(file_path, 'r') as file:
+                        line_count = sum(1 for _ in file)
+                    
+                    # Log warning if file has fewer than 100 lines and delete the file
+                    if line_count < 100 and hog not in logged_hogs:
+                        log_handle.write(f"{hog}, {step}, {warning_message} ({line_count} lines)\n")
+                        os.remove(file_path)  # Delete the file if it has fewer than 100 lines
+                        print(f"Deleted {file_name} due to insufficient lines ({line_count} lines).")
+                        lost_files += 1
+
+        # Check if more than 25% of files have been lost
+        if total_files > 0:  # Ensure no division by zero
+            lost_percentage = (lost_files / total_files) * 100
+            if lost_percentage > 25:
+                sys.exit(f"ERROR: More than 25% of files ({lost_percentage:.2f}%) were lost at {step} step. Exiting...")
 #Function for creating a dataframe with the species counts
 def make_seq_counts_df(HOG_file_path, mapping_table_path):
 
@@ -57,7 +161,7 @@ if __name__ == "__main__":
     
 
 #Make function for filtering dataset by criteria
-def filter_gene_fams(HOG_file, counts_df_rearrange, sp_names, para_value, rep_value):
+def filter_gene_fams(out_dir, HOG_file, counts_df_rearrange, sp_names, para_value, rep_value):
     #Max number of paralogs
     def max_paralog_bool(row):
         return row.max() <= para_value
@@ -66,8 +170,6 @@ def filter_gene_fams(HOG_file, counts_df_rearrange, sp_names, para_value, rep_va
     paralog_bool=list(counts_df_rearrange[sp_names].apply(max_paralog_bool, axis=1))
     
     #Minimum number of species represeented
-    #rep_value=3
-    #row=list(counts_df.loc[50,])
     def min_sp_rep_bool(row):
         def condition(x): 
             return x > 0
@@ -85,9 +187,20 @@ def filter_gene_fams(HOG_file, counts_df_rearrange, sp_names, para_value, rep_va
     conditions_met_df['Paralogs_OK']=paralog_bool
     conditions_met_df['SPrep_OK']=rep_bool
     
+    #Create a csv file for tracking filtering results
+    dropped_log_handle = open(out_dir+"Dropped_gene_log.csv", "a")
+
+    for row_i, row in conditions_met_df.iterrows():
+        if row['Paralogs_OK'] and not row['SPrep_OK']:
+            dropped_log_handle.write(f"{row['HOG']},initial HOG filtering, dropped due to R filter\n")
+        elif not row['Paralogs_OK'] and row['SPrep_OK']:
+            dropped_log_handle.write(f"{row['HOG']},initial HOG filtering, dropped due to P filter\n")
+        elif not row['Paralogs_OK'] and not row['SPrep_OK']:
+            dropped_log_handle.write(f"{row['HOG']},initial HOG filtering, dropped due to both R and P filters\n")
+
     #Get the rows that pass both criteria
-    passed_only_df=conditions_met_df[(conditions_met_df['Paralogs_OK']==True) & (conditions_met_df['SPrep_OK']==True)]
-    
+    passed_only_df=conditions_met_df[(conditions_met_df['Paralogs_OK']==True) & (conditions_met_df['SPrep_OK']==True)] 
+
     #make new df that retains only the keepers 
     Keeper_HOGs_df= HOG_file[HOG_file['HOG'].isin(list(passed_only_df['HOG']))]
     

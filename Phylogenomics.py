@@ -2,11 +2,6 @@
 
 ### Main script for running the phylogenomics steps of the ERC workflow###
 
-#During developent, set working directory:
-#import os
-#working_dir = '/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/'
-#os.chdir('/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/')
-
 #Storebought modules
 import os
 import re
@@ -20,6 +15,7 @@ import itertools
 import subprocess
 import numpy as np
 import pandas as pd
+from Bio import Phylo
 from Bio import SeqIO
 from Bio import AlignIO
 from datetime import datetime 
@@ -27,8 +23,8 @@ from joblib import Parallel, delayed
 
 
 #Homemade modules
-from filterHOGs import make_seq_counts_df, filter_gene_fams, check_alns_for_prune
-from ERC_functions import benchmarkTime, benchmarkProcess, CheckFileExists, CheckFileNonEmpty
+from filterHOGs import make_seq_counts_df, filter_gene_fams, check_alns_for_prune, file_loss_log, bs_reps_check_log
+from ERC_functions import benchmarkTime, benchmarkProcess, CheckFileExists, CheckFileNonEmpty, file_counts_log, file_line_count_log, resolve_polytomies
 
 
 #At runtime set working directory to the place where the script lives
@@ -75,25 +71,6 @@ core_dist=args.core_distribution
 prune_cutoff=args.Prune_cutoff
 taper=args.Taper
 
-'''
-#DEV: hardcode arguments
-JOBname = "small2"
-OFpath = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/"
-MaxP_val=3
-MinR_val=17
-explore_filters=False
-Min_len=100
-Test_num=8
-Rax_dir= "/opt/anaconda3/envs/ERC_networks/bin/"
-SPmap=True
-Node=1
-Mult_threads=1
-Apriori=False
-prune_cutoff=0.9
-taper="/Applications/Bioinformatics/julia-1.8.2/bin/"
-#END DEV
-'''
-
 
 #Check to see if the path arguments end with "/"
 if not OFpath.endswith('/'):
@@ -108,7 +85,7 @@ print("Finding the Orthofinder HOG file to be used to designate ingroup subtrees
 
 #Get the status of the variable from the --Node argument
 if Node is None:
-    print("--Node (-n) not defined. Choosing N1.tsv HOF file by default\nNote that N1.tsv is only appropriate if your species tree contains a single outgroup species.\n")
+    print("WARNDING: --Node (-n) not defined. Choosing N1.tsv HOF file by default\nNote that N1.tsv is only appropriate if your species tree contains a single outgroup species.\n")
     Node=1
 else:
     if isinstance(Node, int):
@@ -140,8 +117,7 @@ else:
     print("Skipping TAPER trimming...")
 
 
-
-#Get path to some needed Orthofinder files 
+#Get path to needed Orthofinder files 
 sp_tr_path = OFpath+'Species_Tree/SpeciesTree_rooted_node_labels.txt'
 HOG_file_path = OFpath+'Phylogenetic_Hierarchical_Orthogroups/N'+str(Node)+'.tsv'
 OG_trees_dir = OFpath+'Resolved_Gene_Trees/'
@@ -161,28 +137,28 @@ else:
 if os.path.isfile(HOG_file_path):
     print("Found HOG file!")
 else:
-    print("ERROR: expected HOG file (N"+str(Node)+".tsv) not fond! Quitting....\n")
+    print("ERROR: expected HOG file (N"+str(Node)+".tsv) not found! Quitting....\n")
     sys.exit()
 
 #Resolved gene trees
 if os.path.isdir(OG_trees_dir):
     print("Found Resolved_Gene_Trees/ directory!")
 else:
-    print("ERROR: Resolved_Gene_Trees/ directory not fond! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
+    print("ERROR: Resolved_Gene_Trees/ directory not found! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
     sys.exit()
 
 #Orthogroup seuquences
 if os.path.isdir(OGseqdir):
     print("Found Orthogroup_Sequences/ directory!\n")
 else:
-    print("ERROR: Orthogroup_Sequences/ directory not fond! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
+    print("ERROR: Orthogroup_Sequences/ directory not found! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
     sys.exit()
     
-#Store output dir as a variable
+#Create a variable for the output dir
 out_dir= 'OUT_'+JOBname+'/'
 
 #Create the output folder
-#Make a directory for storing stats
+#Make a directory for storing results
 if os.path.isdir(out_dir):
     while True:
         user_input = input("This jobname already exists. Would you like to overwrite? (y/n) \n")
@@ -205,6 +181,17 @@ else:
 if Mult_threads < 4:
     print("Parallel processing is not viable for tree building below 4 cores due to overhead. ERCnet will continue as a linear process for Raxml runs.")
 
+#Created dropped file log
+print("Creating Dropped_gene_log.csv file to store information about genes lost during fitering/analysis steps.\n")
+dropped_log_handle = open(out_dir+"Dropped_gene_log.csv", "a")
+dropped_log_handle.write("HOG,Step,Reason\n")
+dropped_log_handle.close()
+
+#Created dropped file log
+print("Creating Run_data_counts_log.csv file to store quantitative information from throughout the run.\n")
+counts_log_handle = open(out_dir+"Run_data_counts_log.csv", "a")
+counts_log_handle.write("Jobname,File_or_folder,Count\n")
+counts_log_handle.close()
 
 #Define the time object and folder for optimization testing
 bench_fileName = JOBname + '_Phylogenomics_benchmark.tsv'
@@ -225,7 +212,6 @@ with open(out_dir + 'benchmark/' + str(bench_fileName), "a") as bench:
     bench.write("Stage" + '\t' + "Time" + '\n')
     bench.write("Process Start" + '\t' + str(current_time) + '\n')
 
-
 #Check HOG file exists 
 if os.path.isfile(HOG_file_path):
     print('HOG file for selected node located at:\n'+ HOG_file_path+'\n')
@@ -233,7 +219,6 @@ if os.path.isfile(HOG_file_path):
 else:
     print('OG file for selected node not found. Quitting...\n')
     sys.exit()
-
 
 #open HOG file
 HOG_file=pd.read_csv(HOG_file_path, sep='\t')
@@ -265,6 +250,9 @@ print("These should match the column headers in the HOG file (e.g. N1.tsv) and t
 print("\nThe following species identifiers will be used: \n"+str(sp_prefix))
 print("These should be present in the sequence IDs in alignments etc...\n")
 
+#Count number of species
+file_line_count_log(JOBname, out_dir+"Species_mapping.csv", out_dir+"Run_data_counts_log.csv")
+
 #Generate a dataframe of the counts data using the my outside module from filterHOGs.py
 seq_counts_df=make_seq_counts_df(HOG_file_path, out_dir+'Species_mapping.csv')
 
@@ -284,8 +272,6 @@ if (runningSum < 1):
     print('An error has occured in the species mapping table. Please verify species names are consistent. ERCnet will now exit.')
     sys.exit()
 
-
-
 #Check if the dataframe was assinged properly
 if 'HOG' in list(seq_counts_df.columns):
     print('Sequence counts per species dataframe successfully generated\n')
@@ -294,6 +280,10 @@ if 'HOG' in list(seq_counts_df.columns):
 else:
     print('ERROR: Sequence counts per sepecies dataframe not properly generated. Quitting...\n')
     sys.exit()
+
+
+#Count the total number og HOG (before filtering)
+file_line_count_log(JOBname, out_dir+"Seq_counts_per_species.csv", out_dir+"Run_data_counts_log.csv")
 
 #If the -e flag was chosen, run the parameter scan to explore the data filtering options
 if explore_filters:
@@ -346,9 +336,8 @@ if (MinR_val == 0):
     MinR_val = max(math.floor(len(sp_names)/2),1)
 print('--MaxP_val set to {} and --MinR_val set to {}\nFiltering data....'.format(MaxP_val,MinR_val))
 
-##Filter results according to filter criteria
 #Use the module from Filter_stats.py to filter the list
-Keeper_HOGs_df= filter_gene_fams(HOG_file, seq_counts_df, sp_names, MaxP_val, MinR_val)
+Keeper_HOGs_df= filter_gene_fams(out_dir, HOG_file, seq_counts_df, sp_names, MaxP_val, MinR_val)
 
 #Check if any HOGs were retained
 if Keeper_HOGs_df.shape[0] > 0:
@@ -398,6 +387,8 @@ else:
     print('Error: sequence counts per sepecies dataframe not properly generated. Quitting...\n')
     sys.exit()
 
+#Count the number of HOGs after filtering
+file_line_count_log(JOBname, out_dir+"Filtered_genefam_dataset.csv", out_dir+"Run_data_counts_log.csv")
 
 ### Test sequence files to look for seq IDs that would cause problems later on.
 
@@ -445,13 +436,6 @@ for row_i, row in Keeper_HOGs_df.iterrows():
 if len(drop_list)>0:
     Keeper_HOGs_df = Keeper_HOGs_df.loc[~Keeper_HOGs_df['OG'].isin(drop_list)]
 
-
-'''
-for ind in Keeper_HOGs_df.index:
-    if Keeper_HOGs_df['OG'][ind] in drop_list:
-        Keeper_HOGs_df.drop(ind, inplace=True)
-'''
-
 print(f"Number of HOGs remaining after seq ID formatting problem check: {Keeper_HOGs_df.shape[0]}")
 
 ### Extract the subtree sequences to be aligned
@@ -495,6 +479,8 @@ else:
     print('ERROR: writing HOG sequence files failed. Quitting...\n')
     sys.exit()
 
+#Count number of HOG seqs
+file_counts_log(JOBname, out_dir, 'HOG_seqs', 'HOG', 'fa', out_dir+'Run_data_counts_log.csv')
     
 ### Run mafft alignment
 mafft_msg= str(subprocess.Popen(['mafft', '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate())
@@ -513,7 +499,7 @@ if not os.path.isdir(out_dir+'Alns'):
 else: 
     print('MAFFT alignments will be written to Alns/\n')
 
-print('Alignments finished: ')
+print('Number of alignments finished: ')
 ##Begin paralellization of alignments
 
 def iterate_maf(seq_file_names):
@@ -541,7 +527,7 @@ def par_maf_alns(file):
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'maf_alns', timer)
 
-Parallel(n_jobs = Mult_threads, verbose=100, max_nbytes=None)(delayed(par_maf_alns)(file) for file in iterate_maf(seq_file_names))
+Parallel(n_jobs = Mult_threads, verbose=0, max_nbytes=None)(delayed(par_maf_alns)(file) for file in iterate_maf(seq_file_names))
 
 #Timestamp just after Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'maf_alns', timer)
@@ -559,8 +545,13 @@ elif len(glob.glob(out_dir+'Alns/ALN*')) < len(seq_file_names):
 elif len(glob.glob(out_dir+'Alns/ALN*')) < len(seq_file_names):
     print('\nWARNING: there are more alignments in the folder than expected. Proceeding (with caution)...\n')
 
-### Running TAPER Alignment trimming (optionally)
+#Check for dropped files
+file_loss_log(out_dir, out_dir+'HOG_seqs/', out_dir+'Alns/', '.fa', 'ALN', 'multiple sequence alignment', 'file unsuccesfully aligned for reasons unknown')
 
+#Count number of alns
+file_counts_log(JOBname, out_dir, 'Alns', 'ALN', 'fa', out_dir+'Run_data_counts_log.csv')
+
+### Running TAPER Alignment trimming (optionally)
 if not taper == "no":
     print("beginning TAPER trimming.")
     
@@ -571,7 +562,7 @@ if not taper == "no":
     else: 
         print('Trimmed alignments will be written to TAPER_Alns/\n')
     
-    #Get list of all alns (that haven't been gblocked yet)
+    #Get list of all alns (that haven't been gblocked/tapered yet)
     aln_file_names = [x for x in glob.glob(out_dir+'Alns/ALN*') if "-gb" not in x]
     
     def iterate_taper(aln_file_names):
@@ -583,11 +574,11 @@ if not taper == "no":
         #taper_cmd= taper+'julia correction_multi.jl -m "-" '+file+' > '+file.replace("Alns/", "TAPER_Alns/")
         
         # Build the command without output redirection
-        taper_cmd = [taper + 'julia', 'correction_multi.jl', '-m"-"', file]
-        
+        taper_cmd = [taper + 'julia', 'correction_multi.jl', '-m-', file]
+
         #Run the command
         result = subprocess.run(taper_cmd, input="", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, text=True)
-        
+      
         taper_stdout=result.stdout
         taper_stderr=result.stderr
         
@@ -603,28 +594,15 @@ if not taper == "no":
             with open(file.replace("Alns/", "TAPER_Alns/"), 'w') as output_file:
                 # Call the subprocess, redirecting stdout to the output file
                 output_file.write(taper_stdout)
-        
-        '''
-        #Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
-        if re.search('correction_multi.jl', taper_cmd): #Check if cmd contains expected string and run if so
             
-            ## WORKING HERE: the ">" at the end is screwing up Popen.
-            subprocess.call(taper_cmd, shell=True)
-            
-            #subprocess.call(taper_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            #proc_taper = subprocess.Popen(taper_cmd, stdout=subprocess.PIPE, shell=True) #apparently shell=True can create 'security issues' (so I put it under an if statement to make sure the cmd is what it should be)
-            #output_taper = str(proc_taper.stdout.read())
-            #print(output_taper)
-        '''
-            
+        #Check to make sure taper worked
         if os.stat(file.replace("Alns/", "TAPER_Alns/")).st_size == 0:
             print("ERROR: something went wrong with the TAPER command. Produced empty file. The following command caused the issue:")
             print(taper_cmd)
             print("Quitting....\n")
             sys.exit()
 
-
-    Parallel(n_jobs = Mult_threads, verbose=100, max_nbytes=None)(delayed(par_taper_trim)(file) for file in iterate_taper(aln_file_names))
+    Parallel(n_jobs = Mult_threads, verbose=0, max_nbytes=None)(delayed(par_taper_trim)(file) for file in iterate_taper(aln_file_names))
     
     #Check alignment status
     if len(glob.glob(out_dir+'TAPER_Alns/ALN*')) == len(aln_file_names):
@@ -633,6 +611,13 @@ if not taper == "no":
         print('\nWARNING: some TAPER timming did not finish. Proceeding (with caution)...\n')
     elif len(glob.glob(out_dir+'TAPER_Alns/ALN*')) < len(aln_file_names):
         print('\nWARNING: there are more TAPER trimmed alignments in the folder than expected. Proceeding (with caution)...\n')
+
+#Check for dropped files
+if not taper == "no":
+    file_loss_log(out_dir, out_dir+'Alns/', out_dir+'TAPER_Alns/', 'ALN', 'ALN', 'TAPER trimming', 'file unsuccessfully trimmed with TAPER')
+    #Count number of alns
+    file_counts_log(JOBname, out_dir, 'TAPER_Alns', 'ALN', 'fa', out_dir+'Run_data_counts_log.csv')
+
 
 ###GBLOCKS cleaning alignments
 print('Beginning GBLOCKS\n')
@@ -743,7 +728,7 @@ def par_gblocks(aln):
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
 
 #run the parallel command
-Parallel(n_jobs= Mult_threads, verbose=100, max_nbytes=None)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names2))
+Parallel(n_jobs= Mult_threads, verbose=0, max_nbytes=None)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names2))
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
@@ -752,7 +737,10 @@ benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
 num_items = len(aln_file_names2)
 benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
 
-##End paralellization of gblocks trimming
+if not taper == "no":
+    file_loss_log(out_dir, out_dir+'TAPER_Alns/', out_dir+'Gb_alns/', 'ALN', 'GB_ALN', 'Gblocks trimming', 'file unsuccessfully Gblocks trimmed or became too short')
+else:
+    file_loss_log(out_dir, out_dir+'Alns/', out_dir+'Gb_alns/', 'ALN', 'GB_ALN', 'Gblocks trimming', 'file unsuccessfully Gblocks trimmed or became too short')
 
 ###Check if there are individual sequences that need to be pruned.
 #Make a directory for storing pruning info
@@ -765,7 +753,7 @@ else:
 #get a list of all the Gblocks output files
 alns_to_check=glob.glob(out_dir+'Gb_alns/GB_ALN_*fa')
 
-#Loop through alignments to check and run  the pruning function
+#Loop through alignments to check and run the pruning function
 for a in alns_to_check:
     #run the function (store output as variable os that it'll run)
     store_pruned=check_alns_for_prune(a, prune_cutoff, out_dir)
@@ -806,6 +794,15 @@ for p in pruned_alns:
 
 print("Done pruning super gappy sequences from alignments...\n"+str(prune_replace_ticker)+" files replaced\n"+str(prune_remove_ticker)+" files removed because they were pruned too much\n")
 
+#Count number of g-blocks alignments
+file_counts_log(JOBname, out_dir, 'Gb_alns', 'GB_ALN', 'fa', out_dir+'Run_data_counts_log.csv')
+
+#Count number of too-short g-blocks alignments
+file_counts_log(JOBname, out_dir, 'Gb_alns/Too_short', 'GB_ALN', 'fa', out_dir+'Run_data_counts_log.csv')
+
+#Count number of files that underwent pruning
+file_counts_log(JOBname, out_dir, 'Aln_pruning', 'Prune_IDs_', 'txt', out_dir+'Run_data_counts_log.csv')
+
 ### Get the subtrees from orthofinder to use as a constraint tree from bootstrap scoring
 
 #Create folder to store subtrees
@@ -814,25 +811,73 @@ if not os.path.isdir(out_dir+'HOG_subtrees/'):
     print("\nCreated folder: HOG_subtrees/\n")
 else: 
     print('HOG subtrees will be stored in HOG_subtrees/\n')
-    
-print('Running subtree extraction. Check Non-binary_subtrees.txt for list of trees that are excluded for being non-bifurcating\n')
 
-#Call the R-script used to extract trees
-get_st_cmd= 'Rscript Get_subtree.R '+OG_trees_dir+' '+out_dir
+## Extract the subtree corresponding to the HOG from the larger gene tree for each OG
+
+# Loop through all rows in the DataFrame (this replaces previous R code in Get_subtree.R)
+for index, row in Keeper_HOGs_df.iterrows():
+    # Get the name of the outfile
+    HOG_temp = str(row['HOG'])
+
+    # Remove the N1 (or N2, N3, etc.) string
+    HOG_temp = re.split(r"\.", HOG_temp)[1]
+
+    # Read in the OG tree
+    tree_path = os.path.join(OG_trees_dir, f"{row['OG']}_tree.txt")
+    full_tree_temp = Phylo.read(tree_path, "newick")
+
+    # Get list of tips
+    raw_strings = row.iloc[3:].tolist()
+    raw_strings = [x for x in raw_strings if pd.notnull(x) and x != ""]
+
+    # Split tips into a vector
+    keeper_tips = re.split(r"\s*,\s*", ",".join(raw_strings).replace(" ", ""))
+
+    # Check if this was a pruned alignment
+    prune_file_pattern = f"{HOG_temp}_ALN_RETAINED.txt"
+    prune_files = [f for f in os.listdir(os.path.join(out_dir, "Aln_pruning")) if re.match(prune_file_pattern, f)]
     
-#Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
-if re.search('Get_subtree.R', get_st_cmd) and re.search(OG_trees_dir, get_st_cmd):
-    print("Calling R with the following command:")
-    print(get_st_cmd)
-    subprocess.call(get_st_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if len(prune_files) == 1:
+        prune_seqs = pd.read_table(os.path.join(out_dir, "Aln_pruning", prune_files[0]), header=None)[0].tolist()
+        
+        # Loop through seqs that need to be pruned from subtree
+        keeper_tips = [tip for tip in keeper_tips if tip not in prune_seqs]
+
+    # Get the subtree
+    subtree_temp = full_tree_temp.common_ancestor(keeper_tips)
+
+    # Add suffix
+    out_file_name = f"{HOG_temp}_tree.txt"
+
+    # Check if the subtree is binary (using `is_bifurcating` method in Biopython)
+    if subtree_temp.is_bifurcating():
+        # Write the subtree
+        Phylo.write(subtree_temp, os.path.join(out_dir, "HOG_subtrees", out_file_name), "newick")
+    else:
+        # Resolve polytomies and make the subtree bifurcating
+        resolved_subtree = resolve_polytomies(subtree_temp)
+        
+        # Check if the tree has been successfully resolved (optional step)
+        if resolved_subtree.is_bifurcating():
+            # Write the resolved subtree
+            Phylo.write(resolved_subtree, os.path.join(out_dir, "HOG_subtrees", out_file_name), "newick")
+        else:
+            # If somehow still not bifurcating, log an error
+            dropped_log_handle = open(out_dir+"Dropped_gene_log.csv", "a")
+            dropped_log_handle.write(f"{HOG_temp},Subtree extraction,Subtree was non bifurcating and could not be resolved\n")
 
 #Check if it worked
 if len(glob.glob(out_dir+'HOG_subtrees/*tree.txt')) > 0:
-    print('\nFinished running subtree extraction. Check "Non-binary_subtrees.txt" for a list trees that were excluded\n')
+    print('\nFinished running subtree extraction.\n')
 else:
     print('ERROR: An error occured during subtree extraction. Quitting...\n')
     sys.exit()
 
+#Check for dropped files
+file_loss_log(out_dir, out_dir+'Gb_alns/', out_dir+'HOG_subtrees/', 'GB_ALN', '_tree.txt', 'subtree extraction', 'subtree extraction failed')
+
+#Count number of subtrees
+file_counts_log(JOBname, out_dir, 'HOG_subtrees', 'HOG', 'tree.txt', out_dir+'Run_data_counts_log.csv')
 
 #### Perform bootstrap replication with raxml
 print("Beginning bootstrapping with raxml.\n")
@@ -851,12 +896,6 @@ if not os.path.isdir(out_dir+'BS_reps/'):
     print("\nCreated folder: BS_reps/\n")
 else: 
     print('Trees with bootstrap values will be stored in BS_reps/\n')
-
-if not os.path.isdir(out_dir+'BS_trees/'):
-    os.makedirs(out_dir+'BS_trees/')
-    print("\nCreated folder: BS_trees/\n")
-else: 
-    print('Trees with bootstrap values will be stored in BS_trees/\n')
 
 #Get a list of HOGs with retained alignments
 HOGs2BS=[x.replace(out_dir+'Gb_alns/GB_ALN_', '').replace('.fa', '') for x in glob.glob(out_dir+'Gb_alns/GB_ALN_*')]
@@ -880,66 +919,93 @@ else:
 if (Rax_back_cores <= 1 and Rax_front_cores >1):
     Rax_front_cores = int(Mult_threads/2)
     
-print('Number of trees finished: ') 
+print('Number of trees finished: \n') 
 
 #define rax filepath
-file_path = working_dir+out_dir
+file_path = working_dir + out_dir
 
-
+# Iterate through HOGs for parallel processing
 def iterate_HOGS(HOGs2BS):
-    for HOG in [HOGs2BS]:
-        return HOG
+    for HOG in HOGs2BS:
+        yield HOG
 
-# Loop through files to process
-##Begin paralellization of raxml bootstrap inference (note that this is already multithreaded with the mult_threads command so we may eventually want to hard code Mult_threads to 1?)
-def par_raxml(HOG_id, Rax_dir, file_path, cores): 
-    #Because I always forget what the raxml arguments mean:
-    #-s sequence alignment input -n outputfile_filename -w output directory (Full path)
-    '''
-    #Build the command
-    raxml_BS_cmd= Rax_dir+'raxmlHPC-PTHREADS -s '+working_dir+out_dir+'Gb_alns/GB_ALN_'+HOG_id+'.fa '+'-w '+working_dir+out_dir+'BS_trees/'+ \
-    ' -n '+HOG_id+'_BS.txt'+' -m PROTGAMMALGF -p 12345 -x 12345 -f a -# 100 -T '+str(Mult_threads)
-    '''
-    
-    #Build the bootstrap command
-    raxml_BS_cmd= Rax_dir+'raxmlHPC-PTHREADS-SSE3 -s '+file_path+'Gb_alns/GB_ALN_'+HOG_id+'.fa '+'-w '+file_path+'BS_reps/'+ \
-    ' -n '+HOG_id+'_BS.txt'+' -m PROTGAMMALGF -p 12345 -x 12345 -# 100 -T '+str(cores)
+# Parallelized RAxML bootstrap inference
+def par_raxml_bootstrap(HOG_id, Rax_dir, file_path, cores): 
+    # Build the bootstrap command
+    raxml_BS_cmd = Rax_dir + 'raxmlHPC-PTHREADS-SSE3 -s ' + file_path + 'Gb_alns/GB_ALN_' + HOG_id + '.fa ' + \
+                   '-w ' + file_path + 'BS_reps/ -n ' + HOG_id + '_BS.txt' + \
+                   ' -m PROTGAMMALGF -p 12345 -x 12345 -# 100 -T ' + str(cores)
 
-    
-    #Run the command (note, raxml was installed with conda so this wont work in spyder)
+    # Run the command
     if re.search('raxmlHPC', raxml_BS_cmd) and re.search('PROTGAMMALGF', raxml_BS_cmd) and re.search('12345', raxml_BS_cmd):
-        #print("Running:\n"+raxml_BS_cmd)
         subprocess.call(raxml_BS_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        #subprocess.call(raxml_BS_cmd, shell=True)
+
+# Parallelized execution of bootstrap inference
+def run_parallel_raxml_bootstrap(HOGs2BS, Rax_dir, file_path, Rax_front_cores, Rax_back_cores):
+    # Start the parallel RAxML bootstrap inference
+    benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'raxml_bootstrap', timer)
     
-    #Map the bootstrap scores to the HOG subtree from the orthofinder trees
-    #Build the raxml mapping command
-    raxml_BSmap_cmd= Rax_dir+'raxmlHPC-PTHREADS-SSE3 -z '+file_path+'BS_reps/RAxML_bootstrap.'+HOG_id+'_BS.txt '+'-w '+file_path+'BS_trees/'+ \
-    ' -n '+HOG_id+'_BS.txt'+' -t '+file_path+'HOG_subtrees/'+HOG_id+'_tree.txt -f b -m PROTGAMMALGF -T '+str(cores)
+    Parallel(n_jobs=Rax_front_cores, verbose=0, max_nbytes=None)(
+        delayed(par_raxml_bootstrap)(HOG, Rax_dir, file_path, Rax_back_cores) 
+        for HOG in iterate_HOGS(HOGs2BS)
+    )
+    
+    benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'raxml_bootstrap', timer)
 
-    #Run the command (note, raxml was installed with conda so this wont work in spyder)
-    if re.search('raxmlHPC', raxml_BSmap_cmd):
-        subprocess.call(raxml_BSmap_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        #subprocess.call(raxml_BSmap_cmd, shell=True)
+    # Calculate total time and process count
+    num_items = len(HOGs2BS)
+    benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
+    
+    print("Bootstrap tree inference finished.\n")
 
-##End paralellization of raxml bootstrap inference        
+# Call the function that run raxml bootstrapping
+run_parallel_raxml_bootstrap(HOGs2BS, Rax_dir, file_path, Rax_front_cores, Rax_back_cores)
 
-#Timestamp just before Parallel Call
-benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'raxml', timer)
+# Check for dropped files and BS replicates that didn't get reach 100 reps
+bs_reps_check_log(
+    full_out_dir=out_dir, 
+    start_dir=out_dir+'Gb_alns/', 
+    end_dir=out_dir+'BS_reps/', 
+    start_pattern='GB_ALN_', 
+    end_pattern='RAxML_bootstrap.', 
+    step='Raxml BS replication', 
+    error_message='File missing', 
+    warning_message='File too short'
+)
 
-Parallel(n_jobs = Rax_front_cores, verbose=100, max_nbytes=None)(delayed(par_raxml)(HOG, Rax_dir, file_path, Rax_back_cores) for HOG in iterate_HOGS(HOGs2BS))
+## Non-parallelized RAxML bootstrap mapping
+# Create folder
+if not os.path.isdir(out_dir+'BS_trees/'):
+    os.makedirs(out_dir+'BS_trees/')
+    print("\nCreated folder: BS_trees/\n")
+else: 
+    print('Trees with bootstrap values will be stored in BS_trees/\n')
 
-#Timestamp just after Parallel Call
-benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'raxml', timer)
+def raxml_bootstrap_mapping(HOGs2map, Rax_dir, file_path):
+    for HOG_id in HOGs2map:
+        # Build the bootstrap mapping command
+        raxml_BSmap_cmd = (
+            Rax_dir + 'raxmlHPC-PTHREADS-SSE3 -z ' + file_path + 'BS_reps/RAxML_bootstrap.' + HOG_id + '_BS.txt ' +
+            '-w ' + file_path + 'BS_trees/ -n ' + HOG_id + '_BS.txt' +
+            ' -t ' + file_path + 'HOG_subtrees/' + HOG_id + '_tree.txt -f b -m PROTGAMMALGF -T 1'
+        )
 
-#Calculate total time of parralel process & items per minute
-num_items = len(HOGs2BS)
-benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
+        # Run the command
+        if re.search('raxmlHPC', raxml_BSmap_cmd):
+            subprocess.call(raxml_BSmap_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-print("Bootstrap tree inference finished.\n")
+    print("Bootstrap mapping finished.\n")
+
+# Call the non-parallelized step for bootstrap mapping
+raxml_bootstrap_mapping(HOGs2BS, Rax_dir, file_path)
+
+#Check for dropped files
+file_loss_log(out_dir, out_dir+'BS_reps/', out_dir+'BS_trees/', 'RAxML_bootstrap.', 'RAxML_bipartitions.', 'Bootstrap score mapping', 'Failed to produce tree file with bootstrap values')
+
+#Count number of subtrees
+file_counts_log(JOBname, out_dir, 'BS_trees', 'RAxML_bipartitions.', 'txt', out_dir+'Run_data_counts_log.csv')
 
 ## Do the root/rearrange step with Treerecs (GT/ST reconciliation)
-
 #Copy the species tree into outdir
 shutil.copy2(sp_tr_path, out_dir)
 
@@ -992,7 +1058,7 @@ def par_tree_arrange(bs_tree):
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'tree_arrange', timer)
 
-Parallel(n_jobs = Mult_threads, verbose=100, max_nbytes=None)(delayed(par_tree_arrange)(bs_tree) for bs_tree in iterate_trees(all_bs_trees))
+Parallel(n_jobs = Mult_threads, verbose=0, max_nbytes=None)(delayed(par_tree_arrange)(bs_tree) for bs_tree in iterate_trees(all_bs_trees))
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'tree_arrange', timer)
@@ -1001,6 +1067,11 @@ benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'tree_arrange', tim
 num_items = len(all_bs_trees)
 benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
 
+#Check for dropped files
+file_loss_log(out_dir, out_dir+'BS_trees/', out_dir+'Rearranged_trees/', 'RAxML_bipartitions.', 'RAxML_bipartitions.', 'GTSP reconciliation rearrange with treerecs', 'Cant find rearranged file')
+
+#Count number of subtrees
+file_counts_log(JOBname, out_dir, 'Rearranged_trees', 'RAxML_bipartitions.', '.nwk', out_dir+'Run_data_counts_log.csv')
 
 ### Infer branch-length optimized trees with Raxml (BL trees)
 #Get list of gblocks alns (after filters) and subtrees (after filters) and find the overlap
@@ -1025,12 +1096,6 @@ else:
 
 # Loop through files to process
 ##Begin paralellization of raxml branch length optimization
-'''
-for HOG_i, HOG_id in enumerate(keeperIDs):
-    #Track progress
-    if HOG_i % 5 == 0:
-        print(HOG_i)
-'''
 
 def iterate_keeps(keeperIDs):
     for k_ID in [keeperIDs]:
@@ -1054,7 +1119,7 @@ def par_BL_opt(k_ID, cores):
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'keeps', timer)
 
 #Call paralell
-Parallel(n_jobs = Rax_front_cores, verbose=100, max_nbytes=None)(delayed(par_BL_opt)(k_ID, Rax_back_cores) for k_ID in iterate_keeps(keeperIDs))
+Parallel(n_jobs = Rax_front_cores, verbose=0, max_nbytes=None)(delayed(par_BL_opt)(k_ID, Rax_back_cores) for k_ID in iterate_keeps(keeperIDs))
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'keeps', timer)
@@ -1063,12 +1128,17 @@ benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'keeps', timer)
 num_items = len(keeperIDs)
 benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
 
+#Check for dropped files
+file_loss_log(out_dir, out_dir+'Rearranged_trees/', out_dir+'BL_trees/', 'RAxML_bipartitions.', 'RAxML_result.', 'Branch length optimization', 'Cant find optimized file')
+
+#Count number of subtrees
+file_counts_log(JOBname, out_dir, 'BL_trees', 'RAxML_result.', 'txt', out_dir+'Run_data_counts_log.csv')
+
 ##End paralellization of raxml branch length optimization
         
 print('\n\nDone with RAxML branch length optimization\n')
 
 print("Generating input files for GT/ST reconciliation...\n")
-
 
 #Make directory to write output to
 if not os.path.isdir(out_dir+'DLCpar/'):
@@ -1108,8 +1178,30 @@ if re.search('Generate_rec_inputs.R', input_gen_cmd) and re.search('Rscript', in
 
 if len(glob.glob('DLCpar/*_NODES_BL.txt')) > 0:
     print('Finished generateing input files.\nInput files written to DLCpar/\n')
-    
 
+#Check for dropped files
+file_loss_log(out_dir, out_dir+'BL_trees/', out_dir+'DLCpar/', 'RAxML_result.', 'NODES_BL.txt', 'Branch length optimization', 'Cant find optimized file')
+
+#Count number of recs
+file_counts_log(JOBname, out_dir, 'DLCpar', 'HOG', 'txt', out_dir+'Run_data_counts_log.csv')
+
+#Count the total number genes lost
+file_line_count_log(JOBname, out_dir+"Dropped_gene_log.csv", out_dir+"Run_data_counts_log.csv")
+
+#Make a table of the steps at which genes were lost
+# Read the CSV file into a DataFrame
+df = pd.read_csv(out_dir+"Dropped_gene_log.csv")
+
+# Count occurrences of each value in the "Step" column
+step_counts = df['Step'].value_counts().reset_index()
+
+# Rename columns to match the desired output format
+step_counts.columns = ['Step', 'Count']
+
+# Write the result to a new CSV file
+step_counts.to_csv(out_dir+"Dropped_gene_table.csv", index=False)
+
+### Finish with messages
 print('\nIMPORTANT NOTE: the next step makes use of DLCpar, which requires python 2 (whereas the previous steps are written in python 3).\n' \
       'To run the next step you will need to enter a python 2 anaconda environment and install DLCpar.\n' \
           '\nExample commands:\n' \
