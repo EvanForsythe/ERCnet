@@ -456,19 +456,22 @@ Below is a brief description of each of the files and subdirectories that are ou
 - `Seq_counts_per_species.csv`: shows how many homologs from each species were found in each gene family
 - `SpeciesTree_rooted_node_labels.txt`: a copy of the species tree from Orthofinder
 - `Filtered_genefam_dataset.csv`: each row represents a gene family (hierarchical orthogroup [HOG] from orthofinder) and the seq IDs of all the sequences in the gene family
+- `Dropped_gene_log.csv`: Tracks when/why genes (HOGs) that didn't make it to the end of the pipeline were dropped from the analysis.
+- `Run_data_counts_log.csv`: Counts how many genes (HOGs) remain in the analysis at each step and also tallying important information about the network
 - `HOG_seqs/`: contains a seperate file for each gene family (hierarchical orthogroup [HOG] from orthofinder).
 - `Alns/`: contains a seperate file with a multiple sequences alignment for each HOG
 - `TAPER_Alns/`: an (optional) version of the alignments that have been cleaned using TAPER
 - `Gb_alns`: a version of the alignments that have been cleaned using GBLOCKS
 - `Aln_pruning/`: stores information about sequences that were pruned from alignments because GBLOCKS yielded only gaps
 - `HOG_subtrees`: orthfinder produces gene trees for each orthogroup (OG); however, ERCnet works with HOGs (which are subtrees of the larger OG tree). This folder contains the subtrees that are extracted from the larger OG tree.
-- `Non-binary_subtrees.txt`: documents any gene families that were dropped from analysis because gene trees (from orthofinder) were non-bifurcating, which causes errors in R.
+- `Non-binary_subtrees.txt`: documents any gene families that were dropped from analysis because gene trees (from orthofinder) were non-bifurcating, which causes errors in R. (This file is depreciated because we incorperated new ways of handling non-bifurcating trees).
 - `BS_reps/`: subtrees (see HOG_subtrees) are used as a constraint tree and raxml bootstrapping is performed to get confidence values for each branch on the constraint tree. This directory stores the replicate files.
 - `BS_trees/`: subtrees with BS confidence scores (from BS_reps)
 - `SpeciesTree_mapped_names.txt`: Version of the species tree with the mapped species IDs from Species_mapping.csv.
 - `Rearranged_trees`: the treerecs prpgram is used to rearrange any poorly supported branches (<80% bootstrap support) so that the branches best match the species tree.
 - `BL_trees/`: branch length optimization is performed on the rearranged version of the tree. **These trees are the final gene trees used to perform ERC**.
-- `DLC_par/`: The last step in Phylogenomics.py creates the inputs needed to run DLCpar, which helps map gene trees to the species tree. GTST_reconciliation.py writes additional files to this directory. 
+- `DLC_par/`: The last step in Phylogenomics.py creates the inputs needed to run DLCpar, which helps map gene trees to the species tree. GTST_reconciliation.py writes additional files to this directory.
+- `Dropped_gene_table.csv`: Creates a table summarizing when genes (HOGs) were lost throught the analysis. 
 - `BL_results/`: contains the branch lengths that were measured from the BL_trees/ trees. ERCnet measures branches by both branch-by-branch (BXB) and root-to-tip (R2T) methods. This directory also contains the normalized branch lengths, in which each branch length is normalized by the genome-wide average branch legth for that particular branch. 
 - `ERC_results/`: This directory contains the results of the all-by-all ERC analysis. This folder will contain seperate ERC results for BXB vs R2T (depending on user selection). See below for the description of the column headers in the ERC_results tsv file. This directory will also contain a subdirectory, `Filtered_results/`, with a tsv file of 'ERC hits' (generated during Network_analyses.py).
    - Column headers in the ERC_results tsv file
@@ -488,8 +491,10 @@ Below is a brief description of each of the files and subdirectories that are ou
 
 
 ## <ins>**Supplementary scripts**</ins> <a name="supp"></a>
+
 Simulations.py is used to simulate proteomes with subsets of genes that exhibit correlated evolution. A conda environment with pyevolve is needed to run this script. Note that we needed to manually edit the evolver.py file that comes packaged with pyevolve to remove reference to an outdate "Alphabet" data type in biopython.
 
+auto_ortho_batch.sh is a SLURM job submission script that cna be used to automatically run Orthofinder with a version of the gene tree that is rooted by your preferred outgroup.
 
 [Back to Top](#top)
 
