@@ -42,7 +42,7 @@ def file_loss_log(full_out_dir, start_dir, end_dir, start_pattern, end_pattern, 
         # Log missing HOG strings from the end directory
         missing_hogs = start_hog_strings - end_hog_strings
         if missing_hogs:
-            print(error_message)
+            
             for hog in missing_hogs:
                 # Only write to the log if the HOG string is not already present in the log file
                 if hog not in logged_hogs:

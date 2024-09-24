@@ -24,7 +24,7 @@ from joblib import Parallel, delayed
 
 #Homemade modules
 from filterHOGs import make_seq_counts_df, filter_gene_fams, check_alns_for_prune, file_loss_log, bs_reps_check_log
-from ERC_functions import benchmarkTime, benchmarkProcess, CheckFileExists, CheckFileNonEmpty, file_counts_log, file_line_count_log
+from ERC_functions import benchmarkTime, benchmarkProcess, CheckFileExists, CheckFileNonEmpty, file_counts_log, file_line_count_log, resolve_polytomies
 
 
 #At runtime set working directory to the place where the script lives
@@ -854,22 +854,17 @@ for index, row in Keeper_HOGs_df.iterrows():
         # Write the subtree
         Phylo.write(subtree_temp, os.path.join(out_dir, "HOG_subtrees", out_file_name), "newick")
     else:
-        # Write to log file
-        dropped_log_handle = open(out_dir+"Dropped_gene_log.csv", "a")
-        dropped_log_handle.write(f"{HOG_temp},Subtree extraction,Subtree was non bifurcating\n")
-
-'''
-print('Running subtree extraction. Check Non-binary_subtrees.txt for list of trees that are excluded for being non-bifurcating\n')
-
-#Call the R-script used to extract trees
-get_st_cmd= 'Rscript Get_subtree.R '+OG_trees_dir+' '+out_dir
-    
-#Run the command (if it contains strings expected in the command, this is a precautin of using shell=True)
-if re.search('Get_subtree.R', get_st_cmd) and re.search(OG_trees_dir, get_st_cmd):
-    print("Calling R with the following command:")
-    print(get_st_cmd)
-    subprocess.call(get_st_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-'''
+        # Resolve polytomies and make the subtree bifurcating
+        resolved_subtree = resolve_polytomies(subtree_temp)
+        
+        # Check if the tree has been successfully resolved (optional step)
+        if resolved_subtree.is_bifurcating():
+            # Write the resolved subtree
+            Phylo.write(resolved_subtree, os.path.join(out_dir, "HOG_subtrees", out_file_name), "newick")
+        else:
+            # If somehow still not bifurcating, log an error
+            dropped_log_handle = open(out_dir+"Dropped_gene_log.csv", "a")
+            dropped_log_handle.write(f"{HOG_temp},Subtree extraction,Subtree was non bifurcating and could not be resolved\n")
 
 #Check if it worked
 if len(glob.glob(out_dir+'HOG_subtrees/*tree.txt')) > 0:
@@ -1010,63 +1005,7 @@ file_loss_log(out_dir, out_dir+'BS_reps/', out_dir+'BS_trees/', 'RAxML_bootstrap
 #Count number of subtrees
 file_counts_log(JOBname, out_dir, 'BS_trees', 'RAxML_bipartitions.', 'txt', out_dir+'Run_data_counts_log.csv')
 
-
-'''
-
-#define rax filepath
-file_path = working_dir+out_dir
-
-
-def iterate_HOGS(HOGs2BS):
-    for HOG in [HOGs2BS]:
-        return HOG
-
-# Loop through files to process
-##Begin paralellization of raxml bootstrap inference (note that this is already multithreaded with the mult_threads command so we may eventually want to hard code Mult_threads to 1?)
-def par_raxml(HOG_id, Rax_dir, file_path, cores): 
-    #Because I always forget what the raxml arguments mean:
-    #-s sequence alignment input -n outputfile_filename -w output directory (Full path)
-    
-    #Build the bootstrap command
-    raxml_BS_cmd= Rax_dir+'raxmlHPC-PTHREADS-SSE3 -s '+file_path+'Gb_alns/GB_ALN_'+HOG_id+'.fa '+'-w '+file_path+'BS_reps/'+ \
-    ' -n '+HOG_id+'_BS.txt'+' -m PROTGAMMALGF -p 12345 -x 12345 -# 100 -T '+str(cores)
-
-    
-    #Run the command (note, raxml was installed with conda so this wont work in spyder)
-    if re.search('raxmlHPC', raxml_BS_cmd) and re.search('PROTGAMMALGF', raxml_BS_cmd) and re.search('12345', raxml_BS_cmd):
-        #print("Running:\n"+raxml_BS_cmd)
-        subprocess.call(raxml_BS_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        #subprocess.call(raxml_BS_cmd, shell=True)
-    
-    #Map the bootstrap scores to the HOG subtree from the orthofinder trees
-    #Build the raxml mapping command
-    raxml_BSmap_cmd= Rax_dir+'raxmlHPC-PTHREADS-SSE3 -z '+file_path+'BS_reps/RAxML_bootstrap.'+HOG_id+'_BS.txt '+'-w '+file_path+'BS_trees/'+ \
-    ' -n '+HOG_id+'_BS.txt'+' -t '+file_path+'HOG_subtrees/'+HOG_id+'_tree.txt -f b -m PROTGAMMALGF -T '+str(cores)
-
-    #Run the command (note, raxml was installed with conda so this wont work in spyder)
-    if re.search('raxmlHPC', raxml_BSmap_cmd):
-        subprocess.call(raxml_BSmap_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        #subprocess.call(raxml_BSmap_cmd, shell=True)
-
-##End paralellization of raxml bootstrap inference        
-
-#Timestamp just before Parallel Call
-benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'raxml', timer)
-
-Parallel(n_jobs = Rax_front_cores, verbose=0, max_nbytes=None)(delayed(par_raxml)(HOG, Rax_dir, file_path, Rax_back_cores) for HOG in iterate_HOGS(HOGs2BS))
-
-#Timestamp just after Parallel Call
-benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'raxml', timer)
-
-#Calculate total time of parralel process & items per minute
-num_items = len(HOGs2BS)
-benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
-
-print("Bootstrap tree inference finished.\n")
-'''
-
 ## Do the root/rearrange step with Treerecs (GT/ST reconciliation)
-
 #Copy the species tree into outdir
 shutil.copy2(sp_tr_path, out_dir)
 
@@ -1249,6 +1188,20 @@ file_counts_log(JOBname, out_dir, 'DLCpar', 'HOG', 'txt', out_dir+'Run_data_coun
 #Count the total number genes lost
 file_line_count_log(JOBname, out_dir+"Dropped_gene_log.csv", out_dir+"Run_data_counts_log.csv")
 
+#Make a table of the steps at which genes were lost
+# Read the CSV file into a DataFrame
+df = pd.read_csv(out_dir+"Dropped_gene_log.csv")
+
+# Count occurrences of each value in the "Step" column
+step_counts = df['Step'].value_counts().reset_index()
+
+# Rename columns to match the desired output format
+step_counts.columns = ['Step', 'Count']
+
+# Write the result to a new CSV file
+step_counts.to_csv(out_dir+"Dropped_gene_table.csv", index=False)
+
+### Finish with messages
 print('\nIMPORTANT NOTE: the next step makes use of DLCpar, which requires python 2 (whereas the previous steps are written in python 3).\n' \
       'To run the next step you will need to enter a python 2 anaconda environment and install DLCpar.\n' \
           '\nExample commands:\n' \
