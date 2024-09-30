@@ -46,7 +46,7 @@ def file_loss_log(full_out_dir, start_dir, end_dir, start_pattern, end_pattern, 
             for hog in missing_hogs:
                 # Only write to the log if the HOG string is not already present in the log file
                 if hog not in logged_hogs:
-                    dropped_log_handle.write(f"{hog}, {step}, {error_message}\n")
+                    dropped_log_handle.write(f"{hog},{step},{error_message}\n")
                 lost_files += 1
 
         # Check if more than 25% of files have been lost

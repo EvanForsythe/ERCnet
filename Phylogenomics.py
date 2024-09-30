@@ -1013,7 +1013,7 @@ shutil.copy2(sp_tr_path, out_dir)
 with open(str(out_dir+'SpeciesTree_rooted_node_labels.txt'), 'r') as file:
   sptr_file = file.read()
 
-#The the names in the speices tree 
+#get the names in the speices tree 
 #Loop through all rows in the species mapping table
 for row_i, row in mapping_table.iterrows():
     
