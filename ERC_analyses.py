@@ -22,11 +22,6 @@ import scipy.stats as stats
 from datetime import datetime
 from joblib import Parallel, delayed
 
-
-#During developent, set working directory:
-#working_dir = '/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/'
-#os.chdir('/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/')
-
 #At runtime set working directory to the place where the script lives
 working_dir = sys.path[0]+'/' 
 os.chdir(working_dir)
@@ -51,10 +46,6 @@ FocalSP=args.FocalSP
 Meta_stats=args.Meta_stats
 branchMethod=args.branchMethod
 testNum = args.test
-#JOBname = "Clptest"
-#Mult_threads = 1
-#FocalSP="A_thaliana_prot"
-#Meta_stats="hits"
 
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
@@ -166,14 +157,6 @@ def par_corr(i, j):
     geneA=i
     geneB=j
 
-    #geneA="HOG0001953"
-    #geneB="HOG0008729"
-
-    #Get the gene ids for the test genes
-
-    # geneA_ID=gene_fams._get_value(list(gene_fams['HOG']).index(geneA), FocalSP)
-    # geneB_ID=gene_fams._get_value(list(gene_fams['HOG']).index(geneB), FocalSP)
-
     ###Could sorting help with this? Should test total time it takes to find both genes as the program completes. 
     rowA = int(np.where(gene_fams['HOG'] == geneA)[0])
     rowB = int(np.where(gene_fams['HOG'] == geneB)[0])
@@ -191,7 +174,6 @@ def par_corr(i, j):
 
     #Remove the HOG_ID row (first row) and remove rows with NaN
     test_df_clean=test_df_t.iloc[1: , :].dropna()
-
 
     #add names to columns
     test_df_clean.columns=['GeneA', 'GeneB']

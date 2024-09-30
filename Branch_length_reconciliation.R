@@ -85,7 +85,6 @@ for(m in 1:length(rec_files_list)){
   rec_df_replace<-rec_df
   rec_df_replace$Gene_tree_node<-NA
 
-  #Note:need to figure out why some gene tree nodes are missing
   for(r in 1:nrow(rec_df)){
     if(length(which(con_df$Locus_tree_node_names==rec_df$Gene_tree_node[r]))>0){
       rec_df_replace$Gene_tree_node[r]<-con_df$Gene_tree_node_names[which(con_df$Locus_tree_node_names==rec_df$Gene_tree_node[r])]
@@ -98,9 +97,12 @@ for(m in 1:length(rec_files_list)){
 
   #Read in gene tree with BLs
   temp_BL_tree<-read.tree(file = paste0(working_dir, out_dir, "DLCpar/", rec_files_list[m]))
-
   #make a matrix of branch lengths on gene tree
   BL_distance_mat<-dist.nodes(temp_BL_tree)
+
+
+  #This is needed to fix very small branches inferred by raxml branch-length optimization
+  BL_distance_mat[BL_distance_mat < 1e-5] <- 0
 
   #Make a list of all gene tree nodes (internal and external)
   all_gt_nodes<-c(temp_BL_tree$tip.label, temp_BL_tree$node.label)
@@ -124,10 +126,14 @@ for(m in 1:length(rec_files_list)){
       gt_decend_node<-subset(spec_gene_rec, Sp_tree_location==sp_branches_df_temp$decendant[b])$Gene_tree_node
 
       store_wt_av<-list()
+
       #Get the average branch distance
       for(a in 1:length(gt_anc_node)){
         #Only retain decend nodes that decend from the particular anc node
         #Get the average from all the dec nodes that are actual dec
+        
+        #print(BL_distance_mat[gt_anc_node[a], intersect(gt_decend_node, all_gt_nodes[getDescendants(temp_BL_tree, which(all_gt_nodes == gt_anc_node[a]))])])
+
         store_wt_av[length(store_wt_av)+1]<-mean(BL_distance_mat[gt_anc_node[a],
                                                                  intersect(gt_decend_node, all_gt_nodes[getDescendants(temp_BL_tree, which(all_gt_nodes==gt_anc_node[a]))])
         ])
