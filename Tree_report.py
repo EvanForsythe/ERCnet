@@ -57,9 +57,9 @@ def main():
     
     # Define the paths for the tree files
     hog_subtree_path = os.path.join(f"OUT_{args.jobname}", "HOG_subtrees", f"{args.hog_id}_tree.txt")
-    bs_tree_path = os.path.join(f"OUT_{args.jobname}", "BS_trees", f"RAxML_bipartitions.{args.hog_id}_BS.txt")
-    re_tree_path=os.path.join(f"OUT_{args.jobname}", "Rearranged_trees", f"RAxML_bipartitions.{args.hog_id}_BS.txt_recs.nwk")
-    bl_tree_path = os.path.join(f"OUT_{args.jobname}", "BL_trees", f"RAxML_result.{args.hog_id}_BL.txt")
+    bs_tree_path = os.path.join(f"OUT_{args.jobname}", "BS_trees", f"{args.hog_id}_BS.treefile")
+    re_tree_path=os.path.join(f"OUT_{args.jobname}", "Rearranged_trees", f"{args.hog_id}_BS.treefile_recs.nwk")
+    bl_tree_path = os.path.join(f"OUT_{args.jobname}", "BL_trees", f"{args.hog_id}_BL.treefile")
 
 
     # Load and report on each tree

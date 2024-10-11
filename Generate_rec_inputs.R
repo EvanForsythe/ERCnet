@@ -34,51 +34,33 @@ jobname<-args[1]
 #jobname<-"TPC_test"
 out_dir<-paste0("OUT_", jobname, "/")
 
-#Get dir where orthofinder results live
-#OFpath<-args[2]
-#OFpath<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Results_Oct15/"
-#OFpath<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/Orthofinder/Plant_cell/Results_Feb15/"
-
-
-# ## Reconciliation
-# #Check if reconciliation dir exists (create one if not)
-# if(!dir.exists(paste0(working_dir, out_dir, "DLCpar/"))){
-#   system(paste("mkdir ", paste0(working_dir, out_dir, "DLCpar/")))
-# }
-
-# #get a copy of the species tree from Orthofinder folder
-# file.copy(from = paste0(OFpath,"Species_Tree/SpeciesTree_rooted_node_labels.txt"),
-#           to = paste0(working_dir, out_dir, "DLCpar/SpeciesTree_rooted_node_labels.txt"))
-
-# #Read species mapping file
-# mapping_df<-read.table(paste0(out_dir, "Species_mapping.csv"), sep = ",", header = TRUE)
-# 
-# #Create the DCLpar files needed
-# #Make species map table
-# write.table(data.frame(gt=paste0(mapping_df$Prefix, "*"), st=paste0(mapping_df$SpeciesID)),
-#             file = paste0(working_dir, out_dir, "DLCpar/speciesIDs.smap"), sep = "\t", col.names = FALSE, row.names = FALSE, quote = FALSE)
-# 
-# #Get list of trees to be reconciled
-# tree_input_list<-list.files(path = paste0(working_dir, out_dir, "BL_trees/"), pattern = "RAxML_result.")
-# 
-# #Remove extra text in file names
-# tree_input_list<-str_replace(str_replace(tree_input_list, "RAxML_result.", ""), "_BL.txt", "")
-
 #Get list of trees to be reconciled
-tree_input_list<-list.files(path = paste0(working_dir, out_dir, "BL_trees/"), pattern = "RAxML_result.")
-tree_input_list<-str_replace(str_replace(tree_input_list, "RAxML_result.", ""), "_BL.txt", "")
+tree_input_list<-list.files(path = paste0(working_dir, out_dir, "BL_trees/"), pattern = ".treefile")
+#tree_input_list<-str_replace(str_replace(tree_input_list, "RAxML_result.", ""), "_BL.txt", "")
+tree_input_list<-str_replace(tree_input_list, "_BL.treefile", "")
+
+print(length(tree_input_list))
 
 #Loop through input files
 for(d in 1:length(tree_input_list)){
   #d<-1
   #Get the BL tree
-  BL_tree_temp<-read.tree(file = paste0(working_dir, out_dir, "BL_trees/RAxML_result.", tree_input_list[d], "_BL.txt")) 
+  BL_tree_temp<-read.tree(file = paste0(working_dir, out_dir, "BL_trees/",tree_input_list[d], "_BL.treefile")) 
+
+  #print("Printing BL_tree")
+  #newick_string <- write.tree(BL_tree_temp)
+  #system(paste("echo", shQuote(newick_string), "| nw_display -"))
+
 
   #Get the reconciled/rooted tree
-  subtree_temp2<-read.tree(file = paste0(working_dir, out_dir, "Rearranged_trees/RAxML_bipartitions.", tree_input_list[d], "_BS.txt_recs.nwk")) 
+  subtree_temp2<-read.tree(file = paste0(working_dir, out_dir, "Rearranged_trees/", tree_input_list[d], "_BS.treefile_recs.nwk"))
   
   #Make new version of subtree with all branches=1
   subtree_temp2$edge.length<-rep(1,length(subtree_temp2$edge.length))
+
+  #print("Printing Rearranged_trees/")
+  #newick_string2 <- write.tree(subtree_temp2)
+  #system(paste("echo", shQuote(newick_string2), "| nw_display -"))
   
   #Split into rooting
   subtrees_4rooting<-treeSlice(subtree_temp2, 0.01, trivial=FALSE, prompt=FALSE)
@@ -97,6 +79,9 @@ for(d in 1:length(tree_input_list)){
     }
   } #End subtrees if statement
 
+  #print("\nOutgroup: ")
+  #print(outtaxa)
+
   #Root the BL tree
   BL_tree_root<-root(BL_tree_temp, outgroup = outtaxa, resolve.root = TRUE)
 
@@ -106,21 +91,5 @@ for(d in 1:length(tree_input_list)){
   #Write the BL_tree (this is what is used for DLCpar reconciliation)
   write.tree(phy = BL_tree_root, file = paste0(working_dir, out_dir, "DLCpar/", tree_input_list[d], "_NODES_BL.txt"))
   
-  # ##Run DLCpar
-  # DLCpar_cmd<-paste0("dlcpar_search -s SpeciesTree_rooted_node_labels.txt -S speciesIDs.smap ", tree_input_list[d], "_NODES_BL.txt")
-  # system(DLCpar_cmd)
-  # 
-  # if((d %% 100) == 0){
-  #   print(paste0(d, " trees reconciled"))
-  # }
-  
-}#End DLCpar input generator file loop (variable = d)
-
-
-# is.binary.phylo(read.tree(file = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/OUT_test/BS_trees/RAxML_bipartitions.HOG0003575_BS.txt"))
-# 
-# is.binary.phylo(read.tree(file = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/OUT_test/Rearranged_trees/RAxML_bipartitions.HOG0003575_BS.txt_recs.nwk"))
-# 
-# is.binary.phylo(read.tree(file = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/OUT_test/BL_trees/RAxML_result.HOG0003575_BL.txt"))
-# plot(read.tree(file = "/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/OUT_test/BL_trees/RAxML_result.HOG0003575_BL.txt"))
+} #End DLCpar input generator file loop (variable = d)
 
