@@ -88,7 +88,7 @@ Different ERCnet steps require different dependencies. Most notably, the *Gene-t
 
 | ERCnet step  | Python version | Dependencies|
 | ------------- |:-------------:|:-------------:|
-| *Phylogenomic analyses* | 3 | pandas, biopython, mafft, gblocks, raxml, stringr, ape, phytools, joblib, scipy, treerecs |
+| *Phylogenomic analyses* | 3 | pandas, biopython, mafft, gblocks, IQtree, stringr, ape, phytools, joblib, scipy, treerecs |
 | *Gene-tree/Species-tree reconciliation* | 2 | dlcpar |
 | *ERC analyses* | 3 | ape, stringr, phytools |
 | *Network analyses* | 3 | igraph |
@@ -125,7 +125,7 @@ conda install -c conda-forge scipy
 #Install phylogenetics-related programs
 conda install -c bioconda mafft
 conda install -c bioconda gblocks
-conda install -c bioconda raxml
+conda install bioconda::iqtree
 conda install -c bioconda treerecs
 
 #Install R package (specific versions included when important)
@@ -198,7 +198,7 @@ To run the *Phylogenomic analyses*, you'll need to set parameters that specify l
 
 Example:
 ```
-./Phylogenomics.py -j <jobname> -e -s -o <path/to/orthofinder/results/> -x <path/to/raxml/installation/>
+./Phylogenomics.py -j <jobname> -e -s -o <path/to/orthofinder/results/>
 ```
 
 All options for Phylogenomics.py:
@@ -213,13 +213,12 @@ All options for Phylogenomics.py:
 | -t  | --Test_num | Integer: number of gene families to analyze. This option is intended to help you test whether ERCnet is working on your system by running a small subset of genes before running the full dataset | no | NA |
 | -e | --explore_filters | Add this flag to explore filtering options (-p and -r parameters). If selected, program will output parameter scan table and quit without running downstream steps. If -e is chosen it will negate -p and -r. Note that -s is still required if -e is chosen. | no | NA |
 | -l | --Min_len | Integer: minimum length of alignment (after trimming with Gblocks) required to retain gene for downstream analyses | yes | 100 |
-| -x | --Rax_dir | Full path to the directory in which your raxml program is installed (use "which raxmlHPC" command to locate). Include "/" at the end of the string. | yes | NA |
 | -s | --SPmap | Add this flag to provide a custom species mapping file. Not required if the tip labels on the orthofinder species tree exactly match the species prefix in sequence IDs. Mapping file must be formatted in certian way. See instuctions | no | NA |
 | -n | --Node |Interger: indicate the node on the species tree that you would like to use to retrieve orthofinder HOGs (subtrees). Assuming your species tree has a single outgroup, you'll probably want N1 (default). However, if you species tree has multiple outgroups (or if you'd just like to perform an ERC analysis on a subset of the species tree), you can indicate which node to use for subtree extracting. E.g. For N2.tsv, "-n 2" or "--Node 2"  | no | 1* |
 | -m | --Mult_threads |Integer: number of threads avilable for parallel computing (default = 1). Performing a full-genome analyses will likely require supercomputing resources| no | 1 |
 | -a | --Apriori | Add this flag to provide an *a priori* list of genes to analyze. The list must be in a file named "A_priori_genes.csv" and formatted in a specific way. See instructions above for more information. When you're using the -a option you probably don't want to use the -t option | no | NA |
-| -c | --core_distribution | Sets the group (1/2/3) core_distribution strategy for Raxml processing. This determines how many 'front end' parallel cores are running and how many 'back end' cores are given to each multi-threaded Raxml process. See table below for group definitions | no | 1 |
 | -P | --Prune_cutoff | Float: prune seqs from alignments if the proportion of gap sites exceeds this number | no | 0.9 |
+| -b | --bs_cut | Integer between 0-100: bootstrap cutoff value for tree rearranging with treerecs. Gene tree branches with bs-support below this value will be rearranged to best match the species tree | no | 85 |
 | -T | --Taper | Run TAPER trimming of alignments? If selected, the user must include full path to installation of julia (should end in "bin/)" | no | "no" |
 
 *Values for these parameters can have a large impact on analyses so make sure the values make biological sense for your analysis before opting for default values.
@@ -231,17 +230,6 @@ curl https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.2-linux-x86_
 
 tar -xvzf julia-1.8.2-linux-x86_64.tar.gz
 ```
-core_distribution groups for Phylogenomics.py. 
-
-| Group | Front End Cores | Back End Cores | 
-| ------------- |:-------------:|:-------------:|
-| 1 | 2 | num_cores / 2 |
-| 2 | num_cores / 4 | 4 |
-| 3 | num_cores / 2 | 2 |
-
-*'Front End' parallelization refers to the paralellization support from Joblib, indicating the number of processes inside any given Phylogenetics computational step are being spawned.
-
-*'Back End' parallelization specifically refers to the number of cores that are passed to RAXML's native multi-threading support. 
 
 Use the table output by running the --explore_filters option (above) to choose reasonable values for -p and -r. 
 
@@ -249,7 +237,7 @@ Use the options described above to run the full *Phylogenomic analyses*
 
 Example:
 ```
-./Phylogenomics.py -j test_job -e -s -p 3 -r 10 -l 100 -n 1 -o <path/to/orthofinder/results/> -x <path/to/raxml/installation/>
+./Phylogenomics.py -j test_job -e -s -p 3 -r 10 -l 100 -n 1 -o <path/to/orthofinder/results/> 
 ```
 
 Brief(ish) walkthrough of what Phylogenomics.py does:
@@ -259,10 +247,10 @@ Brief(ish) walkthrough of what Phylogenomics.py does:
 * Optionally trim alignments with TAPER to find poorly aligned stretches of individual sequences and mask these stretches with "-"
 * Gblocks trimming of alignments to remove poorly-aligned sites
 * Check if any individual seq is mostly gap, prune that sequence from the alignment if so.
-* Phylogenetic bootstrap analysis to generate bootstrap support scores for the gene trees generated by Orothfinder
+* Phylogenetic bootstrap analysis to generate gene trees with bootstrap support scores using IQtree
 * Rearrange/correct poorly-supported (<80% bootstrap support) branches and root the tree
    * Rearrangement and rooting are both accomlished by gene-tree/species-tree reconciliation in Treerecs
-* Optimize branch lengths with raxml using the the Gblocks-trimmed alignments and the new rearranged trees as constraint trees.
+* Optimize branch lengths with IQtree using the new rearranged trees as constraint trees.
 
 A VERY busy diagram of what Phylogenomics.py is doing (this is intended for super-users who want all the details). Figure generated with LucidCharts:
 ![](Phylogenomics_workflow.png)
@@ -465,8 +453,7 @@ Below is a brief description of each of the files and subdirectories that are ou
 - `Aln_pruning/`: stores information about sequences that were pruned from alignments because GBLOCKS yielded only gaps
 - `HOG_subtrees`: orthfinder produces gene trees for each orthogroup (OG); however, ERCnet works with HOGs (which are subtrees of the larger OG tree). This folder contains the subtrees that are extracted from the larger OG tree.
 - `Non-binary_subtrees.txt`: documents any gene families that were dropped from analysis because gene trees (from orthofinder) were non-bifurcating, which causes errors in R. (This file is depreciated because we incorperated new ways of handling non-bifurcating trees).
-- `BS_reps/`: subtrees (see HOG_subtrees) are used as a constraint tree and raxml bootstrapping is performed to get confidence values for each branch on the constraint tree. This directory stores the replicate files.
-- `BS_trees/`: subtrees with BS confidence scores (from BS_reps)
+- `BS_trees/`: subtrees with BS confidence scores
 - `SpeciesTree_mapped_names.txt`: Version of the species tree with the mapped species IDs from Species_mapping.csv.
 - `Rearranged_trees`: the treerecs prpgram is used to rearrange any poorly supported branches (<80% bootstrap support) so that the branches best match the species tree.
 - `BL_trees/`: branch length optimization is performed on the rearranged version of the tree. **These trees are the final gene trees used to perform ERC**.
