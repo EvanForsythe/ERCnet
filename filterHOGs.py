@@ -158,7 +158,6 @@ def make_seq_counts_df(HOG_file_path, mapping_table_path):
 
 if __name__ == "__main__":
     make_seq_counts_df(HOG_file_path, mapping_table_path)
-    
 
 #Make function for filtering dataset by criteria
 def filter_gene_fams(out_dir, HOG_file, counts_df_rearrange, sp_names, para_value, rep_value):

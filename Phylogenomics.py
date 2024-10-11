@@ -41,14 +41,13 @@ parser.add_argument('-r', '--MinR', type=int, metavar='', required=False, defaul
 parser.add_argument('-t', '--Test_num', type=int, metavar='', required=False, help='Integer: number of gene families to analyze (for testing only)' )
 parser.add_argument('-e','--explore_filters', action='store_true', required=False, help='Add this flag to explore filtering options (if selected, program will quit without running downstream steps)')
 parser.add_argument('-l', '--Min_len', type=int, metavar='', required=False, default=100, help='Integer: minimum length (amino acid sites) of alignment (after trimming with Gblocks) required to retain gene (default = 100)' )
-parser.add_argument('-x', '--Rax_dir', type=str, metavar='', required=True, help='Full path to the location of your raxml install (use which raxmlHPC to locate). Include "/" at the end of the string') 
 parser.add_argument('-s','--SPmap', action='store_true', required=False, help='Add this flag to provide a custom species mapping file. This mapping file must be formatted in certian way. See instuctions')
 parser.add_argument('-n', '--Node', type=int, metavar='', required=False, help='Integer: node number on orthofinder species tree to be used to obtain HOGs (default = 1)' )
 parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=1, help='Integer: number of threads avilable for parallel computing (default = 1)' )
 parser.add_argument('-a','--Apriori', action='store_true', required=False, help='Add this flag to provide an apriori set of genes to analyze. The input file listing those genes must be formatted in certian way. See instuctions')
-parser.add_argument('-c', '--core_distribution', type=int, metavar='', required=False, default=3, help='Integer: Sets the core distribution group which affects number of cores split between front end and back end paralellization of raxml bootstrapping')
 parser.add_argument('-P', '--Prune_cutoff', type=float, metavar='', required=False, default=0.9, help='Float: prune seqs from alignments if the proportion of gap sites exceeds this number (default: 0.9)')
 parser.add_argument('-T', '--Taper', type=str, metavar='', required=False, default="no", help='Run TAPER trimming of alignments? If selected, the user must include full path to installation of julia (should end in "bin/" (default=no)')
+parser.add_argument('-b', '--bs_cut', type=int, metavar='', required=False, default=85, help='Integer between 0-100: bootstrap cutoff value for tree rearranging with treerecs. Gene tree branches with bs-support below this value will be rearranged to best match the species tree (default = 85)')
 
 
 #Define the parser
@@ -62,23 +61,21 @@ MinR_val=args.MinR
 explore_filters=args.explore_filters
 Min_len=args.Min_len
 Test_num=args.Test_num
-Rax_dir=args.Rax_dir
 SPmap=args.SPmap
 Node=args.Node
 Mult_threads=args.Mult_threads
 Apriori=args.Apriori
-core_dist=args.core_distribution
 prune_cutoff=args.Prune_cutoff
 taper=args.Taper
+bs_cut=args.bs_cut
 
+#########################
+# Check for valid arguments
+#########################
 
 #Check to see if the path arguments end with "/"
 if not OFpath.endswith('/'):
     print('OFpath does not end with a "/". Quitting...\n')
-    sys.exit()
-
-if not Rax_dir.endswith('/'):
-    print('Rax_dir does not end with a "/". Quitting...\n')
     sys.exit()
 
 print("Finding the Orthofinder HOG file to be used to designate ingroup subtrees\n")
@@ -153,7 +150,15 @@ if os.path.isdir(OGseqdir):
 else:
     print("ERROR: Orthogroup_Sequences/ directory not found! This should be in the Orthofinder results folder. Check the version of Orthofinder you ran. Quitting....\n")
     sys.exit()
-    
+
+#Check to make sure bs_cut is appropriate
+if not (0 <= bs_cut <= 100):
+    sys.exit(f"Error: bs_cut must be an integer between 0 and 100, but got {bs_cut}.")
+
+########################################
+# Begin creating output dir and files
+########################################
+
 #Create a variable for the output dir
 out_dir= 'OUT_'+JOBname+'/'
 
@@ -177,9 +182,6 @@ if os.path.isdir(out_dir):
 else:
     os.makedirs(out_dir) 
     print('created folder: '+out_dir+'\nAll output files will be written to this folder\n')
-
-if Mult_threads < 4:
-    print("Parallel processing is not viable for tree building below 4 cores due to overhead. ERCnet will continue as a linear process for Raxml runs.")
 
 #Created dropped file log
 print("Creating Dropped_gene_log.csv file to store information about genes lost during fitering/analysis steps.\n")
@@ -211,6 +213,10 @@ with open(out_dir + 'benchmark/' + str(bench_fileName), "a") as bench:
     bench.write("Job Name: " + JOBname + '\t' + "Cores: " + str(Mult_threads) + '\n') 
     bench.write("Stage" + '\t' + "Time" + '\n')
     bench.write("Process Start" + '\t' + str(current_time) + '\n')
+
+####################################
+# Begin initial gene fam filtering
+####################################
 
 #Check HOG file exists 
 if os.path.isfile(HOG_file_path):
@@ -280,7 +286,6 @@ if 'HOG' in list(seq_counts_df.columns):
 else:
     print('ERROR: Sequence counts per sepecies dataframe not properly generated. Quitting...\n')
     sys.exit()
-
 
 #Count the total number og HOG (before filtering)
 file_line_count_log(JOBname, out_dir+"Seq_counts_per_species.csv", out_dir+"Run_data_counts_log.csv")
@@ -438,7 +443,11 @@ if len(drop_list)>0:
 
 print(f"Number of HOGs remaining after seq ID formatting problem check: {Keeper_HOGs_df.shape[0]}")
 
-### Extract the subtree sequences to be aligned
+
+##############################################
+# Extract the subtree sequences to be aligned
+##############################################
+
 #make a dir to store the new fasta files
 if not os.path.isdir(out_dir+'HOG_seqs'):
     os.makedirs(out_dir+'HOG_seqs')
@@ -481,8 +490,11 @@ else:
 
 #Count number of HOG seqs
 file_counts_log(JOBname, out_dir, 'HOG_seqs', 'HOG', 'fa', out_dir+'Run_data_counts_log.csv')
-    
-### Run mafft alignment
+
+#########################
+# Run mafft alignment
+#########################
+
 mafft_msg= str(subprocess.Popen(['mafft', '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate())
 
 if re.search('MAFFT', mafft_msg):
@@ -499,9 +511,8 @@ if not os.path.isdir(out_dir+'Alns'):
 else: 
     print('MAFFT alignments will be written to Alns/\n')
 
-print('Number of alignments finished: ')
-##Begin paralellization of alignments
 
+##Begin paralellization of alignments
 def iterate_maf(seq_file_names):
     for file in [seq_file_names]:
         return file
@@ -551,7 +562,10 @@ file_loss_log(out_dir, out_dir+'HOG_seqs/', out_dir+'Alns/', '.fa', 'ALN', 'mult
 #Count number of alns
 file_counts_log(JOBname, out_dir, 'Alns', 'ALN', 'fa', out_dir+'Run_data_counts_log.csv')
 
-### Running TAPER Alignment trimming (optionally)
+##################################################
+# Run TAPER Alignment trimming (optionally)
+##################################################
+
 if not taper == "no":
     print("beginning TAPER trimming.")
     
@@ -602,8 +616,12 @@ if not taper == "no":
             print("Quitting....\n")
             sys.exit()
 
+    benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'Taper', timer)
+
     Parallel(n_jobs = Mult_threads, verbose=0, max_nbytes=None)(delayed(par_taper_trim)(file) for file in iterate_taper(aln_file_names))
     
+    benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'Taper', timer)
+
     #Check alignment status
     if len(glob.glob(out_dir+'TAPER_Alns/ALN*')) == len(aln_file_names):
         print('\n\nDone with TAPER trimming\n')
@@ -619,7 +637,15 @@ if not taper == "no":
     file_counts_log(JOBname, out_dir, 'TAPER_Alns', 'ALN', 'fa', out_dir+'Run_data_counts_log.csv')
 
 
-###GBLOCKS cleaning alignments
+#Calculate total time of parralel process & lines per minute
+num_items = len(glob.glob(out_dir+'TAPER_Alns/ALN*'))
+benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
+
+
+####################################
+# Run GBLOCKS cleaning alignments
+####################################
+
 print('Beginning GBLOCKS\n')
 
 if not taper == "no":
@@ -630,10 +656,9 @@ else:
     #Get list of all alns (that haven't been gblocked yet)
     aln_file_names2 = [x for x in glob.glob(out_dir+'Alns/ALN*') if "-gb" not in x]
 
-
 #Gblocks
 if 'Min_len' in locals():
-    print('Beginning gblocks trimming...\n')
+    print(f'min length of alignments after trimming set to: {Min_len}\n')
 else:
     print('Min_len parameter for gblocks filtering not specified. Quitting...\n')
 
@@ -716,7 +741,6 @@ def par_gblocks(aln):
             print(output)
             sys.exit()
 
-            
     else:
         print('WARNING: Something wrong with Gblocks command...\n')
         print("Here is the Gblocks command that was being attempted\n")
@@ -731,7 +755,7 @@ benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
 Parallel(n_jobs= Mult_threads, verbose=0, max_nbytes=None)(delayed(par_gblocks)(aln) for aln in iterate_alns(aln_file_names2))
 
 #Timestamp just before Parallel Call
-benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'gblocks', timer)
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'gblocks', timer)
 
 #Calculate total time of parralel process & items per minute
 num_items = len(aln_file_names2)
@@ -741,6 +765,11 @@ if not taper == "no":
     file_loss_log(out_dir, out_dir+'TAPER_Alns/', out_dir+'Gb_alns/', 'ALN', 'GB_ALN', 'Gblocks trimming', 'file unsuccessfully Gblocks trimmed or became too short')
 else:
     file_loss_log(out_dir, out_dir+'Alns/', out_dir+'Gb_alns/', 'ALN', 'GB_ALN', 'Gblocks trimming', 'file unsuccessfully Gblocks trimmed or became too short')
+
+
+###########################################
+# Perform prunning of individual sequences
+###########################################
 
 ###Check if there are individual sequences that need to be pruned.
 #Make a directory for storing pruning info
@@ -803,177 +832,11 @@ file_counts_log(JOBname, out_dir, 'Gb_alns/Too_short', 'GB_ALN', 'fa', out_dir+'
 #Count number of files that underwent pruning
 file_counts_log(JOBname, out_dir, 'Aln_pruning', 'Prune_IDs_', 'txt', out_dir+'Run_data_counts_log.csv')
 
-### Get the subtrees from orthofinder to use as a constraint tree from bootstrap scoring
 
-#Create folder to store subtrees
-if not os.path.isdir(out_dir+'HOG_subtrees/'):
-    os.makedirs(out_dir+'HOG_subtrees/')
-    print("\nCreated folder: HOG_subtrees/\n")
-else: 
-    print('HOG subtrees will be stored in HOG_subtrees/\n')
+##################################################
+##### Infer phylogeny (and bootstrap) with IQtree
+##################################################
 
-## Extract the subtree corresponding to the HOG from the larger gene tree for each OG
-
-# Loop through all rows in the DataFrame (this replaces previous R code in Get_subtree.R)
-for index, row in Keeper_HOGs_df.iterrows():
-    # Get the name of the outfile
-    HOG_temp = str(row['HOG'])
-
-    # Remove the N1 (or N2, N3, etc.) string
-    HOG_temp = re.split(r"\.", HOG_temp)[1]
-
-    # Read in the OG tree
-    tree_path = os.path.join(OG_trees_dir, f"{row['OG']}_tree.txt")
-    full_tree_temp = Phylo.read(tree_path, "newick")
-
-    # Get list of tips
-    raw_strings = row.iloc[3:].tolist()
-    raw_strings = [x for x in raw_strings if pd.notnull(x) and x != ""]
-
-    # Split tips into a vector
-    keeper_tips = re.split(r"\s*,\s*", ",".join(raw_strings).replace(" ", ""))
-
-    # Check if this was a pruned alignment
-    prune_file_pattern = f"{HOG_temp}_ALN_RETAINED.txt"
-    prune_files = [f for f in os.listdir(os.path.join(out_dir, "Aln_pruning")) if re.match(prune_file_pattern, f)]
-    
-    if len(prune_files) == 1:
-        prune_seqs = pd.read_table(os.path.join(out_dir, "Aln_pruning", prune_files[0]), header=None)[0].tolist()
-        
-        # Loop through seqs that need to be pruned from subtree
-        keeper_tips = [tip for tip in keeper_tips if tip not in prune_seqs]
-
-    # Get the subtree
-    subtree_temp = full_tree_temp.common_ancestor(keeper_tips)
-
-    # Add suffix
-    out_file_name = f"{HOG_temp}_tree.txt"
-
-    # Check if the subtree is binary (using `is_bifurcating` method in Biopython)
-    if subtree_temp.is_bifurcating():
-        # Write the subtree
-        Phylo.write(subtree_temp, os.path.join(out_dir, "HOG_subtrees", out_file_name), "newick")
-    else:
-        # Resolve polytomies and make the subtree bifurcating
-        resolved_subtree = resolve_polytomies(subtree_temp)
-        
-        # Check if the tree has been successfully resolved (optional step)
-        if resolved_subtree.is_bifurcating():
-            # Write the resolved subtree
-            Phylo.write(resolved_subtree, os.path.join(out_dir, "HOG_subtrees", out_file_name), "newick")
-        else:
-            # If somehow still not bifurcating, log an error
-            dropped_log_handle = open(out_dir+"Dropped_gene_log.csv", "a")
-            dropped_log_handle.write(f"{HOG_temp},Subtree extraction,Subtree was non bifurcating and could not be resolved\n")
-
-#Check if it worked
-if len(glob.glob(out_dir+'HOG_subtrees/*tree.txt')) > 0:
-    print('\nFinished running subtree extraction.\n')
-else:
-    print('ERROR: An error occured during subtree extraction. Quitting...\n')
-    sys.exit()
-
-#Check for dropped files
-file_loss_log(out_dir, out_dir+'Gb_alns/', out_dir+'HOG_subtrees/', 'GB_ALN', '_tree.txt', 'subtree extraction', 'subtree extraction failed')
-
-#Count number of subtrees
-file_counts_log(JOBname, out_dir, 'HOG_subtrees', 'HOG', 'tree.txt', out_dir+'Run_data_counts_log.csv')
-
-#### Perform bootstrap replication with raxml
-print("Beginning bootstrapping with raxml.\n")
-
-if Mult_threads == 1:
-    print("Number of threads set to 1. Consider adding threads to parallelize if possible.\n")
-    print("RAxML requires a minimum of 2 threads to run. ERCnet will not cancel, however this may overtax system resources and cause performance issues. Consider using a minimum of 2 threads.")
-elif Mult_threads > 1:
-    print("Will attempt to parallelize with "+str(Mult_threads)+" threads. Note that choosing more threads than are avilable can slow raxml performance.\n")
-else:
-    print("Number of threads argument does not appear to be an interger. Quitting....")
-    sys.exit()
-
-if not os.path.isdir(out_dir+'BS_reps/'):
-    os.makedirs(out_dir+'BS_reps/')
-    print("\nCreated folder: BS_reps/\n")
-else: 
-    print('Trees with bootstrap values will be stored in BS_reps/\n')
-
-#Get a list of HOGs with retained alignments
-HOGs2BS=[x.replace(out_dir+'Gb_alns/GB_ALN_', '').replace('.fa', '') for x in glob.glob(out_dir+'Gb_alns/GB_ALN_*')]
-
-print("Raxml Parallel Group Chosen: " + str(core_dist) + "\n")
- 
-if (Mult_threads >= 4):
-	if(core_dist == 1):
-		Rax_front_cores = 2
-		Rax_back_cores = int(Mult_threads/2)
-	elif(core_dist == 2):
-		Rax_front_cores = int(Mult_threads/4)
-		Rax_back_cores = 4
-	else:
-		Rax_front_cores = int(Mult_threads/2)
-		Rax_back_cores = 2
-else:
-	Rax_front_cores = 1
-	Rax_back_cores = int(Mult_threads)
-
-if (Rax_back_cores <= 1 and Rax_front_cores >1):
-    Rax_front_cores = int(Mult_threads/2)
-    
-print('Number of trees finished: \n') 
-
-#define rax filepath
-file_path = working_dir + out_dir
-
-# Iterate through HOGs for parallel processing
-def iterate_HOGS(HOGs2BS):
-    for HOG in HOGs2BS:
-        yield HOG
-
-# Parallelized RAxML bootstrap inference
-def par_raxml_bootstrap(HOG_id, Rax_dir, file_path, cores): 
-    # Build the bootstrap command
-    raxml_BS_cmd = Rax_dir + 'raxmlHPC-PTHREADS-SSE3 -s ' + file_path + 'Gb_alns/GB_ALN_' + HOG_id + '.fa ' + \
-                   '-w ' + file_path + 'BS_reps/ -n ' + HOG_id + '_BS.txt' + \
-                   ' -m PROTGAMMALGF -p 12345 -x 12345 -# 100 -T ' + str(cores)
-
-    # Run the command
-    if re.search('raxmlHPC', raxml_BS_cmd) and re.search('PROTGAMMALGF', raxml_BS_cmd) and re.search('12345', raxml_BS_cmd):
-        subprocess.call(raxml_BS_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-# Parallelized execution of bootstrap inference
-def run_parallel_raxml_bootstrap(HOGs2BS, Rax_dir, file_path, Rax_front_cores, Rax_back_cores):
-    # Start the parallel RAxML bootstrap inference
-    benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'raxml_bootstrap', timer)
-    
-    Parallel(n_jobs=Rax_front_cores, verbose=0, max_nbytes=None)(
-        delayed(par_raxml_bootstrap)(HOG, Rax_dir, file_path, Rax_back_cores) 
-        for HOG in iterate_HOGS(HOGs2BS)
-    )
-    
-    benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'raxml_bootstrap', timer)
-
-    # Calculate total time and process count
-    num_items = len(HOGs2BS)
-    benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
-    
-    print("Bootstrap tree inference finished.\n")
-
-# Call the function that run raxml bootstrapping
-run_parallel_raxml_bootstrap(HOGs2BS, Rax_dir, file_path, Rax_front_cores, Rax_back_cores)
-
-# Check for dropped files and BS replicates that didn't get reach 100 reps
-bs_reps_check_log(
-    full_out_dir=out_dir, 
-    start_dir=out_dir+'Gb_alns/', 
-    end_dir=out_dir+'BS_reps/', 
-    start_pattern='GB_ALN_', 
-    end_pattern='RAxML_bootstrap.', 
-    step='Raxml BS replication', 
-    error_message='File missing', 
-    warning_message='File too short'
-)
-
-## Non-parallelized RAxML bootstrap mapping
 # Create folder
 if not os.path.isdir(out_dir+'BS_trees/'):
     os.makedirs(out_dir+'BS_trees/')
@@ -981,31 +844,64 @@ if not os.path.isdir(out_dir+'BS_trees/'):
 else: 
     print('Trees with bootstrap values will be stored in BS_trees/\n')
 
-def raxml_bootstrap_mapping(HOGs2map, Rax_dir, file_path):
-    for HOG_id in HOGs2map:
-        # Build the bootstrap mapping command
-        raxml_BSmap_cmd = (
-            Rax_dir + 'raxmlHPC-PTHREADS-SSE3 -z ' + file_path + 'BS_reps/RAxML_bootstrap.' + HOG_id + '_BS.txt ' +
-            '-w ' + file_path + 'BS_trees/ -n ' + HOG_id + '_BS.txt' +
-            ' -t ' + file_path + 'HOG_subtrees/' + HOG_id + '_tree.txt -f b -m PROTGAMMALGF -T 1'
-        )
+#Get a list of HOGs with retained alignments
+HOGs2BS=[x.replace(out_dir+'Gb_alns/GB_ALN_', '').replace('.fa', '') for x in glob.glob(out_dir+'Gb_alns/GB_ALN_*')]
 
-        # Run the command
-        if re.search('raxmlHPC', raxml_BSmap_cmd):
-            subprocess.call(raxml_BSmap_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+# Iterate through HOGs for parallel processing
+def iterate_HOGS(HOGs2BS):
+    for HOG in HOGs2BS:
+        yield HOG
 
-    print("Bootstrap mapping finished.\n")
+# Parallelized IQ-TREE bootstrap inference
+def par_iqtree_bootstrap(HOG_id, out_dir, cores):
+    # Build the IQ-TREE bootstrap command
+    iqtree_cmd = [
+        "iqtree",
+        "-keep-ident",
+        "-st", "AA",
+        "-s", f"{out_dir}Gb_alns/GB_ALN_{HOG_id}.fa",
+        "-pre", f"{out_dir}BS_trees/{HOG_id}_BS",
+        "-m", "TEST",
+        "-nt", "2",
+        "-bb", "1000"
+    ]
+    
+    # Run the command using subprocess.run
+    subprocess.run(iqtree_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-# Call the non-parallelized step for bootstrap mapping
-raxml_bootstrap_mapping(HOGs2BS, Rax_dir, file_path)
+# Parallelized execution of IQ-TREE bootstrap inference
+def run_parallel_iqtree_bootstrap(HOGs2BS, out_dir, cores):
+    print("Starting IQ-TREE bootstrap inference...")
+    
+    # Parallel execution
+    Parallel(n_jobs=cores, verbose=0, max_nbytes=None)(
+        delayed(par_iqtree_bootstrap)(HOG, out_dir, cores)
+        for HOG in iterate_HOGS(HOGs2BS)
+    )
+    
+    print("IQ-TREE bootstrap tree inference finished.\n")
+
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'Bootstrap', timer)
+
+#Call the iqtree function
+run_parallel_iqtree_bootstrap(HOGs2BS, out_dir, Mult_threads//2)
+
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'Bootstrap', timer)
+
+num_items = len(glob.glob(out_dir+'BS_trees/*treefile'))
+benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
 
 #Check for dropped files
-file_loss_log(out_dir, out_dir+'BS_reps/', out_dir+'BS_trees/', 'RAxML_bootstrap.', 'RAxML_bipartitions.', 'Bootstrap score mapping', 'Failed to produce tree file with bootstrap values')
+file_loss_log(out_dir, out_dir+'Gb_alns/', out_dir+'BS_trees/', 'GB_ALN_', '_BS.treefile', 'IQtree BS inference', 'Cant find BS tree file')
 
 #Count number of subtrees
-file_counts_log(JOBname, out_dir, 'BS_trees', 'RAxML_bipartitions.', 'txt', out_dir+'Run_data_counts_log.csv')
+file_counts_log(JOBname, out_dir, 'BS_trees/', 'HOG', '_BS.treefile', out_dir+'Run_data_counts_log.csv')
 
-## Do the root/rearrange step with Treerecs (GT/ST reconciliation)
+
+######################################################################
+##### Do the root/rearrange step with Treerecs (GT/ST reconciliation)
+######################################################################
+
 #Copy the species tree into outdir
 shutil.copy2(sp_tr_path, out_dir)
 
@@ -1035,25 +931,21 @@ else:
     print('Rearranged gene trees will be stored in Rearranged_trees/\n')
 
 #Get list of all BS trees
-all_bs_trees=glob.glob(out_dir+'BS_trees/RAxML_bipartitions.*')
-
-print('Number of trees rearranged:')
+all_bs_trees=glob.glob(out_dir+'BS_trees/*BS.treefile')
 
 def iterate_trees(all_bs_trees):
     for bs_tree in [all_bs_trees]:
         return bs_tree
 
-
-##Begin paralellization of rearranement
+##Begin paralellization of rearrangement
 def par_tree_arrange(bs_tree):
     
     #Build the treerecs command
-    treerecs_cmd='treerecs -s '+str(out_dir+'SpeciesTree_mapped_names.txt')+' -g '+bs_tree+' -f -t 80 --output-without-description -r -q -O newick -o '+str(out_dir+'Rearranged_trees/')
+    treerecs_cmd='treerecs -s '+str(out_dir+'SpeciesTree_mapped_names.txt')+' -g '+bs_tree+' -f -t '+str(bs_cut)+' --output-without-description -r -q -O newick -o '+str(out_dir+'Rearranged_trees/')
 
     if re.search('treerecs', treerecs_cmd) and re.search(bs_tree, treerecs_cmd):
         #subprocess.call(treerecs_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.call(treerecs_cmd, shell=True)
-##End paralellization of rearranement
 
 #Timestamp just before Parallel Call
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'tree_arrange', timer)
@@ -1068,24 +960,32 @@ num_items = len(all_bs_trees)
 benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
 
 #Check for dropped files
-file_loss_log(out_dir, out_dir+'BS_trees/', out_dir+'Rearranged_trees/', 'RAxML_bipartitions.', 'RAxML_bipartitions.', 'GTSP reconciliation rearrange with treerecs', 'Cant find rearranged file')
+file_loss_log(out_dir, out_dir+'BS_trees/', out_dir+'Rearranged_trees/', 'BS.treefile', '_BS.treefile_recs.nwk', 'GTSP reconciliation rearrange with treerecs', 'Cant find rearranged file')
 
 #Count number of subtrees
-file_counts_log(JOBname, out_dir, 'Rearranged_trees', 'RAxML_bipartitions.', '.nwk', out_dir+'Run_data_counts_log.csv')
+file_counts_log(JOBname, out_dir, 'Rearranged_trees', 'HOG', '_BS.treefile_recs.nwk', out_dir+'Run_data_counts_log.csv')
 
-### Infer branch-length optimized trees with Raxml (BL trees)
-#Get list of gblocks alns (after filters) and subtrees (after filters) and find the overlap
+##################################################
+# Perform Branch-Length optimization with IQtree
+##################################################
 
-#Make quick function for finding intersect 
-def intersection(lst1, lst2):
-    temp = set(lst2)
-    lst3 = [value for value in lst1 if value in temp]
-    return lst3
+# Get a list of HOGs that have succesfull trees and alignments (both needed for the BL optimization below)
+# Define the directories
+gb_alns_dir = os.path.join(out_dir, 'Gb_alns/')
+rearranged_trees_dir = os.path.join(out_dir, 'Rearranged_trees/')
 
-#Get a list of the IDs that sucessfully created alignments and subtrees
-keeperIDs = intersection([x.replace(out_dir+'Gb_alns/GB_ALN_', '').replace('.fa', '') for x in glob.glob(out_dir+'Gb_alns/GB_ALN_*')], [y.replace(out_dir+'Rearranged_trees/RAxML_bipartitions.', '').replace('_BS.txt_recs.nwk', '') for y in glob.glob(out_dir+'Rearranged_trees/*_BS.txt_recs.nwk')])
+# Get the set of HOG IDs from Gb_alns directory
+gb_alns_files = os.listdir(gb_alns_dir)
+gb_alns_HOGs = {f.split('_')[2].split('.')[0] for f in gb_alns_files if f.startswith("GB_ALN_")}
 
-print('Starting Branch length optimization with RAxML\n')
+# Get the set of HOG IDs from Rearranged_trees directory
+rearranged_trees_files = os.listdir(rearranged_trees_dir)
+rearranged_trees_HOGs = {f.split('_')[0] for f in rearranged_trees_files if f.endswith("_BS.treefile_recs.nwk")}
+
+# Find common HOG IDs between the two directories
+keeperIDs = list(gb_alns_HOGs.intersection(rearranged_trees_HOGs))
+
+## Infer branch-length optimized trees with IQtree
 
 #Make directory to write output to
 if not os.path.isdir(out_dir+'BL_trees/'):
@@ -1094,51 +994,54 @@ if not os.path.isdir(out_dir+'BL_trees/'):
 else: 
     print('Branch length optimized trees will be stored in BL_trees/\n')
 
-# Loop through files to process
-##Begin paralellization of raxml branch length optimization
-
-def iterate_keeps(keeperIDs):
-    for k_ID in [keeperIDs]:
-        return k_ID
-
-##Begin paralellization of raxml BL optimization
-def par_BL_opt(k_ID, cores): 
-
-    #Build the raxml command
-    raxml_bl_cmd=Rax_dir+'raxmlHPC-PTHREADS-SSE3 -s '+str(working_dir+out_dir+'Gb_alns/GB_ALN_'+k_ID+'.fa')+ \
-        ' -w '+str(working_dir+out_dir+'BL_trees/')+' -n '+str(k_ID+'_BL.txt')+ \
-            ' -t '+str(working_dir+out_dir+'Rearranged_trees/RAxML_bipartitions.'+k_ID+'_BS.txt_recs.nwk')+ \
-                ' -m PROTGAMMALGF -p 12345 -f e -T '+str(cores)
-                
+# Parallelized IQ-TREE bootstrap inference
+def par_iqtree_optimize(HOG_id, out_dir, cores):
+    # Build the IQ-TREE bootstrap command
+    iqtree_cmd = [
+        "iqtree",
+        "-keep-ident",
+        "-st", "AA",
+        "-s", f"{out_dir}Gb_alns/GB_ALN_{HOG_id}.fa",
+        "-te", f"{out_dir}Rearranged_trees/{HOG_id}_BS.treefile_recs.nwk",
+        "-pre", f"{out_dir}BL_trees/{HOG_id}_BL",
+        "-m", "TEST",
+        "-nt", "2"
+    ]
     
-    #Run the command (note, raxml was installed with conda so this wont work in spyder)
-    if re.search('raxmlHPC', raxml_bl_cmd) and re.search('PROTGAMMALGF', raxml_bl_cmd) and re.search('12345', raxml_bl_cmd):
-        subprocess.call(raxml_bl_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # Run the command using subprocess.run
+    subprocess.run(iqtree_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-#Timestamp just before Parallel Call
-benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'keeps', timer)
+# Parallelized execution of IQ-TREE bootstrap inference
+def run_parallel_iqtree_optimize(HOGs2BS, out_dir, cores):
+    print("Starting IQ-TREE branch length optmization...")
+    
+    # Parallel execution
+    Parallel(n_jobs=cores, verbose=0, max_nbytes=None)(
+        delayed(par_iqtree_optimize)(HOG, out_dir, cores)
+        for HOG in iterate_HOGS(keeperIDs)
+    )
+    
+    print("IQ-TREE branch length optmization finished.\n")
 
-#Call paralell
-Parallel(n_jobs = Rax_front_cores, verbose=0, max_nbytes=None)(delayed(par_BL_opt)(k_ID, Rax_back_cores) for k_ID in iterate_keeps(keeperIDs))
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'start', 'branch length optimization', timer)
 
-#Timestamp just before Parallel Call
-benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'keeps', timer)
+#Call the iqtree function
+run_parallel_iqtree_optimize(HOGs2BS, out_dir, Mult_threads//2)
 
-#Calculate total time of parralel process & items per minute
-num_items = len(keeperIDs)
+benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'branch length optimization', timer)
+
+num_items = len(glob.glob(out_dir+'BL_trees/*treefile'))
 benchmarkProcess(out_dir + 'benchmark/' + str(bench_fileName), num_items)
 
+#########################
+# Prepare DLCpar files
+#########################
+
 #Check for dropped files
-file_loss_log(out_dir, out_dir+'Rearranged_trees/', out_dir+'BL_trees/', 'RAxML_bipartitions.', 'RAxML_result.', 'Branch length optimization', 'Cant find optimized file')
+file_loss_log(out_dir, out_dir+'BS_trees/', out_dir+'BL_trees/', '_BS.treefile', '_BL.treefile', 'IQtree BL optimization', 'Cant find BL tree file')
 
 #Count number of subtrees
-file_counts_log(JOBname, out_dir, 'BL_trees', 'RAxML_result.', 'txt', out_dir+'Run_data_counts_log.csv')
-
-##End paralellization of raxml branch length optimization
-        
-print('\n\nDone with RAxML branch length optimization\n')
-
-print("Generating input files for GT/ST reconciliation...\n")
+file_counts_log(JOBname, out_dir, 'BL_trees/', 'HOG', '_BL.treefile', out_dir+'Run_data_counts_log.csv')
 
 #Make directory to write output to
 if not os.path.isdir(out_dir+'DLCpar/'):
@@ -1158,14 +1061,6 @@ for row_i, row in mapping_table.iterrows():
 #Write the file for DLCpar
 mapping_table.to_csv(out_dir+'DLCpar/speciesIDs.smap', sep='\t' , index=False, header=False)
 
-'''
-#Copy trees to DLCpar folder
-tree2copy=glob.glob(out_dir+'BL_trees/RAxML_result.*')
-
-for t in tree2copy:
-    shutil.copy2(t, out_dir+'DLCpar/')
-'''
-
 #Generate the input files for GTST reconciliation.
 input_gen_cmd= 'Rscript Generate_rec_inputs.R '+JOBname
 #input_gen_cmd= 'Rscript Generate_rec_inputs.R '+JOBname+' '+OFpath    
@@ -1180,7 +1075,7 @@ if len(glob.glob('DLCpar/*_NODES_BL.txt')) > 0:
     print('Finished generateing input files.\nInput files written to DLCpar/\n')
 
 #Check for dropped files
-file_loss_log(out_dir, out_dir+'BL_trees/', out_dir+'DLCpar/', 'RAxML_result.', 'NODES_BL.txt', 'Branch length optimization', 'Cant find optimized file')
+file_loss_log(out_dir, out_dir+'BL_trees/', out_dir+'DLCpar/', 'treefile', 'NODES_BL.txt', 'Branch length optimization', 'Cant find optimized file')
 
 #Count number of recs
 file_counts_log(JOBname, out_dir, 'DLCpar', 'HOG', 'txt', out_dir+'Run_data_counts_log.csv')

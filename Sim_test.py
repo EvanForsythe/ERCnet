@@ -141,11 +141,15 @@ def main():
     display_tree(sim_tree_path=args.sim_tree_path)
 
     # Check if the trees for HOG_ID1 and HOG_ID2 are rooted and count multifurcating nodes
-    gene_tree_path1 = os.path.join(f"OUT_{args.jobname}", "BL_trees", f"RAxML_result.{args.hog_id1}_BL.txt")
+    gene_tree_path1 = os.path.join(f"OUT_{args.jobname}", "BL_trees", f"{args.hog_id1}_BL.treefile")
     check_tree_properties(gene_tree_path1)
 
-    gene_tree_path2 = os.path.join(f"OUT_{args.jobname}", "BL_trees", f"RAxML_result.{args.hog_id2}_BL.txt")
+    call_nw_display(gene_tree_path1)
+
+    gene_tree_path2 = os.path.join(f"OUT_{args.jobname}", "BL_trees", f"{args.hog_id2}_BL.treefile")
     check_tree_properties(gene_tree_path2)
+
+    call_nw_display(gene_tree_path2)
     
     # Load the TSV file and filter by HOG_ID1 and HOG_ID2
     df = load_tsv(args.jobname, args.filename, args.hog_id1, args.hog_id2)
