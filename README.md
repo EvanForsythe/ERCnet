@@ -479,7 +479,7 @@ Below is a brief description of each of the files and subdirectories that are ou
 
 ## <ins>**Supplementary scripts**</ins> <a name="supp"></a>
 
-- Simulations.py is used to simulate proteomes with subsets of genes that exhibit correlated evolution. A conda environment with pyevolve is needed to run this script. Note that we needed to manually edit the evolver.py file that comes packaged with pyevolve to remove reference to an outdate "Alphabet" data type in biopython.
+- Simulations.py is used to simulate proteomes with subsets of genes that exhibit correlated evolution. A conda environment with pyevolve is needed to run this script. Note that we needed to manually edit the evolver.py file that comes packaged with pyevolve to remove reference to an outdated "Alphabet" data type in biopython.
 - auto_ortho_batch.sh is a SLURM job submission script that can be used to automatically run Orthofinder with a version of the species tree that is rooted by your preferred outgroup.
 - Tree_report.py provides information about the phylogenetic trees as they are processed during the steps of ERCnet
 - Sim_error_track.py provides reports of error rates from simulated data (simulated with Simulations.py).
