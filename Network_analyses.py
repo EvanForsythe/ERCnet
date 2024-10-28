@@ -44,7 +44,7 @@ parser.add_argument('-r', '--RSquared', type=float, metavar='', required=False, 
 parser.add_argument('-y', '--Clustmeth', type=str, metavar='', required=True, help='Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap.') 
 parser.add_argument('-t', '--Trim_Cutoff', type=int, metavar='', required=False, help='The user-selected cutoff will be the minimum number of genes necessary for a community to be displayed on the network plot.This is mainly for network visualization and is not recommended for data collection. Must be an integer. 0 (no trimming) is default.', default=0)
 parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help='The name of the focal species to represent each gene family (should exactly match the tip label of the species tree)') 
-parser.add_argument('-c', '--CorrMethod', type=str, metavar='', required=False, help='The type of correlation method you would like to filter P Value and R value by. Default is both.', default='both')
+parser.add_argument('-c', '--CorrMethod', type=str, metavar='', required=False, help='The type of correlation method you would like to filter P Value and R value by. Should be "pearson", "spearman", or "both". Default is both.', default='both')
 parser.add_argument('-f', '--FileName', type=str, metavar='', required=True, help='The filename of ERC_results file you would like to analyze. Should be .tsv file.')
 parser.add_argument('-F', '--Func_cat', action='store_true', required=False, help='Run a functional clustering analysis with user-provided functional information about genes in the focal species? If selected, youll need to provide two tsv files. See documentation for formatting.') 
 parser.add_argument('-L', '--Lab_nodes', action='store_true', required=False, help='Add node labels to the network? If selected, youll need to provide a tsv files of node labels. See documentation for formatting.') 
@@ -71,6 +71,11 @@ strict = args.Strict
 #Store output dir as a variable
 out_dir= 'OUT_'+JOBname+'/'
 #fileName = file.replace('.tsv', '')
+
+# Check if Corrmethod is valid
+if Corrmethod not in ['pearson', 'spearman', 'both']:
+    print("Invalid option for --CorrMethod/-c")
+    exit(1)  # Exit the program with a non-zero status
 
 #Define the time object and folder for optimization testing
 bench_fileName = JOBname + '_Network_analysis_benchmark.tsv'
@@ -165,9 +170,9 @@ else:
 
 #Changes file output name based on strictness. Allowing for a saved filtered results file in both FDR and regular filtering. 
 if (strict):
-    outFileName = fileName.replace('.tsv', '') + "_" + str(PValue) + "_" + str(RSquared) + "_FDR.tsv"
+    outFileName = fileName.replace('.tsv', '') + "_" + str(Corrmethod) + "_" + str(PValue) + "_" + str(RSquared) + "_FDR.tsv"
 else:
-    outFileName = fileName.replace('.tsv', '') + "_" + str(PValue) + "_" + str(RSquared) + ".tsv"
+    outFileName = fileName.replace('.tsv', '') + "_"+ str(Corrmethod) + "_" + str(PValue) + "_" + str(RSquared) + ".tsv"
 
 #Output a filtered version of the ERC_results file
 csvData.to_csv(out_dir + "ERC_results/Filtered_results/Filtered_" + outFileName, sep='\t', index=False, header=True) 

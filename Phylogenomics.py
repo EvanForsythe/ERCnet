@@ -297,17 +297,19 @@ if explore_filters:
     #Set filter ranges
     max_paralogs_vals=list(range(1, 5, 1))
     min_rep_vals=list(range(math.floor(len(sp_names)/2), (len(sp_names)+1), 1))
-    
+
     #Make blank array for parameter scan
     retained_trees=np.zeros((len(max_paralogs_vals), len(min_rep_vals)))
     
     #Start nested loop to fill in the matrix
     for p_count, p_val in enumerate (max_paralogs_vals):
         for s_count, s_val in enumerate (min_rep_vals):
+
+
             para_value=p_val
             rep_value=s_val
 
-            passed_only_df = filter_gene_fams(HOG_file, seq_counts_df, sp_names, para_value, rep_value)
+            passed_only_df = filter_gene_fams(out_dir, HOG_file, seq_counts_df, sp_names, para_value, rep_value)
             #Number of rows in the dataframe
             retained_trees[p_count,s_count]=passed_only_df.shape[0]
             
@@ -318,11 +320,11 @@ if explore_filters:
     #Set values as integers
     retained_trees_df = retained_trees_df.apply(pd.to_numeric, errors='coerce', downcast='integer')
     
-    #Assign new col names
-    retained_trees_df.set_axis(max_paralogs_vals, axis=0, inplace=True)
-    
-    #assign new row names
-    retained_trees_df.set_axis(min_rep_vals, axis=1, inplace=True)
+    # Assign new row names (axis=0)
+    retained_trees_df.index = max_paralogs_vals
+
+    # Assign new column names (axis=1)
+    retained_trees_df.columns = min_rep_vals
 
     #Print the table
     print('\n\nOutputting table of the total retained trees under different filtering parameter combinations to "Retained_genes_counts.csv"\n')

@@ -76,10 +76,13 @@ out_dir<-paste0("OUT_", jobname, "/")
 #Read the table
 ERC_hits_df<-read.table(file = paste0(working_dir, out_dir, "ERC_results/Filtered_results/", fileName,".tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
+n_hits<-nrow(ERC_hits_df)
+n_prots<-length(unique(c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG)))
+
 #Print message
 #Use cat because paste+print doesn't recognize \n
-cat("\nNumber of significant correlations (according to filter parameters): ", nrow(ERC_hits_df), 
-    "\nNumber of genes in network: ", length(unique(c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG))),
+cat("\nNumber of significant correlations (according to filter parameters): ", n_hits, 
+    "\nNumber of genes in network: ", n_prots,
     "\n\n")
 
 
@@ -297,9 +300,10 @@ dev.off()
 #Check to see whether this option was selected by user
 if(func_cat_bool == "True"){
   
-#Read in func cat files
-func_cat_df<-read.table(file = paste0(working_dir, "Functional_categories.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+# Read in func cat files
+func_cat_df <- read.table(file = paste0(working_dir, "Functional_categories.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
+#Read in color asignment
 func_cat_col_df<-read.table(file = paste0(working_dir, "Functional_categories_col_assign.tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 if(nrow(func_cat_df)>1){
@@ -308,8 +312,21 @@ if(nrow(func_cat_df)>1){
   print("Something seems to be wrong with the functional category file")
 }
 
-#Merge the HOG info
-Func_cats_HOGs<-merge(x = final_network_stats_df_unique_reorder_rows, y = func_cat_df, by = "ID", all.x = TRUE, all.y = FALSE)
+# Create a check to make sure the IDs match between the network and the func cat file 
+# Extract the IDs from both dataframes
+ids_network_stats <- final_network_stats_df_unique_reorder_rows$ID
+ids_func_cat <- func_cat_df$ID
+
+# Check for any matches between the IDs
+matching_ids <- intersect(ids_network_stats, ids_func_cat)
+
+# If no matches are found, print an error message and quit
+if(length(matching_ids) == 0){
+  stop("Error: No matching IDs found in the functional categories file. Check the formatting of the IDs and try again.")
+}
+
+# Merge the HOG info
+Func_cats_HOGs <- merge(x = final_network_stats_df_unique_reorder_rows, y = func_cat_df, by = "ID", all.x = TRUE, all.y = FALSE)
 
 #Reorder
 Func_cats_HOGs_reorder<-Func_cats_HOGs[order(Func_cats_HOGs$Community_num, -Func_cats_HOGs$Degree_centrality, -Func_cats_HOGs$Eigenvector_centrality), ]
@@ -318,11 +335,11 @@ Func_cats_HOGs_reorder<-Func_cats_HOGs[order(Func_cats_HOGs$Community_num, -Func
 write.csv(Func_cats_HOGs_reorder, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,"_FUNC_CAT.csv"), row.names = FALSE, quote = FALSE)
 
 # #Assign functional category as a node attribute
-#Store as categorical data
+# Store functional category as categorical data
 category_values <- Func_cats_HOGs_reorder$Functional_category
 names(category_values) <- Func_cats_HOGs_reorder$HOG_ID
 
-#Add the attribute
+# Add the attribute
 V(network_graph_final)$Functional_category <- category_values[V(network_graph_final)$name]
 
 #Remove NAs
@@ -377,44 +394,51 @@ V(network_graph_final)$Functional_cat_code[which(is.na(V(network_graph_final)$Fu
 #assortativity coefficient calculation (observed)
 obs_assort<-assortativity.nominal(network_graph_final, types = V(network_graph_final)$Functional_cat_code, directed = FALSE)
 
-#Get a random null distribution
-#make function
+# Get a random null distribution
+# make function
 rando_assort<-function(){
-  #Make a copy
-  network_graph_rep<-network_graph_final
-
-  #coefficient calculation (randomized)
-  assortativity.nominal(network_graph_rep, types = sample(V(network_graph_rep)$Functional_cat_code, replace = FALSE), directed = FALSE)
+  # Make a copy
+  network_graph_rep <- network_graph_final
+  
+  # Perform the randomization
+  random_types <- sample(V(network_graph_rep)$Functional_cat_code, replace = FALSE)
+  
+  # coefficient calculation (randomized)
+  result <- assortativity.nominal(network_graph_rep, types = random_types, directed = FALSE)
+  
+  return(result)
 }
 
-#run the function
-assort_reps<-replicate(1000, rando_assort())
+# run the function
+assort_reps <- replicate(1000, rando_assort())
 
-#Perform z-test to get p-value
-#z-score
-z_score<-(obs_assort-mean(assort_reps))/sd(assort_reps)
+# Count and print the number of NA values in assort_reps
+num_na_reps <- sum(is.na(assort_reps))
 
+# Filter out NA values from assort_reps
+assort_reps <- assort_reps[!is.na(assort_reps)]
+
+# Perform z-test to get p-value
+# z-score
+z_score <- (obs_assort - mean(assort_reps)) / sd(assort_reps)
 
 # One-sided p-value
-p_val<-pnorm(q = z_score, lower.tail = FALSE)
+p_val <- pnorm(q = z_score, lower.tail = FALSE)
 
+# save pdf
+pdf(file = paste0(working_dir, out_dir, "Network_analyses/Network_assortativity_", fileName, "_", clust_method, "_trimcutoff_", trim_cutoff, ".pdf"), width=6, height=6)
 
-#save pdf
-pdf(file = paste0(working_dir, out_dir, "Network_analyses/Network_assortativity_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=6, height = 6)
-
-#plot the curve of the null distribution
+# plot the curve of the null distribution
 plot(density(assort_reps), 
      main = "Random distribution and \nobserved assortativity", 
-     xlab = paste0("Observed Assort coefficient: ", 
-                   obs_assort, 
-                   "\nOne-tailed P-value: ",
-                   p_val
-                   )
+     xlab = paste0("Observed Assort coefficient: ", obs_assort, "\nOne-tailed P-value: ", p_val)
      )
-#plot a line where the observed Assortativity is
-abline(v=obs_assort)
+
+# plot a line where the observed Assortativity is
+abline(v = obs_assort)
 
 dev.off()
+
 
 #Write results to the metadata file
 cat(paste0("\n", BL_type,"\t", PValue, "\t", 
@@ -431,6 +455,15 @@ all_df<-data.frame(HOG=c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG), ID=c(ERC
 
 #Get a table that contains gene annotation info.
 cyto_df<-data.frame(HOG=unique(c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG)), ID_comprehensive=NA)
+
+# Check if the focal species string is present in any of the all_df$ID items
+foc_sp_matches <- grep(foc_sp, all_df$ID)
+
+# If no matches are found, print an error and quit
+if(length(foc_sp_matches) == 0){
+  stop(paste("Error: The focal species string", foc_sp, "was not found in the sequence ID. Check formatting and try again."))
+}
+
 
 #add gene annotations to HOGs
 for(i in 1:nrow(cyto_df)){
@@ -454,3 +487,43 @@ V(network_graph_final)$Comprehensive_ID <- comp_values[V(network_graph_final)$na
 
 #Write this graph as a graphML format file
 write.graph(network_graph_final, file = paste0(working_dir, out_dir, "Network_analyses/Cytoscape_network_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".graphml"), format = "graphml")
+
+# Write the graph edges as a plain-text TSV format file
+edges_df <- as_data_frame(network_graph_final, what = "edges")
+colnames(edges_df) <- c("GeneA_HOG", "GeneB_HOG")  # Rename the columns
+write.table(edges_df, 
+            file = paste0(working_dir, out_dir, "Network_analyses/Text_network_edges_", 
+                          fileName, "_", clust_method, "_trimcutoff_", trim_cutoff, ".tsv"), 
+            sep = "\t", 
+            row.names = FALSE, 
+            col.names = TRUE, 
+            quote = FALSE)
+
+# Write the vertices to a TSV file
+vertices_df <- as_data_frame(network_graph_final, what = "vertices")
+colnames(vertices_df)[1] <- "HOG_ID"  # Rename the first column
+write.table(vertices_df, 
+            file = paste0(working_dir, out_dir, "Network_analyses/Text_network_vertices_", 
+                          fileName, "_", clust_method, "_trimcutoff_", trim_cutoff, ".tsv"), 
+            sep = "\t", 
+            row.names = FALSE, 
+            col.names = TRUE, 
+            quote = FALSE)
+
+
+#Write the text file of stats
+# Create a data frame with the values
+data_row <- data.frame(jobname, BL_type, PValue, RSquared, clust_method, trim_cutoff, foc_sp, 
+                       fileName, func_cat_bool, lab_bool, n_hits, n_prots)
+
+# Specify the file name
+file_path <- paste0(working_dir, out_dir, "Network_stats.csv")
+
+# Check if the file exists
+if (!file.exists(file_path)) {
+  # If the file does not exist, write the data frame with headers
+  write.csv(data_row, file = file_path, row.names = FALSE, quote = FALSE)
+} else {
+  # If the file exists, append the new row
+  write.table(data_row, file = file_path, row.names = FALSE, col.names = FALSE, sep = ",", append = TRUE, quote = FALSE)
+}
