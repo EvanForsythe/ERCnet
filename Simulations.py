@@ -10,29 +10,33 @@ import pyvolve
 import random
 import copy
 
+
+
+
 # Argument parser to get jobname and optional rand argument from command-line input
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Phylogenetic sequence simulation")
     parser.add_argument("-j", "--jobname", required=True, help="Specify the job name for creating output folder")
     parser.add_argument("-r", "--rand", action="store_true", help="Create 100 randomized trees with different sets of accelerated branches")
+    parser.add_argument("-i", "--inspect", action="store_true", help="Pause to inspect before proceeding")
     return parser.parse_args()
 
 # Function to create a random bifurcating tree
 def create_random_tree(species):
-    clades = [Clade(branch_length=random.uniform(0.001, 0.005), name=s) for s in species]
+    clades = [Clade(branch_length=random.uniform(0.01, 0.05), name=s) for s in species]
 
     while len(clades) > 1:
         # Randomly choose two clades to merge
         c1 = clades.pop(random.randint(0, len(clades)-1))
         c2 = clades.pop(random.randint(0, len(clades)-1))
         # Create a new internal clade that joins the two
-        new_clade = Clade(branch_length=random.uniform(0.001, 0.005), clades=[c1, c2])
+        new_clade = Clade(branch_length=random.uniform(0.01, 0.05), clades=[c1, c2])
         # Add the new clade back to the list
         clades.append(new_clade)
 
     # The final remaining clade is the root
     root_clade = clades[0]
-    root_clade.branch_length = random.uniform(0.001, 0.005)
+    root_clade.branch_length = random.uniform(0.01, 0.05)
     
     # Create the tree
     tree = Tree(root=root_clade)
@@ -122,6 +126,20 @@ def create_randomized_trees(original_tree, rand_dir):
 
     return randomized_trees
 
+
+# Function to prompt for user confirmation if --inspect is provided
+def inspect_confirmation():
+    while True:
+        user_input = input("Please inspect the random trees. Do you want to proceed? (y/n): ").strip().lower()
+        if user_input == 'y':
+            print("Proceeding with the simulation.")
+            break
+        elif user_input == 'n':
+            print("Exiting the script.")
+            exit(0)
+        else:
+            print("Invalid input. Please enter 'y' for yes or 'n' for no.")
+
 # Main function to perform the simulations
 def main():
     # Parse the user-defined jobname and optional rand argument
@@ -187,6 +205,11 @@ def main():
         Phylo.draw_ascii(original_tree)
         write_tree_with_explicit_branch_lengths(original_tree, modified_tree_file)
         modified_tree_files.append(modified_tree_file)
+    
+    # Check if --inspect is provided
+    if args.inspect:
+        print("Inspection mode activated.")
+        inspect_confirmation()
 
     # Define model and sequence length for pyvolve
     model = pyvolve.Model("jtt")
