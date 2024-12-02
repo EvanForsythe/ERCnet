@@ -7,6 +7,7 @@ import glob
 import numpy as np
 import pandas as pd
 from datetime import datetime
+import warnings
 
 # Function to search for files by prefix and suffix, and log results to a file
 def file_counts_log(jobname, out_dir, directory, prefix, suffix, result_file):
@@ -119,24 +120,61 @@ def benchmarkTime(fileName, path, stamp, process, timer):
         bench.write("Parallel " + process + " Call " + stamp  + '\t' + str(current_time) + '\n')
     return 0
 
+import pandas as pd
+from datetime import datetime
+import warnings
+
 def benchmarkProcess(bench_filePath, num_items):
-    benchmark_file = pd.read_csv(bench_filePath, delimiter = '\t')
-
-    t_finish = datetime.strptime(str(benchmark_file.iloc[-1,-1]), "%a, %d %b %Y %H:%M:%S")
-    t_start = datetime.strptime(str(benchmark_file.iloc[-2,-1]), "%a, %d %b %Y %H:%M:%S")
-    t_total = t_finish - t_start
-    t_int_minutes = float(t_total.total_seconds() / 60)
-
-    if t_int_minutes > 0:
-        lines_per_min = num_items / t_int_minutes
-        if lines_per_min > num_items:
-            lines_per_min = num_items
+    # Load the benchmark file
+    try:
+        benchmark_file = pd.read_csv(bench_filePath, delimiter='\t', header=None, names=["Process", "Timestamp"])
+    except Exception as e:
+        raise ValueError(f"Error reading the benchmark file: {e}")
+    
+    # Helper function to parse date-time safely
+    def parse_datetime(value):
+        try:
+            return datetime.strptime(value, "%a, %d %b %Y %H:%M:%S")
+        except ValueError:
+            warnings.warn(f"Invalid date-time format: {value}. Replacing with NA.")
+            return None  # Use None to represent missing/invalid data
+    
+    # Find the most recent "Call start" and "Call end" pair
+    start_index, end_index = None, None
+    for i in range(len(benchmark_file) - 1, -1, -1):  # Iterate backward
+        if "Call end" in benchmark_file.iloc[i]["Process"] and end_index is None:
+            end_index = i
+        elif "Call start" in benchmark_file.iloc[i]["Process"] and start_index is None:
+            start_index = i
+            break
+    
+    if start_index is None or end_index is None:
+        warnings.warn("No recent 'Call start' and 'Call end' pair found.")
+        return 0  # Exit if no valid pair is found
+    
+    # Parse the start and end times
+    process_name = benchmark_file.iloc[start_index]["Process"].replace("Call start", "").strip()
+    t_start = parse_datetime(benchmark_file.iloc[start_index]["Timestamp"])
+    t_end = parse_datetime(benchmark_file.iloc[end_index]["Timestamp"])
+    
+    # Calculate total time and lines per minute
+    if t_start is None or t_end is None:
+        t_int_minutes, lines_per_min = "NA", "NA"
     else:
-        lines_per_min = num_items
-
-    with open(bench_filePath, "a") as bench:
-        bench.write("Total time (m)" + '\t' + str(t_int_minutes) + '\n')
-        bench.write("Items completed per minute" + '\t' + str(lines_per_min) + '\n''\n')
+        t_total = t_end - t_start
+        t_int_minutes = max(t_total.total_seconds() / 60, 0)
+        lines_per_min = num_items / t_int_minutes if t_int_minutes > 0 else num_items
+        lines_per_min = min(lines_per_min, num_items)
+    
+    # Append results to the benchmark file
+    try:
+        with open(bench_filePath, "a") as bench:
+            bench.write(f"Process: {process_name}\n")
+            bench.write(f"Total time (m)\t{t_int_minutes}\n")
+            bench.write(f"Items completed per minute\t{lines_per_min}\n\n")
+    except Exception as e:
+        raise IOError(f"Error writing to the benchmark file: {e}")
+    
     return 0
 
 def CheckFileExists(filePath):
