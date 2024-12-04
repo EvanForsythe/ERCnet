@@ -128,7 +128,7 @@ def make_seq_counts_df(HOG_file_path, mapping_table_path):
     ##Create dataframe that has the counts for each species
     #Create empty df to fill in 
     counts_array=np.empty((HOG_file.shape[0], len(sp_names)))
-    counts_array[:] = np.NaN
+    counts_array[:] = np.nan
     
     for row_i, row in HOG_file.iterrows():
         for spec_i, spec in enumerate(sp_prefix):
