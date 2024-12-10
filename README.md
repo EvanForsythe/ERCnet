@@ -446,6 +446,7 @@ Below is a brief description of each of the files and subdirectories that are ou
 - `Filtered_genefam_dataset.csv`: each row represents a gene family (hierarchical orthogroup [HOG] from orthofinder) and the seq IDs of all the sequences in the gene family
 - `Dropped_gene_log.csv`: Tracks when/why genes (HOGs) that didn't make it to the end of the pipeline were dropped from the analysis.
 - `Run_data_counts_log.csv`: Counts how many genes (HOGs) remain in the analysis at each step and also tallying important information about the network
+- `benchmark/`: log files that track the runtime of each step of ERCnet. If steps are performed multiple times, files will be appended with numbers (e.g. "_1") in ascending order.
 - `HOG_seqs/`: contains a seperate file for each gene family (hierarchical orthogroup [HOG] from orthofinder).
 - `Alns/`: contains a seperate file with a multiple sequences alignment for each HOG
 - `TAPER_Alns/`: an (optional) version of the alignments that have been cleaned using TAPER
