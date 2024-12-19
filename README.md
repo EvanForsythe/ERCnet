@@ -113,8 +113,8 @@ conda env create -f ERCnet_py3_environment.yml
 Alternatively, users can manually create their environment and install dependenices individually using the following commands:
 ```
 #Create a conda environment with python 3
-conda create -n test3 python=3.9.7
-conda activate test3
+conda create -n ERCnet_env python=3.9.7
+conda activate ERCnet_env
 
 #Install python modules
 conda install -c conda-forge pandas
@@ -125,7 +125,7 @@ conda install -c conda-forge scipy
 #Install phylogenetics-related programs
 conda install -c bioconda mafft
 conda install -c bioconda gblocks
-conda install bioconda::iqtree
+conda install -c bioconda iqtree
 conda install -c bioconda treerecs
 
 #Install R package (specific versions included when important)
