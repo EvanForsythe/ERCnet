@@ -106,7 +106,7 @@ First, we have provided a preconfigured yml file that can be used to automatical
 To create your environment using the yml file, use the following command (this can take 10-20 minutes):
 
 ```
-conda env create -f ERCnet_py3_environment.yml
+conda env create -f ERCnet_env_py3.yml
 ```
 *Note: A PREFIX line can be added to the yml file to specify the location of the conda environment in the file system.*
 
@@ -215,7 +215,7 @@ All options for Phylogenomics.py:
 | -l | --Min_len | Integer: minimum length of alignment (after trimming with Gblocks) required to retain gene for downstream analyses | yes | 100 |
 | -s | --SPmap | Add this flag to provide a custom species mapping file. Not required if the tip labels on the orthofinder species tree exactly match the species prefix in sequence IDs. Mapping file must be formatted in certian way. See instuctions | no | NA |
 | -n | --Node |Interger: indicate the node on the species tree that you would like to use to retrieve orthofinder HOGs (subtrees). Assuming your species tree has a single outgroup, you'll probably want N1 (default). However, if you species tree has multiple outgroups (or if you'd just like to perform an ERC analysis on a subset of the species tree), you can indicate which node to use for subtree extracting. E.g. For N2.tsv, "-n 2" or "--Node 2"  | no | 1* |
-| -m | --Mult_threads |Integer: number of threads avilable for parallel computing (default = 2). Performing a full-genome analyses will likely require supercomputing resources| no | 2 |
+| -m | --Mult_threads |Integer: number of threads avilable for parallel computing (default = 2). Performing a full-genome analyses will likely require supercomputing resources. We observed inconsistent performance with 1 thread, so a minimum of 2 is required.| no | 2 |
 | -a | --Apriori | Add this flag to provide an *a priori* list of genes to analyze. The list must be in a file named "A_priori_genes.csv" and formatted in a specific way. See instructions above for more information. When you're using the -a option you probably don't want to use the -t option | no | NA |
 | -P | --Prune_cutoff | Float: prune seqs from alignments if the proportion of gap sites exceeds this number | no | 0.9 |
 | -b | --bs_cut | Integer between 0-100: bootstrap cutoff value for tree rearranging with treerecs. Gene tree branches with bs-support below this value will be rearranged to best match the species tree | no | 85 |
