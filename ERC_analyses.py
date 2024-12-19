@@ -33,7 +33,6 @@ parser = argparse.ArgumentParser(description='ERC step')
 parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help='Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok)') 
 parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=1, help='Integer: number of threads avilable for parallel computing (default = 1)' )
 parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help='The name of the focal species to represent each gene family (should exactly match the tip label of the species tree)') 
-parser.add_argument('-M', '--Meta_stats',action='store_true', required=False, help='The type of report of metadata from ERC correlations you want (default = False)')
 parser.add_argument('-b', '--branchMethod', type=str, metavar='', required=False, default="R2T", help='This determins which branch reconcilliation method to use. Enter either "BXB" for branch by branch or "R2T" root to tip.')
 parser.add_argument('-t', '--test', type=int, metavar='', required=False, default=0, help='Tests ERC_analyses.py on a small, randomized subset of the data equalling the integer provied.') 
 
@@ -44,7 +43,6 @@ args = parser.parse_args()
 JOBname=args.JOBname
 Mult_threads=args.Mult_threads
 FocalSP=args.FocalSP
-Meta_stats=args.Meta_stats
 branchMethod=args.branchMethod
 testNum = args.test
 

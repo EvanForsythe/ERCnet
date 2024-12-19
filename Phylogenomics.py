@@ -43,7 +43,7 @@ parser.add_argument('-e','--explore_filters', action='store_true', required=Fals
 parser.add_argument('-l', '--Min_len', type=int, metavar='', required=False, default=100, help='Integer: minimum length (amino acid sites) of alignment (after trimming with Gblocks) required to retain gene (default = 100)' )
 parser.add_argument('-s','--SPmap', action='store_true', required=False, help='Add this flag to provide a custom species mapping file. This mapping file must be formatted in certian way. See instuctions')
 parser.add_argument('-n', '--Node', type=int, metavar='', required=False, help='Integer: node number on orthofinder species tree to be used to obtain HOGs (default = 1)' )
-parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=1, help='Integer: number of threads avilable for parallel computing (default = 1)' )
+parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=2, help='Integer: number of threads avilable for parallel computing (default = 2)' )
 parser.add_argument('-a','--Apriori', action='store_true', required=False, help='Add this flag to provide an apriori set of genes to analyze. The input file listing those genes must be formatted in certian way. See instuctions')
 parser.add_argument('-P', '--Prune_cutoff', type=float, metavar='', required=False, default=0.9, help='Float: prune seqs from alignments if the proportion of gap sites exceeds this number (default: 0.9)')
 parser.add_argument('-T', '--Taper', type=str, metavar='', required=False, default="no", help='Run TAPER trimming of alignments? If selected, the user must include full path to installation of julia (should end in "bin/" (default=no)')
@@ -113,6 +113,11 @@ if not taper == "no":
 else:
     print("Skipping TAPER trimming...")
 
+
+#Check number of threads
+if Mult_threads < 2:
+    print("ERROR: fewer than 2 threads chosen. This can cause errors on some systems. Set to at least two threads. Exiting...")
+    sys.exit()
 
 #Get path to needed Orthofinder files 
 sp_tr_path = OFpath+'Species_Tree/SpeciesTree_rooted_node_labels.txt'
