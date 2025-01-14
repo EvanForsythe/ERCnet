@@ -290,7 +290,7 @@ The rest of ERCnet using python3 so you'll need to switch back to the original a
 #List available envs as a reminder
 conda info --envs
 #Activate the previously setup env (named test3 if you followed along above)
-conda activate test3
+conda activate ERCnet_env
 ```
 #### Running ERC analyses
 All options for ERC_analyses.py:
