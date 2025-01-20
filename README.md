@@ -347,7 +347,7 @@ All options for Network_analyses.py:
 
 Example command:
 ```
-./Network_analyses.py -j test_job -m r2t -y fg -s A_thaliana_prot -F Functional_categories.tsv
+./Network_analyses.py -j test_job -m R2T -y fg -s A_thaliana_prot -F
 ```
 
 Note: the string you provide with the FocalSP argument should be found within the values present in the GeneA_ID and GeneB_ID column of the tsv files within the ERC_results/Filtered_results/ folder.
