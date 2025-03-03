@@ -488,6 +488,7 @@ Below is a brief description of each of the files and subdirectories that are ou
 - Tree_report.py provides information about the phylogenetic trees as they are processed during the steps of ERCnet
 - Sim_error_track.py provides reports of error rates from simulated data (simulated with Simulations.py).
 - Sim_test.py provides tools for inspecting individual ERCs within the simulated data.
+- Dup_tables.py generates files that summarize the duplication events detected during gene-tree species tree reconciliation. The first two steps of ERCnet must be completed before this script is run. Running this script will write three output files to the output directory for the larger ERCnet run. 
 
 [Back to Top](#top)
 
