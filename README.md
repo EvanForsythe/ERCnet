@@ -336,7 +336,7 @@ All options for Network_analyses.py:
 | -m | --BLmethod | Branch length method ERC results to be used in the network. "bxb" for Branch-by-branch. "r2t" for root-to-tip. | yes | NA |
 | -p | --PValue | Cuttoff for P value by which to filter ERC hits in network. Float between 0 and 1. | no | 0.05 |
 | -r | --RSquared | Cuttoff R-squared value by which to filter ERC hits in network. Float between 0 and 1. | no | 0.50 |
-| -c | --CorrMethod | The type of correlation method by which you would like to filter P Value and R value. Should be 'pearson', 'spearman', or 'both'. | no | "both" |
+| -c | --CorrMethod | The type of correlation method by which you would like to filter P Value and R value. Should be 'pearson', 'spearman', 'kendall', or 'all'. | no | "all" |
 | -S | --Strict | Filters ERC results p-values corrected with Benjamini-Hochberg False Discovery Rate | no | not used be default |
 | -y | --Clustmeth | Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap. | yes | NA |
 | -t | --Trim_Cutoff | Must be an integer. Indicates the minimum number of nodes necessary for a community to be displayed on the network plot. Communitiies smaller than this number will be trimmed from the graph (and associated output tables). This option is mainly for network aesthetics. | no | 0 |
@@ -354,12 +354,12 @@ Note: the string you provide with the FocalSP argument should be found within th
 
 What Network_analyses.py does:
 * Filter the ERC results to retain only the 'significant' correlations. 
-   * The user uses the -m argument to choose which branch lengths should be used for correlation analyses 
-   * The user uses the -f argument to choose whether to use the p-value or R-squared value
-   * The user uses the -c argument to choose what cutoff value to use. Note that -f=pval means lower values are more stringent whereas -f=R2 means higher values are more stringent. 
+   * The user sets the -m argument to choose which branch lengths should be used for correlation analyses 
+   * The user sets the -p and -r arugments to set the cutoff values for p-value and R-squared, respectively
+   * The -c argument is used to set which correlation statitic(s) is/are used. "kendall" referred to Kendall's Tau. "all" means an ERC comparison needs to pass the -p and -r cutoffs from all three statistics in order to be counted as an ERC hit.
 * Generate a network diagram from ERC results
    * Nodes represent genes 
-   * edges represent significant ERC correlation between genes
+   * Edges represent significant ERC correlation between genes
 * Cluster communities of connected genes
    * Clustering is a complicated task in graph theory. Currently we provide four different algorithms, which the user selects with the -y argument.
 * Extract gene names associated with communities
