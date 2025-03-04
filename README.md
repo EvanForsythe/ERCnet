@@ -336,7 +336,7 @@ All options for Network_analyses.py:
 | -m | --BLmethod | Branch length method ERC results to be used in the network. "bxb" for Branch-by-branch. "r2t" for root-to-tip. | yes | NA |
 | -p | --PValue | Cuttoff for P value by which to filter ERC hits in network. Float between 0 and 1. | no | 0.05 |
 | -r | --RSquared | Cuttoff R-squared value by which to filter ERC hits in network. Float between 0 and 1. | no | 0.50 |
-| -c | --CorrMethod | The type of correlation method by which you would like to filter P Value and R value. Should be 'pearson', 'spearman', 'kendall', or 'all'. | no | "all" |
+| -c | --CorrMethod | The type of correlation method by which you would like to filter P Value and R value. Should be 'pearson', 'spearman', 'kendall', or 'all'. | no | "pearson" |
 | -S | --Strict | Filters ERC results p-values corrected with Benjamini-Hochberg False Discovery Rate | no | not used be default |
 | -y | --Clustmeth | Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap. | yes | NA |
 | -t | --Trim_Cutoff | Must be an integer. Indicates the minimum number of nodes necessary for a community to be displayed on the network plot. Communitiies smaller than this number will be trimmed from the graph (and associated output tables). This option is mainly for network aesthetics. | no | 0 |
