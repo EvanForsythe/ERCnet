@@ -89,10 +89,17 @@ cat("\nNumber of significant correlations (according to filter parameters): ", n
 print("Printing networks...")
 
 #make a version of the data frame that contains only the HOGs
-ERC_hits_df_4network<-ERC_hits_df[,grep("HOG", names(ERC_hits_df))]
+#ERC_hits_df_4network<-ERC_hits_df[,grep("HOG", names(ERC_hits_df))]
+ERC_hits_df_4network <- ERC_hits_df[, c("GeneA_HOG", "GeneB_HOG", "P_R2", "P_Pval", "S_R2", "S_Pval")]
+
 
 #Build network
-network_graph<-graph.data.frame(ERC_hits_df_4network, directed = FALSE)
+#network_graph<-graph.data.frame(ERC_hits_df_4network, directed = FALSE)
+network_graph <- graph.data.frame(ERC_hits_df_4network, directed = FALSE)
+E(network_graph)$P_R2 <- ERC_hits_df$P_R2
+E(network_graph)$P_Pval <- ERC_hits_df$P_Pval
+E(network_graph)$S_R2 <- ERC_hits_df$S_R2
+E(network_graph)$S_Pval <- ERC_hits_df$S_Pval
 
 #CLUSTER COMMUNITIES
 
@@ -490,7 +497,7 @@ write.graph(network_graph_final, file = paste0(working_dir, out_dir, "Network_an
 
 # Write the graph edges as a plain-text TSV format file
 edges_df <- as_data_frame(network_graph_final, what = "edges")
-colnames(edges_df) <- c("GeneA_HOG", "GeneB_HOG")  # Rename the columns
+colnames(edges_df) <- c("GeneA_HOG", "GeneB_HOG", "P_R2", "P_Pval", "S_R2", "S_Pval")  # Rename the columns
 write.table(edges_df, 
             file = paste0(working_dir, out_dir, "Network_analyses/Text_network_edges_", 
                           fileName, "_", clust_method, "_trimcutoff_", trim_cutoff, ".tsv"), 
