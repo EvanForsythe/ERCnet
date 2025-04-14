@@ -146,15 +146,18 @@ csvData = csvData[:][csvData['Slope'] > 0]
 #Adds FDR data from filtered values
 SPs = csvData['S_Pval']
 PPs = csvData['P_Pval']
-KPs = csvData['K_Pval']
 
 newSPs = erc.false_discovery_control(SPs, axis=0, method='bh')
 newPPs = erc.false_discovery_control(PPs, axis=0, method='bh')
-newKPs = erc.false_discovery_control(PPs, axis=0, method='bh')
 
 csvData['S_FDR_Corrected_Pval'] = newSPs
 csvData['P_FDR_Corrected_Pval'] = newPPs
-csvData['K_FDR_Corrected_Pval'] = newKPs
+
+#Check if Kendall's tau is in the dataset
+if 'K_Pval' in csvData.columns.tolist():
+    KPs = csvData['K_Pval']
+    newKPs = erc.false_discovery_control(KPs, axis=0, method='bh')
+    csvData['K_FDR_Corrected_Pval'] = newKPs
 
 #Filters based on user selected strictess. 
 if (strict):
@@ -187,7 +190,6 @@ if re.search('Networks_and_stats.R', Net_cmd) and re.search('Rscript', Net_cmd):
     subprocess.call(Net_cmd, shell=True)
 
 benchmarkTime(bench_fileName, out_dir + 'benchmark/', 'end', 'Network_analysis', timer)
-
 
 
 if (erc.CheckFileExists(out_dir+'Network_analyses/*pdf') and erc.CheckFileExists(out_dir+'Network_analyses/*csv')):
