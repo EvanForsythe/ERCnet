@@ -36,8 +36,8 @@ Orthofinder provides [guidelines](https://davidemms.github.io/orthofinder_tutori
 *Note that not all of these guidelines are required, but following them minimized the probablity of errors/issues/annoying-quirks when running ERCnet.*
 * Taxon sampling considerations:
     * Number of species to include:
-        * We recommend between 6-20 ingroup taxa, although this range is somewhat arbitrary. 
-        * Stay tuned for our upcoming paper (currently in prep) that weighs the tradeoffs in adding more species to an analysis. This paper will provide a more empirical basis for choosing the nubmer of taxa to include. 
+        * We recommend between 6-35 ingroup taxa, although this range is somewhat arbitrary. 
+        * For reference, please see [our paper](https://academic.oup.com/mbe/advance-article/doi/10.1093/molbev/msaf089/8115858), which weighs the tradeoffs in adding more species to an analysis. This paper will provide a more empirical basis for choosing the nubmer of taxa to include. 
     * Which species to include:
         * There isn't a lot of empirical data on how ERCnet works at different levels of divergence, so the choice of which species to include is driven by trying to accomplish the following:
             * Include an outgroup
@@ -57,7 +57,7 @@ Orthofinder provides [guidelines](https://davidemms.github.io/orthofinder_tutori
             * Sequence IDs: >Atha__AT1G035221
             * *Note that orthofinder uses the 'Atha' from the file name as a text string to search for 'Atha' in the sequence IDs. It really does help to make sure your file names include a unique text string (e.g. 'Atha') that is present in the sequence IDs for that species.*
             * *Also, note that the double-underscore in the seq ID is not required, but it can be helpful as a unique search pattern later on.*
-    * We suggest removing 'weird' characters (e.g. spaces, commas, quotes, |, etc...) from your sequence IDs if possible.
+    * We suggest removing 'weird' characters (e.g. spaces, commas, quotes, |, etc...) from your sequence IDs if possible. We created [this tool](https://github.com/EvanForsythe/Squeakuences) to help accomplish these cleaning steps.
     * IMPORTANT: We discovered that the Gblocks step of ERCnet is not able to handle sequence IDs that are >74 characters long. We are working to find a solution for this requirement, but in the meantime, it's best to keep sequence ID's <75 characters in length.
     
 ## Running Orthofinder (specific instructions for ERCnet analyses):
