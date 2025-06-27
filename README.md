@@ -443,9 +443,10 @@ ERCnet automatically creates a folder called 'Benchmarking' in the OUT directory
 
 Below is a brief description of each of the files and subdirectories that are output during a run of ERCnet. Many of the files created are intermediate files, which you likely will not need to inspect. Directories are shown in the order in which they're created during the ERCnet workflow.
 
+**Phylogenomics steps:**
+
 - `Species_mapping.csv`: shows how ERCnet recognizes species IDs
 - `Seq_counts_per_species.csv`: shows how many homologs from each species were found in each gene family
-- `SpeciesTree_rooted_node_labels.txt`: a copy of the species tree from Orthofinder
 - `Filtered_genefam_dataset.csv`: each row represents a gene family (hierarchical orthogroup [HOG] from orthofinder) and the seq IDs of all the sequences in the gene family
 - `Dropped_gene_log.csv`: Tracks when/why genes (HOGs) that didn't make it to the end of the pipeline were dropped from the analysis.
 - `Run_data_counts_log.csv`: Counts how many genes (HOGs) remain in the analysis at each step and also tallying important information about the network
@@ -458,12 +459,19 @@ Below is a brief description of each of the files and subdirectories that are ou
 - `HOG_subtrees`: orthfinder produces gene trees for each orthogroup (OG); however, ERCnet works with HOGs (which are subtrees of the larger OG tree). This folder contains the subtrees that are extracted from the larger OG tree.
 - `Non-binary_subtrees.txt`: documents any gene families that were dropped from analysis because gene trees (from orthofinder) were non-bifurcating, which causes errors in R. (This file is depreciated because we incorperated new ways of handling non-bifurcating trees).
 - `BS_trees/`: subtrees with BS confidence scores
+- `SpeciesTree_rooted_node_labels.txt`: a copy of the species tree from Orthofinder
 - `SpeciesTree_mapped_names.txt`: Version of the species tree with the mapped species IDs from Species_mapping.csv.
 - `Rearranged_trees`: the treerecs prpgram is used to rearrange any poorly supported branches (<80% bootstrap support) so that the branches best match the species tree.
 - `BL_trees/`: branch length optimization is performed on the rearranged version of the tree. **These trees are the final gene trees used to perform ERC**.
-- `DLC_par/`: The last step in Phylogenomics.py creates the inputs needed to run DLCpar, which helps map gene trees to the species tree. GTST_reconciliation.py writes additional files to this directory.
-- `Dropped_gene_table.csv`: Creates a table summarizing when genes (HOGs) were lost throught the analysis. 
-- `BL_results/`: contains the branch lengths that were measured from the BL_trees/ trees. ERCnet measures branches by both branch-by-branch (BXB) and root-to-tip (R2T) methods. This directory also contains the normalized branch lengths, in which each branch length is normalized by the genome-wide average branch legth for that particular branch. 
+- `DLC_par/`: The last step in Phylogenomics.py creates the inputs needed to run DLCpar, which helps map gene trees to the species tree. Note that the GTST_reconciliation.py step later writes additional files to this directory.
+- `Dropped_gene_table.csv`: Creates a table summarizing when genes (HOGs) were lost throught the analysis.
+
+**GTST_reconciliation steps:**
+
+- `BL_results/`: contains the branch lengths that were measured from the BL_trees/ trees. ERCnet measures branches by both branch-by-branch (BXB) and root-to-tip (R2T) methods. This directory also contains the normalized branch lengths, in which each branch length is normalized by the genome-wide average branch legth for that particular branch.
+
+**ERC_analyses steps:**
+
 - `ERC_results/`: This directory contains the results of the all-by-all ERC analysis. This folder will contain seperate ERC results for BXB vs R2T (depending on user selection). See below for the description of the column headers in the ERC_results tsv file. This directory will also contain a subdirectory, `Filtered_results/`, with a tsv file of 'ERC hits' (generated during Network_analyses.py).
    - Column headers in the ERC_results tsv file
       - **GeneA_HOG**: HOG id for 'gene A' (note gene A vs B are abirary terms to denote the two genes being compared in the pairwise ERC comparison)
@@ -478,6 +486,9 @@ Below is a brief description of each of the files and subdirectories that are ou
       - **S_Pval**: Spearman correlation P-value
       - **P_FDR_Corrected_Pval**: FDR corrected version of the Pearson p-value
       - **S_FDR_Corrected_Pval**: FDR corrected version of the Spearman p-value
+
+**Network_analyses steps:**
+
 - `Network_analyses/`: This directory contains networks displaying the 'ERC hits'. ERC hits are defined by the user according the p-value and r-squared cutoffs during Network_analyses.py. If the user tries several different filtering cutoffs, seperate versions of the network files will be stored here (the file names indicate the cutoffs chosen). To begin inspecting these results, we recommend first looking at the ERC_network*.pdf file. This will give a quick (and sometimes ugly) view of the network. For more detailed inspection, we recommend using the cytoscape GUI program and importing the Cytoscape_network*.graphml file. This creates a much more human-readable and interactive version or the network.
 
 
