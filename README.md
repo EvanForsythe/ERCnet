@@ -468,10 +468,12 @@ Below is a brief description of each of the files and subdirectories that are ou
 
 **GTST_reconciliation steps:**
 
-- `BL_results/`: contains the branch lengths that were measured from the BL_trees/ trees. ERCnet measures branches by both branch-by-branch (BXB) and root-to-tip (R2T) methods. This directory also contains the normalized branch lengths, in which each branch length is normalized by the genome-wide average branch legth for that particular branch.
+- Files ending in `.txt.dlcpar.locus.recon` are added to the `DLC_par/` folder (created at the end of Phylogenomics.py). 
+
 
 **ERC_analyses steps:**
 
+- `BL_results/`: contains the branch lengths that were measured from the BL_trees/ trees. ERCnet measures branches by both branch-by-branch (BXB) and root-to-tip (R2T) methods. This directory also contains the normalized branch lengths, in which each branch length is normalized by the genome-wide average branch legth for that particular branch.
 - `ERC_results/`: This directory contains the results of the all-by-all ERC analysis. This folder will contain seperate ERC results for BXB vs R2T (depending on user selection). See below for the description of the column headers in the ERC_results tsv file. This directory will also contain a subdirectory, `Filtered_results/`, with a tsv file of 'ERC hits' (generated during Network_analyses.py).
    - Column headers in the ERC_results tsv file
       - **GeneA_HOG**: HOG id for 'gene A' (note gene A vs B are abirary terms to denote the two genes being compared in the pairwise ERC comparison)
