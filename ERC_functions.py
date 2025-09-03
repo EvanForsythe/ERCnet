@@ -65,26 +65,27 @@ def FilterSignificance(data, R, P, filterBy):
 
     if filterBy == 'spearman':
         print('Filtering results by Spearman values...')
-        data = data[:][data['S_R2'] > R]
-        data = data[:][data['S_Pval'] < P]
+        data = data[:][data['Spearman_R'] > R]
+        data = data[:][data['Spearman_Pval'] < P]
     elif filterBy == 'pearson':
         print('Filtering results by Pearson values...')
-        data = data[:][data['P_R2'] > R]
-        data = data[:][data['P_Pval'] < P]
+        data = data[:][data['Pearson_R'] > R]
+        data = data[:][data['Pearson_Pval'] < P]
     elif filterBy == 'kendall':
         print('Filtering results by Kendalls Tau values...')
-        data = data[:][data['K_Tau'] > R]
-        data = data[:][data['K_Pval'] < P]
+        data = data[:][data['Kendall_Tau'] > R]
+        data = data[:][data['Kendall_Pval'] < P]
     else:
         print('Filtering results by Spearman, Pearson, and Kendalls Tau values...')
-        data = data[:][data['P_R2'] > R]
-        data = data[:][data['P_Pval'] < P]
+        data = data[:][data['Pearson_R'] > R]
+        data = data[:][data['Pearson_Pval'] < P]
 
-        data = data[:][data['S_R2'] > R]
-        data = data[:][data['S_Pval'] < P]
+        data = data[:][data['Spearman_R'] > R]
+        data = data[:][data['Spearman_Pval'] < P]
 
-        data = data[:][data['K_Tau'] > R]
-        data = data[:][data['K_Pval'] < P]
+        if 'K_Tau' in data.columns.tolist():
+            data = data[:][data['Kendall_Tau'] > R]
+            data = data[:][data['Kendall_Pval'] < P]
 
     eRows = len(data)
 
@@ -101,28 +102,32 @@ def FilterFDR(data, R, P, filterBy):
     if filterBy == 'spearman':
         print('Filtering results by FDR Spearman values...')
         data = data[:][data['S_FDR_Corrected_Pval'] < P]
-        data = data[:][data['S_R2'] > R]
+        data = data[:][data['Spearman_R'] > R]
     elif filterBy == 'pearson':
         print('Filtering results by FDR Pearson values...')
-        data = data[:][data['P_FDR_Corrected_Pval'] < P]
-        data = data[:][data['P_R2'] > R]
+        data = data[:][data['Pearson_FDR_Corrected_Pval'] < P]
+        data = data[:][data['Pearson_R'] > R]
     elif filterBy == 'kendall':
         print('Filtering results by FDR Pearson values...')
         data = data[:][data['K_FDR_Corrected_Pval'] < P]
-        data = data[:][data['K_Tau'] > R]
+        data = data[:][data['Kendall_Tau'] > R]
     else:
-        print('Filtering results by both FDR Spearman, FDR Pearson, and FDR Kendalls Tau values...')
+        print('Filtering results by FDR Spearman, FDR Pearson, and FDR Kendalls Tau values...')
         data = data[:][data['S_FDR_Corrected_Pval'] < P]
         data = data[:][data['P_FDR_Corrected_Pval'] < P]
-        data = data[:][data['K_FDR_Corrected_Pval'] < P]
-        data = data[:][data['S_R2'] > R]
-        data = data[:][data['P_R2'] > R]
-        data = data[:][data['K_Tau'] > R]
-        
+        data = data[:][data['Spearman_R'] > R]
+        data = data[:][data['Pearson_R'] > R]
+        data = data[:][data['Kendall_Tau'] > R]
+
+        if 'K_Tau' in data.columns.tolist():
+            data = data[:][data['K_FDR_Corrected_Pval'] < P]
+            data = data[:][data['Kendall_Tau'] > R]
+
+
     eRows = len(data)
     rowsRemoved = oRows - eRows
 
-    print(str(rowsRemoved) + ' data entries removed due to filtering.\n')
+    print(str(rowsRemoved) + 'data entries removed due to filtering.\n')
 
     return data
 

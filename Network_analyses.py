@@ -31,8 +31,8 @@ parser = argparse.ArgumentParser(description='Network step')
 parser.add_argument('-j', '--JOBname', type=str, metavar='', required=True, help='Unique job name for this run of ERCnet. Avoid including spaces or special characters ("_" is ok)') 
 parser.add_argument('-m', '--BLmethod', type=str, metavar='', required=False, help='Branch length method ERC results to be used in the network. "BXB" for Branch-by-branch. "R2T" for root-to-tip. Default is R2T', default = 'r2t') 
 parser.add_argument('-p', '--PValue', type=float, metavar='', required=False, help='Cuttoff for P value by which to filter ERC hits in network. Float between 0 and 1. Default value is 0.05', default=0.05) 
-parser.add_argument('-r', '--RSquared', type=float, metavar='', required=False, help='Cuttoff R-squared value by which to filter ERC hits in network. Float between 0 and 1. Default value is 0.50', default=0.50) 
-parser.add_argument('-y', '--Clustmeth', type=str, metavar='', required=True, help='Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap.') 
+parser.add_argument('-r', '--RValue', type=float, metavar='', required=False, help='Cuttoff correlation coefficient (R value) by which to filter ERC hits in network. Float between 0 and 1. Default value is 0.50', default=0.50) 
+parser.add_argument('-y', '--Clustmeth', type=str, metavar='', required=True, help='Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap. Note that this feature has largely depreciated in favor of using Cytoscape to visualize networks.') 
 parser.add_argument('-t', '--Trim_Cutoff', type=int, metavar='', required=False, help='The user-selected cutoff will be the minimum number of genes necessary for a community to be displayed on the network plot.This is mainly for network visualization and is not recommended for data collection. Must be an integer. 0 (no trimming) is default.', default=0)
 parser.add_argument('-s', '--FocalSP', type=str, metavar='', required=True, help='The name of the focal species to represent each gene family (should exactly match the tip label of the species tree)') 
 parser.add_argument('-c', '--CorrMethod', type=str, metavar='', required=False, help='The type of correlation method you would like to filter P Value and R value by. Should be "pearson", "spearman", "kendall", or "all". Default is pearson.', default='pearson')
@@ -49,7 +49,7 @@ args = parser.parse_args()
 JOBname=args.JOBname
 BLmethod=args.BLmethod
 PValue=args.PValue
-RSquared=args.RSquared
+RValue=args.RValue
 Clustmeth=args.Clustmeth
 Trim_Cutoff=args.Trim_Cutoff
 FocalSP=args.FocalSP
@@ -84,7 +84,7 @@ if not os.path.isdir(out_dir+'Network_analyses/'):
 else: 
     print('ERC results will be stored to Network_analyses/\n\n')
 
-erc.CheckAndMakeDir(out_dir+'ERC_results/', 'Filtered_results')
+erc.CheckAndMakeDir(out_dir+'Network_analyses/', 'Filtered_ERC_hits')
 
     
 #Make a directory for TSV files from Networks
@@ -144,8 +144,8 @@ csvData = pd.read_table(tsvData, sep='\t')
 csvData = csvData[:][csvData['Slope'] > 0]
 
 #Adds FDR data from filtered values
-SPs = csvData['S_Pval']
-PPs = csvData['P_Pval']
+SPs = csvData['Spearman_Pval']
+PPs = csvData['Pearson_Pval']
 
 newSPs = erc.false_discovery_control(SPs, axis=0, method='bh')
 newPPs = erc.false_discovery_control(PPs, axis=0, method='bh')
@@ -154,34 +154,34 @@ csvData['S_FDR_Corrected_Pval'] = newSPs
 csvData['P_FDR_Corrected_Pval'] = newPPs
 
 #Check if Kendall's tau is in the dataset
-if 'K_Pval' in csvData.columns.tolist():
-    KPs = csvData['K_Pval']
+if 'Kendall_Pval' in csvData.columns.tolist():
+    KPs = csvData['Kendall_Pval']
     newKPs = erc.false_discovery_control(KPs, axis=0, method='bh')
     csvData['K_FDR_Corrected_Pval'] = newKPs
 
 #Filters based on user selected strictess. 
 if (strict):
-    csvData = erc.FilterFDR(csvData, RSquared, PValue, Corrmethod)
+    csvData = erc.FilterFDR(csvData, RValue, PValue, Corrmethod)
 else:
-    csvData = erc.FilterSignificance(csvData, RSquared, PValue, Corrmethod)
+    csvData = erc.FilterSignificance(csvData, RValue, PValue, Corrmethod)
 
 #Changes file output name based on strictness. Allowing for a saved filtered results file in both FDR and regular filtering. 
 if (strict):
-    outFileName = fileName.replace('.tsv', '') + "_" + str(Corrmethod) + "_" + str(PValue) + "_" + str(RSquared) + "_FDR.tsv"
+    outFileName = fileName.replace('.tsv', '') + "_" + str(Corrmethod) + "_" + str(PValue) + "_" + str(RValue) + "_FDR.tsv"
 else:
-    outFileName = fileName.replace('.tsv', '') + "_"+ str(Corrmethod) + "_" + str(PValue) + "_" + str(RSquared) + ".tsv"
+    outFileName = fileName.replace('.tsv', '') + "_"+ str(Corrmethod) + "_" + str(PValue) + "_" + str(RValue) + ".tsv"
 
 #Output a filtered version of the ERC_results file
-csvData.to_csv(out_dir + "ERC_results/Filtered_results/Filtered_" + outFileName, sep='\t', index=False, header=True) 
+csvData.to_csv(out_dir + "Network_analyses/Filtered_ERC_hits/Filtered_" + outFileName, sep='\t', index=False, header=True) 
 
-if sum(1 for line in open(out_dir+"ERC_results/Filtered_results/Filtered_" + outFileName)) < 2:
+if sum(1 for line in open(out_dir+"Network_analyses/Filtered_ERC_hits/Filtered_" + outFileName)) < 2:
     print("It appears that not enough ERC results were retained for further analysis. Consider changing filtering criteria or analysis methods.")
     print("Quitting...")
     sys.exit()
 
 #Run the Network analyses.
 #make command.
-Net_cmd= 'Rscript Networks_and_stats.R '+JOBname+" "+BLmethod+" "+str(RSquared)+" "+str(PValue)+" "+Clustmeth+" "+str(Trim_Cutoff)+" "+FocalSP+" "+'Filtered_' + outFileName+" "+str(func_bool)+" "+str(lab_bool)
+Net_cmd= 'Rscript Networks_and_stats.R '+JOBname+" "+BLmethod+" "+str(RValue)+" "+str(PValue)+" "+Clustmeth+" "+str(Trim_Cutoff)+" "+FocalSP+" "+'Filtered_' + outFileName+" "+str(func_bool)+" "+str(lab_bool)
     
 #Run the command (if it contains strings expected in the command, this is a precaution of using shell=True)
 if re.search('Networks_and_stats.R', Net_cmd) and re.search('Rscript', Net_cmd):
