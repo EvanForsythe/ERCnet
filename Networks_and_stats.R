@@ -17,64 +17,42 @@ getScriptPath <- function(){
 #Read in arguments
 args = commandArgs(trailingOnly=TRUE)
 
-#Get the job name (used to identify the proper output folder)
-jobname<-args[1]
 
-#Get parameters for filtering data to be used in networks
-BL_type<-paste(args[2])
-RSquared<-paste(args[3])
-PValue<-paste(args[4])
+# Get the job name (used to identify the proper output folder)
+jobname <- args[1]
 
-#Get the method to be used
-clust_method<-args[5]
+# Get the results directory path from Python
+results_dir <- args[2]
 
-#User defined trim cutoff (i.e. what minimum community size is displayed)
-trim_cutoff <- as.numeric(paste(args[6]))
+# Get parameters for filtering data to be used in networks
+BL_type <- args[3]
 
-#Get the ID of the focal species
-foc_sp<-paste(args[7])
+# Get the method to be used
+clust_method <- args[4]
 
-#Get the filename from Network_analyses.py
-fileName<-paste(args[8])
-#Removes '.tsv' from fileName
-fileName = substr(fileName, 1, nchar(fileName) - 4)
- 
+# User defined trim cutoff (i.e. what minimum community size is displayed)
+trim_cutoff <- as.numeric(args[5])
 
-#Run functional category analysis
-func_cat_bool<-paste(args[9])
+# Get the ID of the focal species
+foc_sp <- args[6]
 
-#Label some nodes on the network?
-lab_bool<-paste(args[10])
+# Get the filtered filename from Network_analyses.py (should be 'Filtered_ERC_hits.tsv')
+filtered_filename <- args[7]
 
+# Run functional category analysis
+func_cat_bool <- args[8]
 
-#####Testing
-#jobname<-"ERC_Final"
-#BL_type<-"R2T"
-#RSquared<-0.5
-#PValue<-0.0001
-#clust_method<-"fg"
-#trim_cutoff <- 0
-#foc_sp<-"Atha"
-#fileName<-"Filtered_ERC_results_R2T_3_0.0001_0.5"
-#func_cat_bool<-"True"
-#lab_bool<-"True"
+# Label some nodes on the network?
+lab_bool <- args[9]
 
-#working_dir<-"/Users/esforsythe/Documents/Work/Bioinformatics/ERC_networks/Analysis/ERCnet_dev/"
-###
-
-# Set the script path:
+### Set up working environment
 working_dir<- paste0(getScriptPath(),"/") #added the "/" at the end so paste0 commands below work.
-
 setwd(working_dir)
 
-#Because the above function returns "." as the working dir, using this command to set the full path (to avoid issues below)
-working_dir<-paste0(getwd(),"/")
+out_dir <- paste0("OUT_", jobname, "/")
 
-out_dir<-paste0("OUT_", jobname, "/")
-
-#Read in ERC correlation results
-#Read the table
-ERC_hits_df<-read.table(file = paste0(working_dir, out_dir, "ERC_results/Filtered_results/", fileName,".tsv"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+# Read in ERC correlation results from the dynamic results folder
+ERC_hits_df <- read.table(file = file.path(results_dir, filtered_filename), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 n_hits<-nrow(ERC_hits_df)
 n_prots<-length(unique(c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG)))
@@ -85,23 +63,42 @@ cat("\nNumber of significant correlations (according to filter parameters): ", n
     "\nNumber of genes in network: ", n_prots,
     "\n\n")
 
+#Add average R and P values
+ERC_hits_df$Average_R <- rowMeans(ERC_hits_df[, c("Pearson_R", "Spearman_R", "Kendall_Tau")], na.rm = TRUE)
+ERC_hits_df$Average_P <- rowMeans(ERC_hits_df[, c("Pearson_Pval", "Spearman_Pval", "Kendall_Pval")], na.rm = TRUE)
+
 
 print("Printing networks...")
 
 #make a version of the data frame that contains only the HOGs
-#ERC_hits_df_4network<-ERC_hits_df[,grep("HOG", names(ERC_hits_df))]
-ERC_hits_df_4network <- ERC_hits_df[, c("GeneA_HOG", "GeneB_HOG", "P_R2", "P_Pval", "S_R2", "S_Pval")]
-
+ERC_hits_df_4network<-ERC_hits_df[,grep("HOG", names(ERC_hits_df))]
+#ERC_hits_df_4network <- ERC_hits_df[, c("GeneA_HOG", "GeneB_HOG", "Pearson_R", "Pearson_Pval", "Spearman_R", "Spearman_Pval")]
 
 #Build network
-#network_graph<-graph.data.frame(ERC_hits_df_4network, directed = FALSE)
 network_graph <- graph.data.frame(ERC_hits_df_4network, directed = FALSE)
-E(network_graph)$P_R2 <- ERC_hits_df$P_R2
-E(network_graph)$P_Pval <- ERC_hits_df$P_Pval
-E(network_graph)$S_R2 <- ERC_hits_df$S_R2
-E(network_graph)$S_Pval <- ERC_hits_df$S_Pval
+
+#Add edge attributes
+E(network_graph)$GeneA_ID <- ERC_hits_df$GeneA_ID
+E(network_graph)$GeneB_ID <- ERC_hits_df$GeneB_ID
+E(network_graph)$Overlapping_branches<- ERC_hits_df$Overlapping_branches
+E(network_graph)$Slope <- ERC_hits_df$Slope
+E(network_graph)$Pearson_R <- ERC_hits_df$Pearson_R
+E(network_graph)$Pearson_Pval <- ERC_hits_df$Pearson_Pval
+E(network_graph)$Spearman_R <- ERC_hits_df$Spearman_Pval
+E(network_graph)$Kendall_Tau <- ERC_hits_df$Kendall_Pval
+E(network_graph)$P_FDR_Corrected_Pval <- ERC_hits_df$P_FDR_Corrected_Pval
+E(network_graph)$S_FDR_Corrected_Pval <- ERC_hits_df$S_FDR_Corrected_Pval
+E(network_graph)$K_FDR_Corrected_Pval <- ERC_hits_df$K_FDR_Corrected_Pval
+E(network_graph)$Average_R <- ERC_hits_df$Average_R
+E(network_graph)$Average_P <- ERC_hits_df$Average_P
 
 #CLUSTER COMMUNITIES
+# Ensure Communities directory exists inside results_dir
+communities_dir <- file.path(results_dir, "Communities")
+if (!dir.exists(communities_dir)) {
+  dir.create(communities_dir, recursive = TRUE)
+}
+
 
 #Cluster
 if(clust_method == "fg"){
@@ -190,11 +187,10 @@ comms_w_IDs<-merge(x = comms_df, y = ID_df, by="HOG", all.x=TRUE)
 #Take the first sequence ID when mulitple are present (this is akin to choosing a random representative)
 comms_w_IDs$ID<-sapply(strsplit(comms_w_IDs$ID, ","),`[`, 1)
 
-
 #Write txt files
 #All genes in the network (as a background for enrichment analyses)
 write.table(paste(na.omit(unique(comms_w_IDs$ID))),
-            file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_","BACKGROUND_", BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,".txt"),
+            file = paste0(results_dir, "/Communities/Comm_","BACKGROUND_", BL_type, "_", clust_method,".txt"),
             sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
 
 #Loop through all communities
@@ -202,7 +198,7 @@ for(n in min(comms_w_IDs$Community):max(comms_w_IDs$Community)){
   
   #Write tsv files
   write.table(paste(na.omit(unique(subset(comms_w_IDs$ID, comms_w_IDs$Community==n)))), 
-              file = paste0(working_dir, out_dir, "Network_analyses/Communities/Comm_",sprintf("%04d", n), "_", BL_type, "_", "R2_", RSquared ,"_Pv_", PValue, "_", clust_method,".txt"), 
+              file = paste0(results_dir, "/Communities/Comm_",sprintf("%04d", n), "_", BL_type, "_", clust_method,".txt"), 
               sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
   
 }
@@ -247,7 +243,7 @@ final_network_stats_df_unique_reorder<-final_network_stats_df_unique[order(final
 final_network_stats_df_unique_reorder_rows<-final_network_stats_df_unique_reorder[, c("Community_num", names(final_network_stats_df_unique_reorder)[-length(names(final_network_stats_df_unique_reorder))])]
 
 #Write the file
-write.csv(final_network_stats_df_unique_reorder_rows, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".csv"), row.names = FALSE, quote = FALSE)
+write.csv(final_network_stats_df_unique_reorder_rows, file = paste0(results_dir, "/Network_stats_metrics_", clust_method,"_trimcutoff_", trim_cutoff,".csv"), row.names = FALSE, quote = FALSE)
 
 ###END Create centrality metrics spreadsheet END###
 
@@ -276,7 +272,7 @@ if(lab_bool=="True"){
 }
 
 #save pdf
-pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=8, height = 8)
+pdf(file = paste0(results_dir, "/ERC_network_", clust_method,"_trimcutoff_", trim_cutoff,".pdf"), width=8, height = 8)
 
 #Plot the graph with all communities
 plot(comms_final, network_graph_final,
@@ -292,7 +288,7 @@ plot(comms_final, network_graph_final,
             layout=LO_final,
             main=paste0(length(comms_final), " communities clustered using ", algo_name, " algorithm"))
 
-mysubtitle<-paste0("BL method: ",BL_type, "  |  ", "Filter stats: ","R2 " ,RSquared ," P ", PValue , "  |  ")
+mysubtitle<-paste0("BL method: ",BL_type, "  |  ")
 mtext(side = 3, line = 0, at = 1, adj = 1, mysubtitle)
 
 # legend("topleft",
@@ -300,8 +296,6 @@ mtext(side = 3, line = 0, at = 1, adj = 1, mysubtitle)
 #        fill = legend_color
 
 dev.off()
-
-
 
 ### Perform functional categories analysis
 #Check to see whether this option was selected by user
@@ -339,7 +333,7 @@ Func_cats_HOGs <- merge(x = final_network_stats_df_unique_reorder_rows, y = func
 Func_cats_HOGs_reorder<-Func_cats_HOGs[order(Func_cats_HOGs$Community_num, -Func_cats_HOGs$Degree_centrality, -Func_cats_HOGs$Eigenvector_centrality), ]
 
 #Write a version of the csv file that includes func data
-write.csv(Func_cats_HOGs_reorder, file = paste0(working_dir, out_dir, "Network_analyses/Network_stats_metrics_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,"_FUNC_CAT.csv"), row.names = FALSE, quote = FALSE)
+write.csv(Func_cats_HOGs_reorder, file = paste0(results_dir, "/Network_stats_metrics_", clust_method,"_trimcutoff_", trim_cutoff,"_FUNC_CAT.csv"), row.names = FALSE, quote = FALSE)
 
 # #Assign functional category as a node attribute
 # Store functional category as categorical data
@@ -357,7 +351,7 @@ color_mapping <- setNames(func_cat_col_df$Color, func_cat_col_df$Category)
 
 #Plot the network graph
 #save pdf
-pdf(file = paste0(working_dir, out_dir, "Network_analyses/ERC_network_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,"_FUNC_CAT.pdf"), width=8, height = 8)
+pdf(file = paste0(results_dir, "/ERC_network_", clust_method,"_trimcutoff_", trim_cutoff,"_FUNC_CAT.pdf"), width=8, height = 8)
 
 # Create a color vector based on Functional_category
 vertex_colors <- color_mapping[V(network_graph_final)$Functional_category]
@@ -377,7 +371,7 @@ plot(network_graph_final,
      layout = LO_final,
      main = paste0(length(comms_final), " communities clustered using ", algo_name, " algorithm"))
 
-     mysubtitle<-paste0("BL method: ",BL_type, "  |  ", "Filter stats: ","R2 " ,RSquared ," P ", PValue , "  |  ")
+  mysubtitle<-paste0("BL method: ",BL_type, "  |  ")
      mtext(side = 3, line = 0, at = 1, adj = 1, mysubtitle)
 
 dev.off()
@@ -433,7 +427,7 @@ z_score <- (obs_assort - mean(assort_reps)) / sd(assort_reps)
 p_val <- pnorm(q = z_score, lower.tail = FALSE)
 
 # save pdf
-pdf(file = paste0(working_dir, out_dir, "Network_analyses/Network_assortativity_", fileName, "_", clust_method, "_trimcutoff_", trim_cutoff, ".pdf"), width=6, height=6)
+pdf(file = paste0(results_dir, "/Network_assortativity_", clust_method, "_trimcutoff_", trim_cutoff, ".pdf"), width=6, height=6)
 
 # plot the curve of the null distribution
 plot(density(assort_reps), 
@@ -448,11 +442,11 @@ dev.off()
 
 
 #Write results to the metadata file
-cat(paste0("\n", BL_type,"\t", PValue, "\t", 
-           RSquared,"\t",length(unique(c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG))), "\t",
+cat(paste0("\n", results_dir, "\t",length(unique(c(ERC_hits_df$GeneA_HOG, ERC_hits_df$GeneB_HOG))), "\t",
            nrow(ERC_hits_df),"\t",clust_method, "\t", 
            obs_assort,"\t",z_score,"\t",p_val), 
     file = paste0(working_dir, out_dir, "Network_analyses/Func_categories_rundata.tsv"), append = TRUE)
+
 
 }#End if statement
 
@@ -493,14 +487,17 @@ names(comp_values) <- cyto_df$HOG
 V(network_graph_final)$Comprehensive_ID <- comp_values[V(network_graph_final)$name]
 
 #Write this graph as a graphML format file
-write.graph(network_graph_final, file = paste0(working_dir, out_dir, "Network_analyses/Cytoscape_network_",fileName, "_", clust_method,"_trimcutoff_", trim_cutoff,".graphml"), format = "graphml")
+write.graph(network_graph_final, file = paste0(results_dir, "/Cytoscape_network_", clust_method,"_trimcutoff_", trim_cutoff,".graphml"), format = "graphml")
 
 # Write the graph edges as a plain-text TSV format file
 edges_df <- as_data_frame(network_graph_final, what = "edges")
-colnames(edges_df) <- c("GeneA_HOG", "GeneB_HOG", "P_R2", "P_Pval", "S_R2", "S_Pval")  # Rename the columns
+
+#Rename the columns
+#colnames(edges_df) <- c("GeneA_HOG", "GeneB_HOG", "Pearson_R", "Pearson_Pval", "Spearman_R", "Spearman_Pval")  # Rename the columns
+
+
 write.table(edges_df, 
-            file = paste0(working_dir, out_dir, "Network_analyses/Text_network_edges_", 
-                          fileName, "_", clust_method, "_trimcutoff_", trim_cutoff, ".tsv"), 
+            file = file.path(results_dir, paste0("Text_network_edges_", clust_method, "_trimcutoff_", trim_cutoff, ".tsv")), 
             sep = "\t", 
             row.names = FALSE, 
             col.names = TRUE, 
@@ -510,8 +507,7 @@ write.table(edges_df,
 vertices_df <- as_data_frame(network_graph_final, what = "vertices")
 colnames(vertices_df)[1] <- "HOG_ID"  # Rename the first column
 write.table(vertices_df, 
-            file = paste0(working_dir, out_dir, "Network_analyses/Text_network_vertices_", 
-                          fileName, "_", clust_method, "_trimcutoff_", trim_cutoff, ".tsv"), 
+            file = file.path(results_dir, paste0("Text_network_vertices_", clust_method, "_trimcutoff_", trim_cutoff, ".tsv")), 
             sep = "\t", 
             row.names = FALSE, 
             col.names = TRUE, 
@@ -520,8 +516,8 @@ write.table(vertices_df,
 
 #Write the text file of stats
 # Create a data frame with the values
-data_row <- data.frame(jobname, BL_type, PValue, RSquared, clust_method, trim_cutoff, foc_sp, 
-                       fileName, func_cat_bool, lab_bool, n_hits, n_prots)
+data_row <- data.frame(jobname, results_dir, BL_type, clust_method, trim_cutoff, foc_sp, 
+                       func_cat_bool, lab_bool, n_hits, n_prots)
 
 # Specify the file name
 file_path <- paste0(working_dir, out_dir, "Network_stats.csv")
@@ -530,7 +526,9 @@ file_path <- paste0(working_dir, out_dir, "Network_stats.csv")
 if (!file.exists(file_path)) {
   # If the file does not exist, write the data frame with headers
   write.csv(data_row, file = file_path, row.names = FALSE, quote = FALSE)
+  print("created new Network_stats.csv file")
 } else {
   # If the file exists, append the new row
   write.table(data_row, file = file_path, row.names = FALSE, col.names = FALSE, sep = ",", append = TRUE, quote = FALSE)
+  print("Added a line to Network_stats.csv file")
 }

@@ -59,71 +59,34 @@ def FilterCorrelationType(data,filterType):
     for i in range(len(corrFilter)):
         data.drop(corrFilter[i], axis='columns', inplace=True)
 
-def FilterSignificance(data, R, P, filterBy):
-
+def FilterSignificance(data, pearson_r, pearson_p, spearman_r, spearman_p, kendall_r, kendall_p):
     oRows = len(data)
-
-    if filterBy == 'spearman':
-        print('Filtering results by Spearman values...')
-        data = data[:][data['S_R2'] > R]
-        data = data[:][data['S_Pval'] < P]
-    elif filterBy == 'pearson':
-        print('Filtering results by Pearson values...')
-        data = data[:][data['P_R2'] > R]
-        data = data[:][data['P_Pval'] < P]
-    elif filterBy == 'kendall':
-        print('Filtering results by Kendalls Tau values...')
-        data = data[:][data['K_Tau'] > R]
-        data = data[:][data['K_Pval'] < P]
-    else:
-        print('Filtering results by Spearman, Pearson, and Kendalls Tau values...')
-        data = data[:][data['P_R2'] > R]
-        data = data[:][data['P_Pval'] < P]
-
-        data = data[:][data['S_R2'] > R]
-        data = data[:][data['S_Pval'] < P]
-
-        data = data[:][data['K_Tau'] > R]
-        data = data[:][data['K_Pval'] < P]
-
+    print('Filtering results by Pearson, Spearman, and Kendall values...')
+    data = data[:][data['Pearson_R'] > pearson_r]
+    data = data[:][data['Pearson_Pval'] < pearson_p]
+    data = data[:][data['Spearman_R'] > spearman_r]
+    data = data[:][data['Spearman_Pval'] < spearman_p]
+    if 'Kendall_Tau' in data.columns.tolist():
+        data = data[:][data['Kendall_Tau'] > kendall_r]
+        data = data[:][data['Kendall_Pval'] < kendall_p]
     eRows = len(data)
-
     rowsRemoved = oRows - eRows
-
     print(str(rowsRemoved) + ' data entries removed due to filtering.\n')
-
     return data
 
-def FilterFDR(data, R, P, filterBy):
-
+def FilterFDR(data, pearson_r, pearson_p, spearman_r, spearman_p, kendall_r, kendall_p):
     oRows = len(data)
-    
-    if filterBy == 'spearman':
-        print('Filtering results by FDR Spearman values...')
-        data = data[:][data['S_FDR_Corrected_Pval'] < P]
-        data = data[:][data['S_R2'] > R]
-    elif filterBy == 'pearson':
-        print('Filtering results by FDR Pearson values...')
-        data = data[:][data['P_FDR_Corrected_Pval'] < P]
-        data = data[:][data['P_R2'] > R]
-    elif filterBy == 'kendall':
-        print('Filtering results by FDR Pearson values...')
-        data = data[:][data['K_FDR_Corrected_Pval'] < P]
-        data = data[:][data['K_Tau'] > R]
-    else:
-        print('Filtering results by both FDR Spearman, FDR Pearson, and FDR Kendalls Tau values...')
-        data = data[:][data['S_FDR_Corrected_Pval'] < P]
-        data = data[:][data['P_FDR_Corrected_Pval'] < P]
-        data = data[:][data['K_FDR_Corrected_Pval'] < P]
-        data = data[:][data['S_R2'] > R]
-        data = data[:][data['P_R2'] > R]
-        data = data[:][data['K_Tau'] > R]
-        
+    print('Filtering results by FDR Pearson, Spearman, and Kendall values...')
+    data = data[:][data['Pearson_FDR_Corrected_Pval'] < pearson_p]
+    data = data[:][data['Pearson_R'] > pearson_r]
+    data = data[:][data['S_FDR_Corrected_Pval'] < spearman_p]
+    data = data[:][data['Spearman_R'] > spearman_r]
+    if 'Kendall_Tau' in data.columns.tolist():
+        data = data[:][data['K_FDR_Corrected_Pval'] < kendall_p]
+        data = data[:][data['Kendall_Tau'] > kendall_r]
     eRows = len(data)
     rowsRemoved = oRows - eRows
-
     print(str(rowsRemoved) + ' data entries removed due to filtering.\n')
-
     return data
 
 def benchmarkTime(fileName, path, stamp, process, timer):
@@ -463,8 +426,8 @@ def false_discovery_control(ps, *, axis=0, method='bh'):
     m = ps.shape[-1]
 
     # Main Algorithm
-    # Equivalent to the ideas of [1] and [2], except that this adjusts the
-    # p-values as described in [3]. The results are similar to those produced
+    # Equivalent to the ideas of [1] and [2], except that this adjusts the p
+    # values as described in [3]. The results are similar to those produced
     # by R's p.adjust.
 
     # "Let [ps] be the ordered observed p-values..."

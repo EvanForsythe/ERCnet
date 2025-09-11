@@ -138,30 +138,9 @@ if (testNum > 0):
     pairwise_combos=random.sample(pairwise_combos, testNum)
 
 
-# Make results file with a header
-'''
-results_file = os.path.join(out_dir, 'ERC_results', str(fileName))
-with open(results_file, "w") as f:
-    f.write("GeneA_HOG\tGeneA_ID\tGeneB_HOG\tGeneB_ID\tOverlapping_branches\tSlope\tP_R2\tP_Pval\tS_R2\tS_Pval\tP_FDR_Corrected_Pval\tS_FDR_Corrected_Pval\n")
-'''
 
-# Updated function to calculate correlation and extract statistics
+# Create function to calculate correlation and extract statistics for a single pair of genes
 def calculate_correlation(geneA, geneB, hog_to_gene_id, BLs, bl_hog_ids):
-    """
-    Perform correlation calculation for a single pair of genes and return extracted statistics.
-
-    Parameters:
-    - geneA, geneB: The HOG IDs for the two genes being compared.
-    - hog_to_gene_id: Dictionary mapping HOG IDs to gene IDs for the focal species.
-    - BLs: DataFrame containing branch length information.
-    - bl_hog_ids: Set containing the HOG_IDs from BLs for faster membership testing.
-
-    Returns:
-    - A string with the format:
-      "GeneA_HOG\tGeneA_ID\tGeneB_HOG\tGeneB_ID\tNumber of Rows\tSlope\tPearson r-squared\tPearson p-value\tSpearman r-squared\tSpearman p-value"
-      If correlation cannot be computed, return None.
-    """
-
     # Use the dictionary to get gene IDs for the focal species
     geneA_ID = hog_to_gene_id.get(geneA)
     geneB_ID = hog_to_gene_id.get(geneB)
@@ -218,9 +197,9 @@ def calculate_correlation(geneA, geneB, hog_to_gene_id, BLs, bl_hog_ids):
                 f"{geneA}\t{geneA_ID}\t{geneB}\t{geneB_ID}\t"
                 f"{test_df_clean.shape[0]}\t"
                 f"{slope}\t"
-                f"{pearson_corr**2}\t"
+                f"{pearson_corr}\t"
                 f"{pearson_pval}\t"
-                f"{spearman_corr**2}\t"
+                f"{spearman_corr}\t"
                 f"{spearman_pval}\t"
                 f"{kendall_corr}\t"
                 f"{kendall_pval}"
@@ -262,7 +241,7 @@ def perform_all_by_all_parallel_incremental(pairwise_combos, gene_fams, BLs, out
     # Prepare results file with header
     results_file = os.path.join(out_dir, 'ERC_results', str(fileName))
     with open(results_file, "w") as f:
-        f.write("GeneA_HOG\tGeneA_ID\tGeneB_HOG\tGeneB_ID\tOverlapping_branches\tSlope\tP_R2\tP_Pval\tS_R2\tS_Pval\tK_Tau\tK_Pval\tP_FDR_Corrected_Pval\tS_FDR_Corrected_Pval\tK_FDR_Corrected_Pval\n")
+        f.write("GeneA_HOG\tGeneA_ID\tGeneB_HOG\tGeneB_ID\tOverlapping_branches\tSlope\tPearson_R\tPearson_Pval\tSpearman_R\tSpearman_Pval\tKendall_Tau\tKendall_Pval\tP_FDR_Corrected_Pval\tS_FDR_Corrected_Pval\tK_FDR_Corrected_Pval\n")
     
     # Divide the pairwise_combos list into chunks of size `chunk_size`
     for chunk_start in range(0, len(pairwise_combos), chunk_size):
