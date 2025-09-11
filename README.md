@@ -334,20 +334,23 @@ All options for Network_analyses.py:
 | -h | --help | Print help menu | no | NA |
 | -j | --JOBname | Unique job name for this run of ERCnet. This should be the exact same as the jobname used in the previous steps | yes | NA |
 | -m | --BLmethod | Branch length method ERC results to be used in the network. "bxb" for Branch-by-branch. "r2t" for root-to-tip. | yes | NA |
-| -p | --PValue | Cuttoff for P value by which to filter ERC hits in network. Float between 0 and 1. | no | 0.05 |
-| -r | --RSquared | Cuttoff R-squared value by which to filter ERC hits in network. Float between 0 and 1. | no | 0.50 |
+| -pp | --PearsonP | P-value cutoff for Pearson correlation. Float between 0 and 1. | no | 0.05 |
+| -pr | --PearsonR | R-value cutoff for Pearson correlation. Note that is is R, not R-squared. Float between 0 and 1. | no | 0.50 |
+| -sp | --SpearmanP | P-value cutoff for Spearman correlation. Float between 0 and 1. | no | 0.05 |
+| -sr | --SpearmanR | R-value cutoff for Spearman correlation. Note that is is R, not R-squared. Float between 0 and 1. | no | 0.50 |
+| -kp | --KendallP | P-value cutoff for Kendall correlation. Float between 0 and 1. | no | 0.05 |
+| -kr | --KendallR | R-value cutoff for Kendall correlation. Note that is is R (aka Kendall's Tau), not R-squared. Float between 0 and 1. | no | 0.50 |
 | -c | --CorrMethod | The type of correlation method by which you would like to filter P Value and R value. Should be 'pearson', 'spearman', 'kendall', or 'all'. | no | "pearson" |
 | -S | --Strict | Filters ERC results p-values corrected with Benjamini-Hochberg False Discovery Rate | no | not used be default |
 | -y | --Clustmeth | Clustering method to be used to identify communities in network. "fg" for fast-and-greedy (fastest), "eb" for edge-betweenness, "op" for optimal, and "wt" for walktrap. | yes | NA |
 | -t | --Trim_Cutoff | Must be an integer. Indicates the minimum number of nodes necessary for a community to be displayed on the network plot. Communitiies smaller than this number will be trimmed from the graph (and associated output tables). This option is mainly for network aesthetics. | no | 0 |
 | -s | --FocalSP | The name of the focal species to represent each gene family (should exactly match the tip label of the species tree). See further description below |
-| -f | --FileName | The filename of ERC_results file you would like to analyze. Should be .tsv file | yes | NA |
 | -F | --Func_cat | Run a functional clustering analysis with user-provided functional information about genes in the focal species? If selected, provide the name of the tsv file. See documentation for formatting. | no | False |
 | -L | --Lab_nodes | Add node labels to the network? If selected, youll need to provide a tsv files of node labels. See documentation for formatting | no | False |
 
 Example command:
 ```
-./Network_analyses.py -j test_job -m R2T -y fg -s A_thaliana_prot -F
+./Network_analyses.py -j test_job -m R2T -y fg -s A_thaliana_prot
 ```
 
 Note: the string you provide with the FocalSP argument should be found within the values present in the GeneA_ID and GeneB_ID column of the tsv files within the ERC_results/Filtered_results/ folder.
@@ -503,6 +506,8 @@ Below is a brief description of each of the files and subdirectories that are ou
 - Sim_test.py provides tools for inspecting individual ERCs within the simulated data.
 - Dup_tables.py generates files that summarize the duplication events detected during gene-tree species tree reconciliation. The first two steps of ERCnet must be completed before this script is run. Running this script will write three output files to the output directory for the larger ERCnet run.
 - Plot_ERCs.R is used to create correlation plots for user-specified pairs of genes.
+- Genes_of_interest_ERC_hits.py is used to extract the ERC hits involving genes of interest. This script will read and write files from/to the Network_analyses/ output directory.
+- Genes_of_interest_dist.py is used to plot KDE plots of the distributions of ERC results for genes of interest and positive control genes (e.g. genes in a protein complex that is known to coevolve). This script will read and write files from/to the ERC_results/ output directory.
 
 [Back to Top](#top)
 
