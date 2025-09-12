@@ -45,7 +45,7 @@ parser.add_argument('-s','--SPmap', action='store_true', required=False, help='A
 parser.add_argument('-n', '--Node', type=int, metavar='', required=False, help='Integer: node number on orthofinder species tree to be used to obtain HOGs (default = 1)' )
 parser.add_argument('-m', '--Mult_threads', type=int, metavar='', required=False, default=2, help='Integer: number of threads avilable for parallel computing (default = 2)' )
 parser.add_argument('-a','--Apriori', action='store_true', required=False, help='Add this flag to provide an apriori set of genes to analyze. The input file listing those genes must be formatted in certian way. See instuctions')
-parser.add_argument('-P', '--Prune_cutoff', type=float, metavar='', required=False, default=0.9, help='Float: prune seqs from alignments if the proportion of gap sites exceeds this number (default: 0.9)')
+parser.add_argument('-P', '--Prune_cutoff', type=float, metavar='', required=False, default=0.5, help='Float: prune seqs from alignments if the proportion of gap sites exceeds this number (default: 0.5)')
 parser.add_argument('-T', '--Taper', type=str, metavar='', required=False, default="no", help='Run TAPER trimming of alignments? If selected, the user must include full path to installation of julia (should end in "bin/" (default=no)')
 parser.add_argument('-b', '--bs_cut', type=int, metavar='', required=False, default=85, help='Integer between 0-100: bootstrap cutoff value for tree rearranging with treerecs. Gene tree branches with bs-support below this value will be rearranged to best match the species tree (default = 85)')
 
