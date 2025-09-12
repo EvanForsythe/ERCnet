@@ -217,7 +217,7 @@ All options for Phylogenomics.py:
 | -n | --Node |Interger: indicate the node on the species tree that you would like to use to retrieve orthofinder HOGs (subtrees). Assuming your species tree has a single outgroup, you'll probably want N1 (default). However, if you species tree has multiple outgroups (or if you'd just like to perform an ERC analysis on a subset of the species tree), you can indicate which node to use for subtree extracting. E.g. For N2.tsv, "-n 2" or "--Node 2"  | no | 1* |
 | -m | --Mult_threads |Integer: number of threads avilable for parallel computing (default = 2). Performing a full-genome analyses will likely require supercomputing resources. We observed inconsistent performance with 1 thread, so a minimum of 2 is required.| no | 2 |
 | -a | --Apriori | Add this flag to provide an *a priori* list of genes to analyze. The list must be in a file named "A_priori_genes.csv" and formatted in a specific way. See instructions above for more information. When you're using the -a option you probably don't want to use the -t option | no | NA |
-| -P | --Prune_cutoff | Float: prune seqs from alignments if the proportion of gap sites exceeds this number | no | 0.9 |
+| -P | --Prune_cutoff | Float: prune seqs from alignments if the proportion of gap sites exceeds this number | no | 0.5 |
 | -b | --bs_cut | Integer between 0-100: bootstrap cutoff value for tree rearranging with treerecs. Gene tree branches with bs-support below this value will be rearranged to best match the species tree | no | 85 |
 | -T | --Taper | Run TAPER trimming of alignments? If selected, the user must include full path to installation of julia (should end in "bin/)" | no | "no" |
 
@@ -508,7 +508,7 @@ Below is a brief description of each of the files and subdirectories that are ou
 - Plot_ERCs.R is used to create correlation plots for user-specified pairs of genes.
 - Genes_of_interest_ERC_hits.py is used to extract the ERC hits involving genes of interest. This script will read and write files from/to the Network_analyses/ output directory.
 - Genes_of_interest_dist.py is used to plot KDE plots of the distributions of ERC results for genes of interest and positive control genes (e.g. genes in a protein complex that is known to coevolve). This script will read and write files from/to the ERC_results/ output directory.
-
+- Genes_of_interest_heatmap.py creates a heatmap figure showing the strength of ERC signature among genes of interest (should probably limit it to about 20 genes at most). This script will read and write files from/to the ERC_results/ output directory.
 [Back to Top](#top)
 
 
