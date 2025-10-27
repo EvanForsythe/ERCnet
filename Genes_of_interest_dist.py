@@ -5,6 +5,14 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import matplotlib as mpl
+
+# Keep text editable in Illustrator
+mpl.rcParams['pdf.fonttype'] = 42      # TrueType (keeps text as text)
+mpl.rcParams['ps.fonttype']  = 42      # If you ever save PS/EPS
+mpl.rcParams['text.usetex'] = False    # Make sure LaTeX isn't turning text into Type 3
+mpl.rcParams['font.family']  = 'Arial' # Or another common font installed on the machine opening the PDF
+
 
 # Will be set after goi_df is loaded
 goi_id_to_name = None
@@ -29,6 +37,13 @@ parser.add_argument('--goi', '-g', required=True, help='Full path to the gene of
 parser.add_argument('--branch_method', '-b', required=True, choices=['BXB', 'R2T'], help='Branch method, must be either BXB or R2T')
 parser.add_argument('--test', action='store_true', help='If set, only analyze the first 5 gene of interest and positive control gene pairs')
 parser.add_argument('--erc_results_folder', '-e', required=True, help='Full path to the folder containing ERC results files (ERC_results_R2T.tsv or ERC_results_BXB.tsv)')
+# New arguments for R and P value cutoffs
+parser.add_argument('-pp', '--PearsonP', type=float, required=False, help='P-value cutoff for Pearson correlation. Default is 0.05', default=0.05)
+parser.add_argument('-pr', '--PearsonR', type=float, required=False, help='R-value cutoff for Pearson correlation. Default is 0.3', default=0.3)
+parser.add_argument('-sp', '--SpearmanP', type=float, required=False, help='P-value cutoff for Spearman correlation. Default is 0.05', default=0.05)
+parser.add_argument('-sr', '--SpearmanR', type=float, required=False, help='R-value cutoff for Spearman correlation. Default is 0.3', default=0.3)
+parser.add_argument('-kp', '--KendallP', type=float, required=False, help='P-value cutoff for Kendall correlation. Default is 0.05', default=0.05)
+parser.add_argument('-kr', '--KendallR', type=float, required=False, help='R-value cutoff for Kendall correlation. Default is 0.3', default=0.3)
 args = parser.parse_args()
 
 # Ensure output directory exists
@@ -119,7 +134,7 @@ rows_filename = os.path.join(args.erc_results_folder, f"Genes_of_interest_and_po
 rows_of_interest.to_csv(rows_filename, sep='\t', index=False)
 print(f'Saved transitional file: {rows_filename} ({len(rows_of_interest)} rows)')
 
-# Five-panel stacked KDE plot for Pearson_R, Spearman_R, Kendall_Tau, min, and avg
+# Three-panel stacked KDE plot for Pearson_R, Spearman_R, Kendall_Tau, min, and avg
 import numpy as np
 metrics = [
     ("Pearson_R", "Pearson_R KDE"),
@@ -127,12 +142,11 @@ metrics = [
     ("Kendall_Tau", "Kendall_Tau KDE")
 ]
 
-
-
 print("Plotting three-panel stacked KDE plot for R values ...")
 fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(8, 14), sharex=False)
 ERC_results_df_plot = ERC_results_df.sample(n=min(100000, len(ERC_results_df)), random_state=42) if len(ERC_results_df) > 100000 else ERC_results_df
-for ax, (col, label) in zip(axes, metrics):
+for i, (col, label) in enumerate(metrics):
+    ax = axes[i]
     # KDE for full dataset (downsampled)
     sns.kdeplot(ERC_results_df_plot[col], fill=True, color='skyblue', label='Full dataset', ax=ax)
     # KDE for positive control genes
@@ -141,17 +155,27 @@ for ax, (col, label) in zip(axes, metrics):
     # KDE for gene of interest pairs
     if not goi_extracted_rows.empty:
         sns.kdeplot(goi_extracted_rows[col], fill=True, color='orange', label='Gene of interest pairs', ax=ax, alpha=0.5)
-        # Vertical lines for gene of interest pairs
-        # Label the highest 5 verticals
-        top5 = goi_extracted_rows.nlargest(5, col)
-        for idx, value in enumerate(goi_extracted_rows[col]):
-            ax.axvline(value, color='orange', linestyle='-', alpha=0.7, label='Gene of interest pairs' if value == goi_extracted_rows[col].iloc[0] else "")
-        for _, row in top5.iterrows():
-            label_str = get_pair_names(row)
-            ax.annotate(label_str, xy=(row[col], ax.get_ylim()[1]), xytext=(0,5), textcoords='offset points', ha='center', va='bottom', fontsize=8, color='orange', rotation=90, fontweight='bold')
+        # Determine R-value threshold for this metric
+        if col == 'Pearson_R':
+            r_cutoff = args.PearsonR
+        elif col == 'Spearman_R':
+            r_cutoff = args.SpearmanR
+        elif col == 'Kendall_Tau':
+            r_cutoff = args.KendallR
+        else:
+            r_cutoff = 0.3
+        # Add vertical lines only for rows passing R threshold
+        filtered_rows = goi_extracted_rows[goi_extracted_rows[col] >= r_cutoff]
+        y_max = ax.get_ylim()[1]
+        for idx, (row_idx, row) in enumerate(filtered_rows.iterrows()):
+            value = row[col]
+            ax.axvline(value, color='orange', linestyle='-', alpha=0.7, label='Gene of interest pairs' if idx == 0 else "")
+            label = get_pair_names(row)
+            # Place label at the top of the plot, slightly above y_max
+            ax.text(value, y_max*0.5, label, rotation=90, va='bottom', ha='center', fontsize=8, color='orange', clip_on=True)
     ax.set_xlabel(col)
     ax.set_ylabel('Density')
-    ax.set_title(f'KDE Plot of {label} with Extracted Rows')
+    # No panel title
     # Add more x-axis tick marks
     ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=15))
     handles, labels_ = ax.get_legend_handles_labels()
@@ -163,7 +187,7 @@ plt.savefig(output_file)
 print(f"Three-panel KDE plot (Rval) saved as {output_file}")
 plt.show()
 
-# Second 5-panel figure: Pval values (log10 transformed)
+# Second three-panel figure: Pval values (log10 transformed)
 import numpy as np
 pval_metrics = [
     ("Pearson_Pval", "Pearson_Pval KDE"),
@@ -196,7 +220,8 @@ print("Plotting three-panel stacked KDE plot for P values (log10 transformed) ..
 fig2, axes2 = plt.subplots(nrows=3, ncols=1, figsize=(8, 14), sharex=False)
 # Downsample full dataset for plotting
 ERC_results_df_plot = ERC_results_df.sample(n=min(100000, len(ERC_results_df)), random_state=42) if len(ERC_results_df) > 100000 else ERC_results_df
-for ax, (col, label) in zip(axes2, pval_metrics_log):
+for i, (col, label) in enumerate(pval_metrics_log):
+    ax = axes2[i]
     # KDE for full dataset (downsampled)
     sns.kdeplot(ERC_results_df_plot[col], fill=True, color='skyblue', label='Full dataset', ax=ax)
     # KDE for positive control genes
@@ -205,17 +230,31 @@ for ax, (col, label) in zip(axes2, pval_metrics_log):
     # KDE for gene of interest pairs
     if not goi_extracted_rows.empty:
         sns.kdeplot(goi_extracted_rows[col], fill=True, color='orange', label='Gene of interest pairs', ax=ax, alpha=0.5)
-        # Vertical lines for gene of interest pairs
-        # Label the highest 5 verticals
-        top5 = goi_extracted_rows.nlargest(5, col)
-        for idx, value in enumerate(goi_extracted_rows[col]):
-            ax.axvline(value, color='orange', linestyle='-', alpha=0.7, label='Gene of interest pairs' if value == goi_extracted_rows[col].iloc[0] else "")
-        for _, row in top5.iterrows():
-            label_str = get_pair_names(row)
-            ax.annotate(label_str, xy=(row[col], ax.get_ylim()[1]), xytext=(0,5), textcoords='offset points', ha='center', va='bottom', fontsize=8, color='orange', rotation=90, fontweight='bold')
+        # Determine P-value threshold for this metric
+        if col == 'Pearson_Pval_log10':
+            p_cutoff = args.PearsonP
+            orig_pval_col = 'Pearson_Pval'
+        elif col == 'Spearman_Pval_log10':
+            p_cutoff = args.SpearmanP
+            orig_pval_col = 'Spearman_Pval'
+        elif col == 'Kendall_Pval_log10':
+            p_cutoff = args.KendallP
+            orig_pval_col = 'Kendall_Pval'
+        else:
+            p_cutoff = 0.05
+            orig_pval_col = None
+        # Add vertical lines only for rows passing P threshold
+        if orig_pval_col is not None:
+            filtered_rows = goi_extracted_rows[goi_extracted_rows[orig_pval_col] <= p_cutoff]
+            y_max = ax.get_ylim()[1]
+            for idx, (row_idx, row) in enumerate(filtered_rows.iterrows()):
+                value = row[col]
+                ax.axvline(value, color='orange', linestyle='-', alpha=0.7, label='Gene of interest pairs' if idx == 0 else "")
+                label_names = get_pair_names(row)
+                ax.text(value, y_max*0.5, label_names, rotation=90, va='bottom', ha='center', fontsize=8, color='orange', clip_on=True)
     ax.set_xlabel(label)
     ax.set_ylabel('Density')
-    ax.set_title(f'KDE Plot of {label} with Extracted Rows')
+    # No panel title
     # Add integer x-axis tick marks
     ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=15, integer=True))
     handles, labels_ = ax.get_legend_handles_labels()
@@ -226,5 +265,3 @@ output_file2 = os.path.join(args.erc_results_folder, f"Genes_of_interest_and_pos
 plt.savefig(output_file2)
 print(f"Three-panel KDE plot (Pval, log10) saved as {output_file2}")
 plt.show()
-
-# ...existing code...

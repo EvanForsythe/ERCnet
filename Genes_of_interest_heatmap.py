@@ -6,12 +6,22 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import matplotlib as mpl
+
+# Keep text editable in Illustrator
+mpl.rcParams['pdf.fonttype'] = 42      # TrueType (keeps text as text)
+mpl.rcParams['ps.fonttype']  = 42      # If you ever save PS/EPS
+mpl.rcParams['text.usetex'] = False    # Make sure LaTeX isn't turning text into Type 3
+
+
 
 # --- argparse ---
+
 parser = argparse.ArgumentParser(description='Generate ERC heatmap for genes of interest.')
 parser.add_argument('--job_name', '-j', required=True, help='Jobname of ERCnet run')
 parser.add_argument('--branch_method', '-b', required=True, choices=['BXB', 'R2T'], help='Branch method, must be either BXB or R2T')
 parser.add_argument('--HOGs_of_interest', '-g', required=True, help='Full path to a TSV file with the columns "HOG" and "Gene_name" listing HOGs of interest')
+parser.add_argument('--test', action='store_true', help='If set, only use the first 5 HOGs_of_interest for testing')
 args = parser.parse_args()
 
 # --- output folder setup ---
@@ -22,7 +32,11 @@ print(f"Saving output files to: {erc_results_folder}")
 
 # --- read HOGs file ---
 print(f"Reading HOGs of interest from: {args.HOGs_of_interest}")
+
 df = pd.read_csv(args.HOGs_of_interest, sep="\t")
+if args.test:
+    print("--test flag is set: using only the first 5 HOGs_of_interest for testing.")
+    df = df.iloc[:5]
 hog_to_gene = dict(zip(df["HOG"], df["Gene_name"]))
 filtered_hogs = df["HOG"].unique().tolist()
 print(f"Number of HOGs of interest: {len(filtered_hogs)}")
@@ -66,9 +80,13 @@ print("Unique GeneB_IDs:", df["GeneB_ID"].unique())
 # --- build matrix ---
 print("Building heatmap matrix...")
 # Use HOGs for matrix construction
-
-all_hogs = sorted(set(df["GeneA_HOG"]).union(df["GeneB_HOG"]))
-print("HOGs in matrix axes:", all_hogs)
+# Preserve the order of HOGs from the input `HOGs_of_interest` file (filtered_hogs).
+# If the ERC filtered results contain additional HOGs not in the input file,
+# append them at the end in sorted order so they are not lost.
+data_hogs = list(dict.fromkeys(list(df["GeneA_HOG"]) + list(df["GeneB_HOG"])))
+extra_hogs = [h for h in data_hogs if h not in filtered_hogs]
+all_hogs = list(filtered_hogs) + sorted(extra_hogs)
+print("HOGs in matrix axes (preserving input order, extras appended):", all_hogs)
 print("Unique GeneA_HOGs in filtered results:", df["GeneA_HOG"].unique())
 print("Unique GeneB_HOGs in filtered results:", df["GeneB_HOG"].unique())
 print("Example HOGs from matrix:", all_hogs[:5])
@@ -81,7 +99,7 @@ for _, row in df.iterrows():
     Pearson_R = row["Pearson_R"]
     Spearman_R = row["Spearman_R"]
     Kendall_Tau = row["Kendall_Tau"]
-    print(f"P: {Pearson_R}, R: {Spearman_R}, K: {Kendall_Tau}")
+    #print(f"P: {Pearson_R}, S: {Spearman_R}, K: {Kendall_Tau}")
     av_R_val = np.mean([Pearson_R, Spearman_R, Kendall_Tau])
     if np.isnan(av_R_val):
         print(f"NaN correlation for pair: {a_hog}, {b_hog}")
