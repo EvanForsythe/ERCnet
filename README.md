@@ -220,6 +220,7 @@ All options for Phylogenomics.py:
 | -P | --Prune_cutoff | Float: prune seqs from alignments if the proportion of gap sites exceeds this number | no | 0.5 |
 | -b | --bs_cut | Integer between 0-100: bootstrap cutoff value for tree rearranging with treerecs. Gene tree branches with bs-support below this value will be rearranged to best match the species tree | no | 85 |
 | -T | --Taper | Run TAPER trimming of alignments? If selected, the user must include full path to installation of julia (should end in "bin/)" | no | "no" |
+| -w | --resume_window | Add this flag only if you are running a windows-ERC run and have ran the windows preprocessing steps. See instructions. | no | "no" |
 
 *Values for these parameters can have a large impact on analyses so make sure the values make biological sense for your analysis before opting for default values.
 
