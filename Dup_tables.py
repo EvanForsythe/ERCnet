@@ -55,37 +55,81 @@ else:
     sys.exit()
 
 
-def find_dups(tsv_dir, header_file, output_file, gene_fam_file, focal_sp, char_range):
+def find_dups(tsv_dir, header_file, output_file,
+              gene_fam_file, focal_sp, char_range):
+
     print("Looping through HOG files...")
 
-    # Read headers from the first line of "bxb_BLs_normalized.tsv"
+    # Read species-tree branch headers
     with open(header_file, 'r') as file:
         headers = file.readline().strip().split('\t')
 
-    # Initialize the dataframe with headers and an additional HOG_ID column
+    # --------------------------------------------------------
+    # Create exact node -> incoming branch mapping
+    # --------------------------------------------------------
+
+    node_to_branch = {}
+
+    for header in headers:
+
+        if '_to_' in header:
+
+            source_node, target_node = header.split('_to_')
+
+            if target_node in node_to_branch:
+                raise ValueError(
+                    f"Multiple branches found terminating at "
+                    f"{target_node}: "
+                    f"{node_to_branch[target_node]} and {header}"
+                )
+
+            node_to_branch[target_node] = header
+
+    # --------------------------------------------------------
+    # Initialize dataframe
+    # --------------------------------------------------------
+
     df = pd.DataFrame(columns=headers)
 
-    # Read the gene families file
     gene_fams = pd.read_csv(gene_fam_file, sep=',')
 
-    # Parse the character range
     start_idx, end_idx = map(int, char_range.split('-'))
 
-    # Process each TSV file in the directory
+    # --------------------------------------------------------
+    # Process reconciliation files
+    # --------------------------------------------------------
+
     for filename in os.listdir(tsv_dir):
+
         if filename.endswith('.dlcpar.locus.recon'):
+
             filepath = os.path.join(tsv_dir, filename)
 
-            # Read the TSV file into a DataFrame
-            file_df = pd.read_csv(filepath, sep='\t', header=None, names=['GT_node', 'ST_node', 'Event'])
+            file_df = pd.read_csv(
+                filepath,
+                sep='\t',
+                header=None,
+                names=['GT_node', 'ST_node', 'Event']
+            )
 
-            # Initialize a dictionary to count dups for each header
             dup_counts = defaultdict(int)
 
-            # Count "dup" occurrences based on mapping
+            # Count duplications using EXACT node matching
             for _, row in file_df.iterrows():
+
                 if row['Event'] == 'dup':
-                    column_name = next(col for col in df.columns[1:] if str("_" + row['ST_node']) in col)
+
+                    st_node = str(row['ST_node'])
+
+                    if st_node not in node_to_branch:
+                        raise ValueError(
+                            f"Could not find species-tree branch "
+                            f"for ST_node {st_node} "
+                            f"in {filename}"
+                        )
+
+                    column_name = node_to_branch[st_node]
+
                     dup_counts[column_name] += 1
 
             # Prepare a row for the new dataframe
@@ -117,9 +161,18 @@ def find_dups(tsv_dir, header_file, output_file, gene_fam_file, focal_sp, char_r
             # Add seqID to the last row
             df.loc[df.index[-1], 'seqID'] = seq_id
 
+    # Reorder columns so HOG_ID and seqID are first
+    branch_columns = [
+        col for col in df.columns
+        if col not in ['HOG_ID', 'seqID']
+    ]
+
+    df = df[['HOG_ID', 'seqID'] + branch_columns]
+
     # Write the resulting dataframe to a TSV file
     print(f"Writing file: {output_file}")
     df.to_csv(output_file, sep='\t', index=False)
+
     return df
 
 # Call the function
@@ -136,16 +189,17 @@ dups_counts_df = find_dups(
 ## Get the sums from the columns
 def calculate_column_totals(input_df, output_file):
     """
-    Calculates column totals for a DataFrame (excluding a specified column) and writes the results to a TSV file.
-
-    Parameters:
-        input_df (pd.DataFrame): The input DataFrame.
-        output_file (str): Path to the output TSV file.
+    Calculates column totals for the species-tree branch columns
+    and writes the results to a TSV file.
     """
-    # Exclude the 'HOG_ID' column
-    columns_to_sum = [col for col in input_df.columns if col != 'HOG_ID']
 
-    # Calculate totals for each column
+    # Only sum species-tree branch columns
+    columns_to_sum = [
+        col for col in input_df.columns
+        if '_to_' in col
+    ]
+
+    # Calculate totals for each branch
     totals = input_df[columns_to_sum].sum()
 
     # Create a new DataFrame for the results
