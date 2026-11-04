@@ -110,12 +110,29 @@ args = parser.parse_args()
 print('Creating new directories...')
 original_job_path = 'OUT_' + args.job_name + '/'
 if not Path(original_job_path).exists():
-  raise SystemExit('No ERCnet run found with provided job name. Please try again. Exiting windows script.')
+  raise SystemExit('\nERROR: No ERCnet directory found with provided job name. Please try again. Exiting windows script.')
 
 # Make new windows analysis out directory
 windows_job_path = 'OUT_' + args.job_name + '_windows/'
-shutil.rmtree(windows_job_path, ignore_errors=True)
-Path(windows_job_path).mkdir()
+
+if Path(windows_job_path).exists():
+  while True:
+    user_input = input('\nINPUT REQUIRED: This jobname already exists. Would you like to overwrite? (y/n) \n')
+    if user_input == 'y':
+      print('Clearing contents of ' + windows_job_path + ' All output files will be written to this folder\n')
+      shutil.rmtree(windows_job_path)
+      Path(windows_job_path).mkdir()
+
+      break
+    if user_input == 'n':
+      raise SystemExit('Unique jobname required. Exiting...')
+      break
+    else:
+      print('Command not recognized.\n')
+
+else:
+  Path(windows_job_path).mkdir()
+  print('> Created directory: '+ windows_job_path +'\nAll output files will be written to this folder.\n')
 
 # --- Copy Directories and Files ---
 print('Copying directories and files required for Phylogenomics.py from original ERCnet job...')
@@ -128,7 +145,6 @@ shutil.copy(original_job_path + 'Run_data_counts_log.csv', windows_job_path)
 
 print('> benchmark/', flush=True)
 shutil.copytree(original_job_path + 'benchmark/', windows_job_path + 'benchmark/', dirs_exist_ok=True)
-#shutil.copy(original_job_path + 'benchmark/' + args.job_name + '_Phylogenomics_benchmark.tsv', windows_job_path)
 
 print('> Species_mapping.csv', flush=True)
 shutil.copy(original_job_path + 'Species_mapping.csv', windows_job_path)
