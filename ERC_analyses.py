@@ -120,7 +120,7 @@ gene_fams=pd.read_csv(out_dir+'Filtered_genefam_dataset.csv')
 
 #Clean up the gene IDs dataframe
 #Find out what string needs to be removed from HOGs and use replace() to remove it
-gene_fams['HOG']=gene_fams['HOG'].str.replace(str(gene_fams['HOG'][0].split(".", 1)[0]+"."), "")
+gene_fams['HOG'] = gene_fams['HOG'].str.replace(r'^[^.]+\.', '', regex=True)
 
 #Verify list of BLs['HOG_ID'] is at least 2. 
 if len(BLs['HOG_ID']) < 2:
